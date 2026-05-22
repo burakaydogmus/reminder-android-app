@@ -1,0 +1,68 @@
+name: reminder
+description: Genel hatırlatıcı — yapılacaklar ve notlar.
+publish_to: 'none'
+version: 2.1.0+8
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  animations: ^2.0.11
+  flutter_bloc: ^8.1.6
+  intl: ^0.19.0
+  shared_preferences: ^2.3.3
+  uuid: ^4.5.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+  flutter_geofence_manager: ^1.0.2
+  permission_handler: ^12.0.1
+  geolocator: ^14.0.2
+  http: ^1.6.0
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
+  home_widget: ^0.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  image_path: assets/launcher/icon.png
+  android: true
+  ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#6B4FC8"
+  adaptive_icon_foreground: assets/launcher/icon.png
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/launcher/icon.png
+
+  fonts:
+    - family: Comfortaa
+      fonts:
+        - asset: fonts/Comfortaa-Regular.ttf
+
+        - asset: fonts/Comfortaa-Light.ttf
+          weight: 300
+
+        - asset: fonts/Comfortaa-Medium.ttf
+          weight: 500
+
+        - asset: fonts/Comfortaa-SemiBold.ttf
+          weight: 600
+
+        - asset: fonts/Comfortaa-Bold.ttf
+          weight: 700
