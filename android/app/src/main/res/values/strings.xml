@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hatırlatıcı</string>
+    <string name="cancel">İptal</string>
+    <string name="widget_title">Hatırlatıcılar</string>
+    <string name="widget_label">Hatırlatıcı</string>
+    <string name="widget_description">Aktif hatırlatıcılar; kutuya dokunarak tamamlandı işaretleyin. Boyutu ana ekranda yeniden ayarlayabilirsiniz.</string>
+    <string name="widget_empty">Aktif hatırlatıcı yok</string>
+    <string name="widget_check_unchecked">☐</string>
+</resources>
