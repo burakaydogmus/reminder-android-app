@@ -1,0 +1,73 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IDE
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code: launch/tasks genelde ekip için paylaşılabilir; gerekirse klasörü yorumdan çıkarıp buraya ekleyin
+#.vscode/
+
+# Flutter / Dart / Pub
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# (İsteğe bağlı) FVM sürüm kilidi
+# .fvm/
+
+# Bazı sürümlerde kökte üretilebilen eklenti kayıt dosyası
+lib/generated_plugin_registrant.dart
+
+# Sembol / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android: yerel yollar, SDK (makineye özel; commit etmeyin)
+**/local.properties
+android/.gradle/
+android/**/.cxx/
+android/captures/
+android/app/debug/
+android/app/profile/
+android/app/release/
+*.hprof
+.externalNativeBuild/
+
+# Android: release imzası (asla commitlemeyin)
+android/**/key.properties
+*.jks
+*.keystore
+
+# iOS
+**/ios/**/DerivedData/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/ServiceDefinitions.json
+
+# Test
+coverage/
+.test_coverage.dart
+
+# Windows / sistem
+Thumbs.db
+ehthumbs.db
+Desktop.ini
