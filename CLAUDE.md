@@ -53,8 +53,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
 - `services/`
   - `sync_interfaces.dart` — `GeofenceSync` and `HomeWidgetSync` interfaces.
   - `notification_service.dart` — `flutter_local_notifications` scheduling (singleton).
-  - `geofence_service.dart` — region registration/listening (`flutter_geofence_manager`);
-    implements `GeofenceSync`.
+  - `geofence_service.dart` — diff-based region registration (`native_geofence`);
+    implements `GeofenceSync`. See **Geofencing** below.
+  - `geofence_callback.dart` — `geofenceEntryCallback`, the background entry point
+    that shows location notifications (also when the app is terminated).
+  - `geofence_logic.dart` — pure rules: region selection/limits, sync plan, notify
+    decision (cooldown, initial-trigger grace). `geofence_platform.dart` wraps the
+    plugin; `geofence_state_store.dart` persists registrations and last-notified times.
   - `places_nearby_service.dart` — Google Places Nearby over HTTP.
   - `reminder_home_widget_sync.dart` — pushes data to the `home_widget`
     (`syncRemindersToHomeWidget`); `PlatformHomeWidgetSync` implements `HomeWidgetSync`.
@@ -74,6 +79,8 @@ Tests mirror `lib/`:
 - `test/domain/` — pure model tests (JSON, date logic, ids, labels).
 - `test/data/` — `ReminderRepository` against `SharedPreferences.setMockInitialValues`.
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
+- `test/services/` — geofence rules, `GeofenceService` sync against a fake
+  `GeofencePlatform` (no platform channels), background entry handling.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
 
@@ -115,6 +122,36 @@ wired in `app.dart`, mocked in `test/helpers/mocks.dart`.
 `lib/bloc/reminder_cubit.dart`, `lib/services/notification_service.dart` and the models
 in `lib/domain/model/` are touched by many roadmap items. Items that modify them must
 land **sequentially**; keep changes there minimal and rebase often.
+
+## Geofencing
+
+- Plugin: [`native_geofence`](https://pub.dev/packages/native_geofence) (constraint
+  `^1.2.1`; 1.2.2+ needs `meta` 1.17, i.e. a newer Flutter than 3.29 — it upgrades
+  itself to 1.3.x with the F4.0 Flutter upgrade).
+- **Events never reach the UI isolate.** The OS wakes the app (Android: broadcast →
+  WorkManager → headless `FlutterEngine`; iOS: CoreLocation relaunch → headless
+  engine) and runs `geofenceEntryCallback` (`@pragma('vm:entry-point')`, top level).
+  The callback must be self-contained: no cubit, no singleton state from the main
+  isolate; it loads settings/reminders via `ReminderRepository`, re-initializes
+  `NotificationService`, then calls `showGeofenceEntry`. Keep it short (iOS gives
+  ~10 s). `GeofenceService.startListening` is a no-op kept for compatibility.
+- SharedPreferences is shared between isolates but each isolate caches it:
+  `GeofenceStateStore` calls `reload()` before reading.
+- Regions: enter-only, no initial trigger, radius clamped 100–500 m. Sync is
+  diff-based (`planGeofenceSync`) — unchanged regions are not re-registered.
+- Limits: iOS 20 regions, Android 100 geofences. Above the limit the **most recently
+  created** eligible reminders are registered (`buildGeofenceTargets`).
+- Duplicate suppression: no notification within 30 s of registering a region
+  (initial state) or within 10 min of the last notification for that reminder.
+- Reboot / update (Android): `NativeGeofenceRebootBroadcastReceiver` re-creates
+  regions on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED`; `GeofenceService.initialize()`
+  also re-creates them on every app start (covers force-stop). iOS keeps regions
+  across reboots itself.
+- iOS: `AppDelegate` must call `NativeGeofencePlugin.setPluginRegistrantCallback`
+  before `GeneratedPluginRegistrant.register`. No `UIBackgroundModes` needed; events
+  while the app is closed require "Always" location permission.
+- Do **not** add a foreground service for geofencing (Google Play disallows it from
+  28 Oct 2026); `NativeGeofenceBackgroundManager.promoteToForeground` is unused.
 
 ## Platform notes
 
