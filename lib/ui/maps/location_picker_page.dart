@@ -289,7 +289,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.fabirt.reminder',
+                      userAgentPackageName: 'com.burakaydogmus.reminder',
                     ),
                     CircleLayer(
                       circles: [

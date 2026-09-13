@@ -18,6 +18,12 @@ def keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+if (!hasReleaseKeystore &&
+        gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }) {
+    logger.warn("WARNING: android/key.properties not found; release build is " +
+            "signed with the DEBUG key. Do not publish this artifact.")
+}
 
 def flutterVersionCode = localProperties.getProperty("flutter.versionCode")
 if (flutterVersionCode == null) {
@@ -30,7 +36,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.fabirt.reminder"
+    namespace "com.burakaydogmus.reminder"
     compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -45,7 +51,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.fabirt.reminder"
+        applicationId "com.burakaydogmus.reminder"
         minSdk 26
         targetSdk flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
@@ -53,17 +59,31 @@ android {
     }
 
     signingConfigs {
-        release {
-            keyAlias keystoreProperties["keyAlias"]
-            keyPassword keystoreProperties["keyPassword"]
-            storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
-            storePassword keystoreProperties["storePassword"]
+        if (hasReleaseKeystore) {
+            release {
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+                storeFile keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
+                storePassword keystoreProperties["storePassword"]
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                // No android/key.properties (CI, fresh clones): sign with the
+                // debug key so `flutter build apk --release` still works.
+                // Such APKs must not be published.
+                signingConfig signingConfigs.debug
+            }
+
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
         }
     }
 }
