@@ -7,12 +7,13 @@ import 'package:reminder/services/geofence_logic.dart';
 import 'package:reminder/services/geofence_platform.dart';
 import 'package:reminder/services/geofence_state_store.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/sync_interfaces.dart';
 
 /// OS geofence kayıtlarını hatırlatıcılarla senkronlar.
 ///
 /// Giriş bildirimleri ana isolate'te değil, `geofenceEntryCallback` arka plan
 /// callback'inde gösterilir; böylece uygulama kapalıyken de çalışır.
-class GeofenceService {
+class GeofenceService implements GeofenceSync {
   GeofenceService._(this._platform, this._store, this._clock);
 
   static final GeofenceService instance = GeofenceService._(
@@ -52,6 +53,7 @@ class GeofenceService {
   void startListening(NotificationService notifications) {}
 
   /// Hatırlatıcı listesine göre geofence'leri günceller (yalnızca fark).
+  @override
   Future<void> syncWithReminders(
     List<Reminder> reminders, {
     required bool notificationsEnabled,

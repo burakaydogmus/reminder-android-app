@@ -9,18 +9,6 @@ import 'package:reminder/domain/model/reminder.dart';
 import '../helpers/factories.dart';
 import '../helpers/mocks.dart';
 
-/// `ReminderCubit`, `GeofenceService.instance`'ı doğrudan çağırıyor.
-/// `FlutterGeofenceManager.registerPlatforms()` Android/iOS dışındaki her
-/// platformda (test host'u dahil) method channel'a ulaşmadan
-/// `UnsupportedError` fırlatıyor; bu yüzden channel stub'lamak işe yaramıyor.
-///
-/// Sonuç: geofence senkronuna ulaşan her cubit metodu testte bu hatayla
-/// biter. Testler hatadan ÖNCEKİ davranışı (emit edilen state, repository
-/// kayıtları, bildirim senkronu) doğrular ve hatayı `errors` ile bekler.
-/// Geofence ve home widget senkronu doğrulanamıyor — F0.3'te servisler
-/// constructor injection ile verildiğinde bu testler sadeleştirilmeli.
-final _geofenceUnsupportedOnHost = [isA<UnsupportedError>()];
-
 ReminderState _state({
   List<Reminder> reminders = const [],
   List<Birthday> birthdays = const [],
@@ -38,17 +26,51 @@ Matcher _hasReminderIds(List<String> ids) => isA<ReminderState>()
 void main() {
   late MockReminderRepository repository;
   late MockNotificationService notifications;
+  late MockGeofenceSync geofence;
+  late MockHomeWidgetSync homeWidget;
 
   setUpAll(registerModelFallbackValues);
 
   setUp(() {
     repository = MockReminderRepository();
     notifications = MockNotificationService();
+    geofence = MockGeofenceSync();
+    homeWidget = MockHomeWidgetSync();
     stubRepositoryWrites(repository);
     stubNotificationService(notifications);
+    stubGeofenceSync(geofence);
+    stubHomeWidgetSync(homeWidget);
   });
 
-  ReminderCubit buildCubit() => ReminderCubit(repository, notifications);
+  ReminderCubit buildCubit() => ReminderCubit(
+        repository,
+        notifications,
+        geofence: geofence,
+        homeWidget: homeWidget,
+      );
+
+  /// Geofence ve home widget senkronunun tam bir kez, verilen hatırlatıcı
+  /// id'leri (sırasıyla) ve bildirim bayrağıyla çağrıldığını doğrular.
+  /// Geofence'e giden listeyi döndürür.
+  List<Reminder> verifyServicesSynced(
+    List<String> reminderIds, {
+    required bool notificationsEnabled,
+  }) {
+    final geo = verify(
+      () => geofence.syncWithReminders(
+        captureAny(),
+        notificationsEnabled: notificationsEnabled,
+      ),
+    ).captured.single as List<Reminder>;
+    expect(geo.map((r) => r.id), reminderIds, reason: 'geofence sync');
+    verifyNoMoreInteractions(geofence);
+
+    final widget = verify(() => homeWidget.sync(captureAny())).captured.single
+        as List<Reminder>;
+    expect(widget.map((r) => r.id), reminderIds, reason: 'home widget sync');
+    verifyNoMoreInteractions(homeWidget);
+    return geo;
+  }
 
   test('initial state is empty with default settings', () {
     final cubit = buildCubit();
@@ -87,6 +109,13 @@ void main() {
         buildReminder(id: 'untimed-new', createdAt: DateTime(2026, 1, 1));
     final birthday = buildBirthday();
     const settings = AppSettings(notificationsEnabled: false);
+    const sortedIds = [
+      'timed-early',
+      'timed-late',
+      'untimed-new',
+      'untimed-old',
+      'done',
+    ];
 
     setUp(() {
       when(() => repository.loadReminders()).thenAnswer(
@@ -102,13 +131,14 @@ void main() {
       'untimed by createdAt desc',
       build: buildCubit,
       act: (cubit) => cubit.load(),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
-        isA<ReminderState>().having(
+        isA<ReminderState>()
+            .having(
           (s) => s.reminders.map((r) => r.id).toList(),
           'reminder ids',
-          ['timed-early', 'timed-late', 'untimed-new', 'untimed-old', 'done'],
-        ).having((s) => s.birthdays, 'birthdays', [birthday]).having(
+          sortedIds,
+        )
+            .having((s) => s.birthdays, 'birthdays', [birthday]).having(
           (s) => s.settings.notificationsEnabled,
           'notificationsEnabled',
           isFalse,
@@ -127,6 +157,7 @@ void main() {
             notificationsEnabled: false,
           ),
         ).called(1);
+        verifyServicesSynced(sortedIds, notificationsEnabled: false);
         verifyNever(() => repository.saveReminders(any()));
       },
     );
@@ -149,11 +180,10 @@ void main() {
     }
 
     blocTest<ReminderCubit, ReminderState>(
-      'addReminder appends and saves',
+      'addReminder appends, saves and syncs services',
       build: buildCubit,
       seed: () => _state(reminders: [a]),
       act: (cubit) => cubit.addReminder(b),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['a', 'b'])
       ],
@@ -164,6 +194,7 @@ void main() {
         expect(saved.map((r) => r.id), ['a', 'b']);
         verify(() => repository.saveBirthdays(any())).called(1);
         verify(() => repository.saveSettings(any())).called(1);
+        verifyServicesSynced(['a', 'b'], notificationsEnabled: true);
       },
     );
 
@@ -172,7 +203,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a, b]),
       act: (cubit) => cubit.updateReminder(buildReminder(id: 'a', title: 'A2')),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.reminders.map((r) => r.title).toList(),
@@ -180,7 +210,12 @@ void main() {
           ['A2', 'B'],
         ),
       ],
-      verify: (_) => verifyPersistedAll(),
+      verify: (_) {
+        verifyPersistedAll();
+        final synced =
+            verifyServicesSynced(['a', 'b'], notificationsEnabled: true);
+        expect(synced.first.title, 'A2');
+      },
     );
 
     blocTest<ReminderCubit, ReminderState>(
@@ -188,13 +223,13 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a, b]),
       act: (cubit) => cubit.deleteReminder('a'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['b'])
       ],
       verify: (_) {
         verify(() => notifications.cancelReminder(a)).called(1);
         verifyPersistedAll();
+        verifyServicesSynced(['b'], notificationsEnabled: true);
       },
     );
 
@@ -203,13 +238,13 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a]),
       act: (cubit) => cubit.deleteReminder('missing'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['a'])
       ],
       verify: (_) {
         verifyNever(() => notifications.cancelReminder(any()));
         verify(() => repository.saveReminders(any())).called(1);
+        verifyServicesSynced(['a'], notificationsEnabled: true);
       },
     );
 
@@ -234,7 +269,6 @@ void main() {
         b,
       ]),
       act: (cubit) => cubit.toggleDone('full'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.reminders, 'reminders', [
           isA<Reminder>()
@@ -254,7 +288,12 @@ void main() {
               .having((r) => r.isDone, 'isDone', isFalse),
         ]),
       ],
-      verify: (_) => verifyPersistedAll(),
+      verify: (_) {
+        verifyPersistedAll();
+        final synced =
+            verifyServicesSynced(['full', 'b'], notificationsEnabled: true);
+        expect(synced.first.isDone, isTrue);
+      },
     );
   });
 
@@ -267,7 +306,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x]),
       act: (cubit) => cubit.addBirthday(y),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.birthdays, 'birthdays', [x, y]),
       ],
@@ -279,6 +317,7 @@ void main() {
             notificationsEnabled: true,
           ),
         ).called(1);
+        verifyServicesSynced([], notificationsEnabled: true);
       },
     );
 
@@ -287,7 +326,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x, y]),
       act: (cubit) => cubit.updateBirthday(x.copyWith(name: 'X2')),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.birthdays.map((b) => b.name).toList(),
@@ -295,7 +333,10 @@ void main() {
           ['X2', 'Y'],
         ),
       ],
-      verify: (_) => verify(() => repository.saveBirthdays(any())).called(1),
+      verify: (_) {
+        verify(() => repository.saveBirthdays(any())).called(1);
+        verifyServicesSynced([], notificationsEnabled: true);
+      },
     );
 
     blocTest<ReminderCubit, ReminderState>(
@@ -303,13 +344,13 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x, y]),
       act: (cubit) => cubit.deleteBirthday('x'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.birthdays, 'birthdays', [y]),
       ],
       verify: (_) {
         verify(() => notifications.cancelBirthday(x)).called(1);
         verify(() => repository.saveBirthdays([y])).called(1);
+        verifyServicesSynced([], notificationsEnabled: true);
       },
     );
   });
@@ -334,6 +375,8 @@ void main() {
         verifyNever(() => repository.saveReminders(any()));
         verifyNever(() => repository.saveBirthdays(any()));
         verifyZeroInteractions(notifications);
+        verifyZeroInteractions(geofence);
+        verifyZeroInteractions(homeWidget);
       },
     );
 
@@ -345,6 +388,8 @@ void main() {
       verify: (_) {
         verifyZeroInteractions(repository);
         verifyZeroInteractions(notifications);
+        verifyZeroInteractions(geofence);
+        verifyZeroInteractions(homeWidget);
       },
     );
 
@@ -353,7 +398,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [buildReminder()]),
       act: (cubit) => cubit.setNotificationsEnabled(false),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.settings.notificationsEnabled,
@@ -369,62 +413,63 @@ void main() {
             notificationsEnabled: false,
           ),
         ).called(1);
+        verify(
+          () => notifications.scheduleBirthdays(
+            any(),
+            notificationsEnabled: false,
+          ),
+        ).called(1);
+        verifyServicesSynced(['r1'], notificationsEnabled: false);
       },
     );
   });
 
   group('clearAllData', () {
-    // Beklenen davranış: bildirimler iptal, depo temizlenir, state sıfırlanır.
-    // Test host'unda GeofenceService, `_repository.clearAll()` ve emit'ten
-    // ÖNCE hata fırlattığı için sıfırlama doğrulanamıyor (bkz. dosya başı).
     blocTest<ReminderCubit, ReminderState>(
-      'test host limitation: cancels notifications, then geofence sync '
-      'throws before storage is cleared',
+      'cancels notifications, clears geofences and storage, resets state '
+      'and empties the home widget',
       build: buildCubit,
-      seed: () => _state(reminders: [buildReminder()]),
+      seed: () => _state(
+        reminders: [buildReminder()],
+        birthdays: [buildBirthday()],
+        settings: const AppSettings(
+          notificationsEnabled: false,
+          themeMode: AppThemeModeIds.dark,
+        ),
+      ),
       act: (cubit) => cubit.clearAllData(),
-      errors: () => _geofenceUnsupportedOnHost,
-      expect: () => <ReminderState>[],
-      verify: (_) {
-        verify(() => notifications.cancelAll()).called(1);
-        verifyNever(() => repository.clearAll());
-      },
-    );
-
-    // Hedef davranış; GeofenceService enjekte edilebilir olunca açılmalı.
-    group(
-      'with injectable GeofenceService',
-      () {
-        blocTest<ReminderCubit, ReminderState>(
-          'resets state to empty with default settings',
-          build: buildCubit,
-          seed: () => _state(
-            reminders: [buildReminder()],
-            birthdays: [buildBirthday()],
-            settings: const AppSettings(
-              notificationsEnabled: false,
-              themeMode: AppThemeModeIds.dark,
+      expect: () => [
+        isA<ReminderState>()
+            .having((s) => s.reminders, 'reminders', isEmpty)
+            .having((s) => s.birthdays, 'birthdays', isEmpty)
+            .having(
+              (s) => s.settings.themeMode,
+              'themeMode',
+              AppThemeModeIds.system,
+            )
+            .having(
+              (s) => s.settings.notificationsEnabled,
+              'notificationsEnabled',
+              isTrue,
             ),
+      ],
+      verify: (_) {
+        verifyInOrder([
+          () => notifications.cancelAll(),
+          () => geofence.syncWithReminders([], notificationsEnabled: false),
+          () => repository.clearAll(),
+          () => homeWidget.sync([]),
+        ]);
+        verifyNoMoreInteractions(geofence);
+        verifyNoMoreInteractions(homeWidget);
+        verifyNever(() => repository.saveReminders(any()));
+        verifyNever(
+          () => notifications.syncFromReminders(
+            any(),
+            notificationsEnabled: any(named: 'notificationsEnabled'),
           ),
-          act: (cubit) => cubit.clearAllData(),
-          expect: () => [
-            isA<ReminderState>()
-                .having((s) => s.reminders, 'reminders', isEmpty)
-                .having((s) => s.birthdays, 'birthdays', isEmpty)
-                .having(
-                  (s) => s.settings.themeMode,
-                  'themeMode',
-                  AppThemeModeIds.system,
-                ),
-          ],
-          verify: (_) {
-            verify(() => notifications.cancelAll()).called(1);
-            verify(() => repository.clearAll()).called(1);
-          },
         );
       },
-      skip: 'Blocked on test host — enable after GeofenceService injection '
-          '(F0.3)',
     );
   });
 }

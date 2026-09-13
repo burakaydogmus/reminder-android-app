@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/sync_interfaces.dart';
 
 import 'factories.dart';
 
@@ -12,6 +13,10 @@ class MockReminderRepository extends Mock implements ReminderRepository {}
 /// `NotificationService`'in private constructor'ı olsa da `implements` ile
 /// mock'lanabilir; mock gerçek plugin'e dokunmaz.
 class MockNotificationService extends Mock implements NotificationService {}
+
+class MockGeofenceSync extends Mock implements GeofenceSync {}
+
+class MockHomeWidgetSync extends Mock implements HomeWidgetSync {}
 
 /// `any()` eşleştiricileri için fallback değerleri. `setUpAll` içinde çağırın.
 void registerModelFallbackValues() {
@@ -46,4 +51,17 @@ void stubNotificationService(MockNotificationService notifications) {
   when(() => notifications.cancelReminder(any())).thenAnswer((_) async {});
   when(() => notifications.cancelBirthday(any())).thenAnswer((_) async {});
   when(() => notifications.cancelAll()).thenAnswer((_) async {});
+}
+
+void stubGeofenceSync(MockGeofenceSync geofence) {
+  when(
+    () => geofence.syncWithReminders(
+      any(),
+      notificationsEnabled: any(named: 'notificationsEnabled'),
+    ),
+  ).thenAnswer((_) async {});
+}
+
+void stubHomeWidgetSync(MockHomeWidgetSync homeWidget) {
+  when(() => homeWidget.sync(any())).thenAnswer((_) async {});
 }

@@ -8,7 +8,6 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:reminder/data/reminder_repository.dart';
-import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
@@ -40,21 +39,7 @@ Future<void> reminderHomeWidgetCallback(Uri? uri) async {
     if (r.id != id) return r;
     if (r.isDone) return r;
     changed = true;
-    return Reminder(
-      id: r.id,
-      title: r.title,
-      note: r.note,
-      isDone: true,
-      createdAt: r.createdAt,
-      remindAt: r.remindAt,
-      categoryId: r.categoryId,
-      customCategoryLabel: r.customCategoryLabel,
-      locationTriggerEnabled: r.locationTriggerEnabled,
-      locationLatitude: r.locationLatitude,
-      locationLongitude: r.locationLongitude,
-      locationRadiusMeters: r.locationRadiusMeters,
-      locationPlaceLabel: r.locationPlaceLabel,
-    );
+    return r.copyWith(isDone: true);
   }).toList();
 
   if (!changed) {

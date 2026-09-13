@@ -1,0 +1,931 @@
+{
+  "meta": {
+    "designDirection": "Kor",
+    "version": "1.0-proposal",
+    "date": "2026-09-13",
+    "locale": "tr-TR",
+    "units": "logical px (Android dp = iOS pt)",
+    "companionDoc": "design-proposal.md",
+    "frames": {
+      "ios": { "device": "iPhone 16", "width": 390, "height": 844, "safeTop": 54, "safeBottom": 34 },
+      "android": { "device": "Pixel 9", "width": 412, "height": 915, "statusBar": 24, "gestureBar": 24 }
+    },
+    "defaultFrame": "ios",
+    "sampleNow": "2026-09-13T14:32:00 (Cumartesi)",
+    "conventions": {
+      "x/y": "top-left of the frame, safe area included",
+      "tokens": "color.* ve type.* referansları aşağıdaki tokens bloğuna işaret eder; light/dark için aynı rol adı kullanılır",
+      "screenPadding": 16
+    }
+  },
+
+  "tokens": {
+    "color": {
+      "light": {
+        "background": "#FAF7F2",
+        "surface": "#FFFFFF",
+        "surfaceContainerLow": "#F6F2EC",
+        "surfaceContainer": "#F1ECE3",
+        "surfaceContainerHigh": "#EAE4D9",
+        "onSurface": "#1F1B16",
+        "onSurfaceVariant": "#5C554C",
+        "outline": "#8C8479",
+        "outlineVariant": "#DDD5CA",
+        "primary": "#B8430F",
+        "onPrimary": "#FFFFFF",
+        "primaryContainer": "#FFDCC8",
+        "onPrimaryContainer": "#4A1A00",
+        "tertiary": "#2F5A8A",
+        "onTertiary": "#FFFFFF",
+        "tertiaryContainer": "#D6E4F7",
+        "onTertiaryContainer": "#0F2A47",
+        "success": "#2F6B34",
+        "onSuccess": "#FFFFFF",
+        "successContainer": "#D5ECD3",
+        "error": "#B3261E",
+        "onError": "#FFFFFF",
+        "errorContainer": "#F9DEDC",
+        "onErrorContainer": "#410E0B",
+        "inverseSurface": "#33302B",
+        "onInverseSurface": "#EDE6DC",
+        "inversePrimary": "#FF9B63",
+        "scrim": "#000000",
+        "glassTint": "rgba(255,255,255,0.72)",
+        "glassStroke": "rgba(31,27,22,0.08)",
+        "nowLine": "#B8430F"
+      },
+      "dark": {
+        "background": "#14120F",
+        "surface": "#1D1B17",
+        "surfaceContainerLow": "#221F1B",
+        "surfaceContainer": "#2A2621",
+        "surfaceContainerHigh": "#35302A",
+        "onSurface": "#EDE6DC",
+        "onSurfaceVariant": "#B9B0A4",
+        "outline": "#857D72",
+        "outlineVariant": "#4A443C",
+        "primary": "#FF9B63",
+        "onPrimary": "#3B1500",
+        "primaryContainer": "#6A2A08",
+        "onPrimaryContainer": "#FFDCC8",
+        "tertiary": "#9CC3F0",
+        "onTertiary": "#0F2A47",
+        "tertiaryContainer": "#23446B",
+        "onTertiaryContainer": "#D6E4F7",
+        "success": "#8FD08F",
+        "onSuccess": "#0B3310",
+        "successContainer": "#1F4A23",
+        "error": "#FFB4AB",
+        "onError": "#690005",
+        "errorContainer": "#93000A",
+        "onErrorContainer": "#FFDAD6",
+        "inverseSurface": "#EDE6DC",
+        "onInverseSurface": "#1F1B16",
+        "inversePrimary": "#9A380B",
+        "scrim": "#000000",
+        "glassTint": "rgba(29,27,23,0.64)",
+        "glassStroke": "rgba(237,230,220,0.10)",
+        "nowLine": "#FF9B63"
+      },
+      "category": {
+        "_note": "fg = ikon/metin/dolu arka plan; container = açık tonlu zemin. Light fg üzerinde beyaz metin, dark fg üzerinde #14120F metin kullanılır. Kontrast oranları design-proposal.md tablosunda.",
+        "market":    { "label": "Market",       "icon": "shopping_basket",    "light": { "fg": "#2E7031", "container": "#DDEFD9" }, "dark": { "fg": "#8ED68A", "container": "#1E3B1E" } },
+        "ev":        { "label": "Ev",           "icon": "home",               "light": { "fg": "#00696B", "container": "#D2EEEC" }, "dark": { "fg": "#6FD6D2", "container": "#0F3534" } },
+        "is":        { "label": "İş",           "icon": "work",               "light": { "fg": "#2D5EA8", "container": "#DDE7F7" }, "dark": { "fg": "#9EC2F7", "container": "#1A2C47" } },
+        "saglik":    { "label": "Sağlık",       "icon": "favorite",           "light": { "fg": "#B0265E", "container": "#FADCE7" }, "dark": { "fg": "#FF9EC2", "container": "#48182C" } },
+        "gunluk":    { "label": "Günlük",       "icon": "wb_sunny",           "light": { "fg": "#8A5300", "container": "#F8E6C8" }, "dark": { "fg": "#F2BE6B", "container": "#3F2C0E" } },
+        "diger":     { "label": "Diğer",        "icon": "label",              "light": { "fg": "#6546C8", "container": "#E7E0FA" }, "dark": { "fg": "#C2B1FF", "container": "#2D2450" } },
+        "dogumgunu": { "label": "Doğum günü",   "icon": "cake",               "light": { "fg": "#9A2A8A", "container": "#F6DDF1" }, "dark": { "fg": "#F2A3E4", "container": "#44193D" } }
+      },
+      "userCategoryPalette": ["market", "ev", "is", "saglik", "gunluk", "diger", "dogumgunu", "kor", "lacivert", "zeytin", "kiremit", "arduvaz"],
+      "userCategoryPaletteExtra": {
+        "kor":      { "light": { "fg": "#B8430F", "container": "#FFDCC8" }, "dark": { "fg": "#FF9B63", "container": "#4A2410" } },
+        "lacivert": { "light": { "fg": "#3A4A9C", "container": "#DFE2F7" }, "dark": { "fg": "#B6C0FF", "container": "#232B55" } },
+        "zeytin":   { "light": { "fg": "#5B6300", "container": "#E7EBC4" }, "dark": { "fg": "#C9D36A", "container": "#2E3208" } },
+        "kiremit":  { "light": { "fg": "#9C3B2E", "container": "#F7DDD8" }, "dark": { "fg": "#FFB0A3", "container": "#4A1D16" } },
+        "arduvaz":  { "light": { "fg": "#4F5B66", "container": "#E1E6EB" }, "dark": { "fg": "#BAC7D3", "container": "#29313A" } }
+      }
+    },
+
+    "type": {
+      "_family": "Google Sans Flex (variable; axes wght, wdth, opsz, ROND, GRAD, slnt) — bundled asset, subset latin+latin-ext",
+      "_fallback": "Android: Roboto Flex → sans-serif; iOS: SF Pro (system)",
+      "_numerals": "Saat ve sayaçlarda FontFeature.tabularFigures()",
+      "displayTime":    { "size": 44, "lineHeight": 48, "weight": 620, "ROND": 100, "opsz": 48, "tracking": -0.5, "tabular": true },
+      "headlineLarge":  { "size": 32, "lineHeight": 40, "weight": 650, "ROND": 70,  "opsz": 32, "tracking": -0.25 },
+      "headlineSmall":  { "size": 24, "lineHeight": 32, "weight": 600, "ROND": 50,  "opsz": 24, "tracking": 0 },
+      "titleLarge":     { "size": 20, "lineHeight": 28, "weight": 600, "ROND": 30,  "opsz": 20, "tracking": 0 },
+      "titleMedium":    { "size": 16, "lineHeight": 22, "weight": 560, "ROND": 20,  "opsz": 16, "tracking": 0.1 },
+      "bodyLarge":      { "size": 16, "lineHeight": 24, "weight": 400, "ROND": 0,   "opsz": 16, "tracking": 0.1 },
+      "bodyMedium":     { "size": 14, "lineHeight": 20, "weight": 400, "ROND": 0,   "opsz": 14, "tracking": 0.15 },
+      "labelLarge":     { "size": 14, "lineHeight": 20, "weight": 600, "ROND": 30,  "opsz": 14, "tracking": 0.1 },
+      "labelMedium":    { "size": 12, "lineHeight": 16, "weight": 600, "ROND": 30,  "opsz": 12, "tracking": 0.3 },
+      "labelSmall":     { "size": 11, "lineHeight": 16, "weight": 650, "ROND": 30,  "opsz": 11, "tracking": 0.5 },
+      "timeLabel":      { "size": 13, "lineHeight": 16, "weight": 600, "ROND": 60,  "opsz": 13, "tracking": 0, "tabular": true }
+    },
+
+    "radius": { "xs": 6, "sm": 10, "md": 16, "card": 20, "lg": 24, "xl": 32, "full": 999, "sheetTop": 32, "widgetAndroid": "system (@android:dimen/system_app_widget_background_radius, ≈24)", "widgetIOS": "containerRelativeShape" },
+    "spacing": { "s0": 0, "s1": 2, "s2": 4, "s3": 8, "s4": 12, "s5": 16, "s6": 20, "s7": 24, "s8": 32, "s9": 40, "s10": 56 },
+    "elevation": {
+      "level0": { "shadow": "none", "border": "none" },
+      "level1": { "shadow": "0 1 2 rgba(31,27,22,0.06)", "border": "1px color.outlineVariant (yalnız light)" },
+      "level2": { "shadow": "0 8 24 rgba(31,27,22,0.12)", "darkShadow": "0 8 24 rgba(0,0,0,0.40)" },
+      "level3": { "shadow": "0 16 40 rgba(31,27,22,0.18)", "use": "sürüklenen kart, açık menü" },
+      "glass": { "blurSigma": 24, "tint": "color.glassTint", "stroke": "1px color.glassStroke", "platform": "yalnız iOS; Reduce Transparency/Increase Contrast açıkken tint yerine solid color.surfaceContainerHigh" }
+    },
+    "motion": {
+      "_source": "androidx ExpressiveMotionTokens (spatial) + effects springs; iOS'ta aynı değerler motor paketi ile",
+      "spatialFast":    { "damping": 0.6, "stiffness": 800,  "use": "checkbox morph, press, chip pop" },
+      "spatialDefault": { "damping": 0.8, "stiffness": 380,  "use": "kart taşıma, liste yeniden sıralama, swipe geri dönüş, nav indicator" },
+      "spatialSlow":    { "damping": 0.8, "stiffness": 200,  "use": "sheet açılışı, hızlı yakalama → tam editör genişlemesi" },
+      "effectsFast":    { "damping": 1.0, "stiffness": 3800, "use": "renk/opaklık küçük değişim" },
+      "effectsDefault": { "damping": 1.0, "stiffness": 1600, "use": "fade, tint geçişleri" },
+      "effectsSlow":    { "damping": 1.0, "stiffness": 800,  "use": "ekran içeriği crossfade" },
+      "durationFallback": { "short": 120, "medium": 240, "long": 400, "curve": "Curves.easeOutCubic (emphasized decelerate)" },
+      "reduceMotion": "Tüm spatial springler → 150ms effectsDefault fade; parlama/konfeti kapalı"
+    },
+    "haptics": {
+      "complete": "HapticFeedback.mediumImpact",
+      "swipeThreshold": "HapticFeedback.selectionClick",
+      "undo": "HapticFeedback.lightImpact",
+      "delete": "HapticFeedback.heavyImpact",
+      "reorderPickUp": "HapticFeedback.mediumImpact",
+      "reorderDrop": "HapticFeedback.lightImpact",
+      "tokenRecognized": "HapticFeedback.selectionClick",
+      "settingToggle": "platform switch default",
+      "userSetting": "Ayarlar › Titreşim geri bildirimi (varsayılan açık)"
+    },
+    "sizes": { "minTouch": 48, "iconSm": 20, "icon": 24, "checkboxVisual": 26, "navBarHeight": 64, "captureBarHeight": 52, "fab": 56, "timeGutter": 56 }
+  },
+
+  "sampleData": {
+    "overdue": [
+      { "id": "r1", "title": "Elektrik faturasını öde", "category": "ev", "when": "Dün 18:00", "priority": "yüksek" }
+    ],
+    "todayTimed": [
+      { "id": "r2", "time": "09:00", "title": "Vitamin iç", "category": "saglik", "repeat": "Her gün", "done": true },
+      { "id": "r3", "time": "11:30", "title": "Kargoyu teslim al", "category": "gunluk", "done": true },
+      { "id": "r4", "time": "16:00", "title": "Ali'yi kurstan al", "category": "gunluk", "done": false },
+      { "id": "r5", "time": "18:30", "title": "Market alışverişi", "category": "market", "subtasks": "2/6", "location": "Migros Kadıköy", "done": false, "pinned": true },
+      { "id": "r6", "time": "20:00", "title": "Sunum slaytlarını gözden geçir", "category": "is", "priority": "orta", "done": false }
+    ],
+    "todayUntimed": [
+      { "id": "r7", "title": "Kütüphane kitabını iade et", "category": "diger" },
+      { "id": "r8", "title": "Bitkileri sula", "category": "ev", "repeat": "3 günde bir" }
+    ],
+    "subtasksR5": [
+      { "text": "Ekmek", "done": true },
+      { "text": "Süt", "done": true },
+      { "text": "Yumurta (15'li)", "done": false },
+      { "text": "Domates 1 kg", "done": false },
+      { "text": "Zeytinyağı", "done": false },
+      { "text": "Bulaşık deterjanı", "done": false }
+    ],
+    "birthdays": [
+      { "name": "Zeynep Aydın", "date": "14 Eylül", "countdown": "Yarın", "age": "30 yaşına giriyor" },
+      { "name": "Mert Kaya", "date": "21 Eylül", "countdown": "8 gün", "age": "27 yaşına giriyor" },
+      { "name": "Annem", "date": "3 Ekim", "countdown": "20 gün", "age": null }
+    ],
+    "upcoming": [
+      { "day": "Yarın · Pazar 14 Eylül", "items": ["09:30 Kahvaltı rezervasyonu (günlük)", "Doğum günü: Zeynep Aydın (30)"] },
+      { "day": "Pazartesi 15 Eylül", "items": ["08:45 Haftalık ekip toplantısı (iş, Her Pazartesi)", "13:00 Diş hekimi randevusu (sağlık)"] },
+      { "day": "Çarşamba 17 Eylül", "items": ["19:00 Aidat öde (ev, Her ay 17'si)"] }
+    ],
+    "summaryLine": "6 açık · 1 gecikmiş · 2 tamamlandı"
+  },
+
+  "components": {
+    "ReminderCard": {
+      "size": { "minHeight": 64, "width": "fill" },
+      "shape": "radius.card",
+      "background": "color.surface (light) / color.surfaceContainer (dark)",
+      "elevation": "level1",
+      "padding": { "left": 4, "right": 16, "top": 10, "bottom": 10 },
+      "layout": "Row[ Checkbox(48x48 hit, 26 visual), gap 8, Column[title, meta] ]",
+      "title": { "type": "type.titleMedium", "color": "color.onSurface", "maxLines": 2 },
+      "meta": {
+        "type": "type.labelMedium",
+        "color": "color.onSurfaceVariant",
+        "items": ["CategoryDot 8 + label (category.fg)", "icon repeat 14", "icon place 14 + yer adı", "subtask sayacı 'checklist 2/6'", "öncelik bayrağı"],
+        "separator": " · "
+      },
+      "states": {
+        "default": {},
+        "overdue": { "timeText": "color.primary", "badge": "‘Gecikti’ labelSmall + schedule icon (renk tek başına sinyal değildir)" },
+        "done": { "title": "color.onSurfaceVariant + lineThrough", "checkbox": "filled category.fg + check", "cardBackground": "color.surfaceContainerLow", "elevation": "level0" },
+        "pinned": { "leadingTopIcon": "push_pin 14 color.onSurfaceVariant", "sortFirst": true },
+        "priorityHigh": { "checkboxRing": "2.5px color.primary", "meta": "‘!!! Yüksek’ color.primary" },
+        "priorityMedium": { "meta": "‘!! Orta’ color.onSurfaceVariant" },
+        "dragging": { "scale": 1.03, "elevation": "level3" }
+      },
+      "semantics": "\"{başlık}, {kategori}, {zaman}, {öncelik}, {tamamlandı/tamamlanmadı}\" + customActions [Tamamla, Ertele, Düzenle, Sil]"
+    },
+    "CheckboxMorph": {
+      "hit": 48, "visual": 26,
+      "unchecked": { "shape": "circle", "stroke": "2px category.fg" },
+      "checked": { "shape": "M3E 'cookie-9' (9 kenarlı yumuşak yıldız)", "fill": "category.fg", "icon": "check 18 onCategory" },
+      "motion": "scale 1→0.85→1 spatialFast; shape morph 240ms; check path çizimi 180ms"
+    },
+    "CaptureBar": {
+      "size": { "width": 358, "height": 52 },
+      "shape": "radius.full",
+      "background": "iOS: glass; Android: color.surfaceContainerHigh + level2",
+      "leading": "icon add_circle 24 color.primary",
+      "placeholder": { "text": "Ne hatırlatayım?", "type": "type.bodyLarge", "color": "color.onSurfaceVariant" },
+      "trailing": "icon mic 24 (sistem dikte klavyesini açar) — 48 hit",
+      "semantics": "button, 'Hızlı hatırlatıcı ekle'",
+      "longPressMenu": ["Hatırlatıcı", "Checklist / alışveriş listesi", "Doğum günü"]
+    },
+    "NavBarAndroid": {
+      "position": { "bottom": "gestureBar + 12", "left": 16 },
+      "size": { "width": 296, "height": 64 },
+      "shape": "radius.full",
+      "background": "color.surfaceContainerHigh",
+      "elevation": "level2",
+      "items": [
+        { "icon": "today", "label": "Bugün", "badge": "1 (gecikmiş)" },
+        { "icon": "calendar_month", "label": "Takvim" },
+        { "icon": "format_list_bulleted", "label": "Listeler" }
+      ],
+      "activeIndicator": { "shape": "radius.full", "height": 40, "color": "color.primaryContainer", "iconColor": "color.onPrimaryContainer", "layout": "icon + label yan yana (M3E yatay item)", "motion": "width morph spatialDefault" },
+      "inactive": { "iconColor": "color.onSurfaceVariant", "label": "yalnız ikon; label semantics'te" },
+      "companionFab": { "position": "nav'ın sağında gap 12", "size": 64, "shape": "radius.lg (squircle)", "color": "color.primary", "icon": "add 28 color.onPrimary", "label": "Yeni hatırlatıcı" }
+    },
+    "TabBarIOS": {
+      "position": { "bottom": "safeBottom + 0", "left": 16 },
+      "size": { "width": 290, "height": 62 },
+      "shape": "radius.full",
+      "background": "glass",
+      "items": [
+        { "sfSymbolEquivalent": "calendar.day.timeline.left", "materialIcon": "today", "label": "Bugün" },
+        { "sfSymbolEquivalent": "calendar", "materialIcon": "calendar_month", "label": "Takvim" },
+        { "sfSymbolEquivalent": "list.bullet", "materialIcon": "format_list_bulleted", "label": "Listeler" }
+      ],
+      "labels": "ikon 24 üstte + labelSmall altta, aktif renk color.primary",
+      "searchButton": { "size": 62, "shape": "circle", "background": "glass", "icon": "search 24", "gap": 12, "label": "Ara" },
+      "accessory": "CaptureBar tab bar'ın 8px üzerinde; scroll'da tab bar küçülünce accessory de aşağı iner"
+    },
+    "SectionHeader": { "height": 40, "type": "type.labelLarge", "color": "color.onSurfaceVariant", "trailing": "sayaç labelMedium veya TextButton" },
+    "Snackbar": { "width": 358, "minHeight": 52, "shape": "radius.md", "background": "color.inverseSurface", "text": "type.bodyMedium color.onInverseSurface", "action": "type.labelLarge color.inversePrimary", "position": "CaptureBar'ın 8px üzerinde", "duration": "5s; ekran okuyucu açıkken 10s + odak aksiyona" },
+    "Chip": { "height": 36, "hit": 48, "shape": "radius.sm", "paddingH": 12, "type": "type.labelLarge", "unselected": "color.surfaceContainer + 1px color.outlineVariant", "selected": "color.primaryContainer / color.onPrimaryContainer + check 18" },
+    "TokenChipInline": { "height": 26, "shape": "radius.xs", "background": "category.container veya color.primaryContainer", "text": "type.bodyLarge weight 600" },
+    "SmartListTile": { "size": { "width": 171, "height": 96 }, "shape": "radius.lg", "background": "color.surface", "elevation": "level1", "icon": "32 circle container", "count": "type.headlineSmall tabular", "label": "type.labelLarge" },
+    "WeekStripDay": { "size": { "width": 46, "height": 68 }, "shape": "radius.full", "weekday": "type.labelSmall", "day": "type.titleMedium tabular", "dots": "max 3, 5px, category.fg", "selected": "color.primary bg, color.onPrimary text", "today": "1.5px ring color.primary" },
+    "BirthdayCard": { "size": { "width": "fill", "height": 72 }, "shape": "radius.card", "background": "category.dogumgunu.container", "leading": "avatar 44 circle baş harf (type.titleMedium) category.dogumgunu.fg", "title": "type.titleMedium", "subtitle": "type.labelMedium", "trailing": "countdown pill 28h radius.full category.dogumgunu.fg / onCategory" },
+    "SettingsRow": { "minHeight": 56, "paddingH": 16, "leadingIcon": 24, "title": "type.bodyLarge", "subtitle": "type.bodyMedium color.onSurfaceVariant", "trailing": "Switch.adaptive / değer + chevron" },
+    "PermissionBanner": { "shape": "radius.lg", "background": "color.tertiaryContainer", "icon": "notifications_off 24 color.onTertiaryContainer", "title": "type.titleMedium", "body": "type.bodyMedium", "action": "FilledTonalButton 40h" }
+  },
+
+  "screens": [
+    {
+      "id": "onboarding_1_welcome",
+      "title": "Onboarding 1/4 — Karşılama",
+      "roadmap": "F4.2",
+      "sections": [
+        { "id": "illustration", "frame": { "x": 0, "y": 96, "w": 390, "h": 340 },
+          "components": [
+            { "type": "TimeRibbonIllustration", "desc": "Dikey şerit: 3 düğüm (09:00 ✓, 14:32 ŞİMDİ kor parlayan çizgi, 18:30 boş halka). Düğümler sırayla spatialDefault ile yerine oturur.", "tokens": ["color.nowLine", "category.market.fg", "category.saglik.fg"] }
+          ] },
+        { "id": "copy", "frame": { "x": 24, "y": 468, "w": 342, "h": 150 },
+          "components": [
+            { "type": "Text", "text": "Aklında kalmasın.", "token": "type.headlineLarge", "color": "color.onSurface" },
+            { "type": "Text", "text": "Yaz, zamanını ya da yerini söyle; gerisini Hatırlatıcı takip etsin.", "token": "type.bodyLarge", "color": "color.onSurfaceVariant", "gapTop": 12 }
+          ] },
+        { "id": "footer", "frame": { "x": 24, "y": 724, "w": 342, "h": 86 },
+          "components": [
+            { "type": "PageDots", "count": 4, "active": 0, "size": 8, "activeWidth": 24, "color": "color.primary" },
+            { "type": "FilledButton", "text": "Başla", "size": { "w": 342, "h": 56 }, "shape": "radius.full", "bg": "color.primary", "fg": "color.onPrimary", "gapTop": 22 }
+          ] }
+      ]
+    },
+    {
+      "id": "onboarding_2_capture_demo",
+      "title": "Onboarding 2/4 — Yazman yeterli",
+      "sections": [
+        { "id": "top", "frame": { "x": 0, "y": 54, "w": 390, "h": 48 }, "components": [ { "type": "TextButton", "text": "Atla", "align": "right", "token": "type.labelLarge" } ] },
+        { "id": "demo", "frame": { "x": 16, "y": 150, "w": 358, "h": 220 },
+          "components": [
+            { "type": "CaptureField", "size": { "w": 358, "h": 56 }, "shape": "radius.lg", "bg": "color.surface", "elevation": "level2",
+              "animatedText": "yarın 9'da eczaneye uğra #sağlık",
+              "tokenHighlights": [ { "text": "yarın 9'da", "style": "TokenChipInline color.primaryContainer" }, { "text": "#sağlık", "style": "TokenChipInline category.saglik.container" } ] },
+            { "type": "ParsedPreviewCard", "gapTop": 20, "component": "ReminderCard", "props": { "title": "Eczaneye uğra", "meta": "Sağlık · Yarın 09:00" } }
+          ] },
+        { "id": "copy", "frame": { "x": 24, "y": 440, "w": 342, "h": 180 },
+          "components": [
+            { "type": "Text", "text": "Yazman yeterli.", "token": "type.headlineLarge" },
+            { "type": "Text", "text": "“yarın 18:00”, “her pazartesi”, “#market”, “!!” gibi ifadeleri anında anlarız. İstersen dokunarak da seçebilirsin.", "token": "type.bodyLarge", "color": "color.onSurfaceVariant", "gapTop": 12 }
+          ] },
+        { "id": "footer", "frame": { "x": 24, "y": 724, "w": 342, "h": 86 }, "components": [ { "type": "PageDots", "count": 4, "active": 1 }, { "type": "FilledButton", "text": "Devam", "size": { "w": 342, "h": 56 } } ] }
+      ]
+    },
+    {
+      "id": "onboarding_3_notifications",
+      "title": "Onboarding 3/4 — Bildirim izni (ön-izin ekranı)",
+      "roadmap": "F1.6 + F4.2",
+      "sections": [
+        { "id": "mock", "frame": { "x": 32, "y": 130, "w": 326, "h": 180 },
+          "components": [
+            { "type": "NotificationMock", "size": { "w": 326, "h": 96 }, "shape": "radius.lg", "bg": "color.surfaceContainerHigh",
+              "appLabel": "Hatırlatıcı · şimdi", "title": "Market alışverişi", "body": "Migros Kadıköy'e yaklaştın · 2/6 madde",
+              "actions": ["Tamamla", "10 dk ertele"] }
+          ] },
+        { "id": "copy", "frame": { "x": 24, "y": 360, "w": 342, "h": 220 },
+          "components": [
+            { "type": "Text", "text": "Doğru anda haber verelim", "token": "type.headlineSmall" },
+            { "type": "BulletList", "token": "type.bodyLarge", "iconColor": "color.primary", "items": [
+              { "icon": "schedule", "text": "Zamanı gelince bildirim" },
+              { "icon": "done_all", "text": "Bildirimden tek dokunuşla tamamla veya ertele" },
+              { "icon": "cake", "text": "Doğum günlerini önceden hatırlat" } ] }
+          ] },
+        { "id": "footer", "frame": { "x": 24, "y": 676, "w": 342, "h": 134 },
+          "components": [
+            { "type": "FilledButton", "text": "Bildirimlere izin ver", "size": { "w": 342, "h": 56 }, "action": "sistem izin diyaloğu (Android 13+ POST_NOTIFICATIONS / iOS requestAuthorization)" },
+            { "type": "TextButton", "text": "Şimdi değil", "size": { "w": 342, "h": 48 }, "gapTop": 8 },
+            { "type": "Note", "text": "Android 14+: tam zamanlı alarm izni yalnızca ilk zamanlı hatırlatmada, ayrı açıklamayla istenir.", "visibleIn": "design-note-only" }
+          ] }
+      ]
+    },
+    {
+      "id": "onboarding_4_ready",
+      "title": "Onboarding 4/4 — Hazır",
+      "sections": [
+        { "id": "copy", "frame": { "x": 24, "y": 180, "w": 342, "h": 160 },
+          "components": [
+            { "type": "EmberBurst", "size": 96, "desc": "Kor renkli 9 kenarlı şekil morph + 6 parçacık (reduce motion'da statik)" },
+            { "type": "Text", "text": "Hazırsın.", "token": "type.headlineLarge", "gapTop": 24 },
+            { "type": "Text", "text": "İlk hatırlatıcını ekleyelim mi?", "token": "type.bodyLarge", "color": "color.onSurfaceVariant" }
+          ] },
+        { "id": "suggestions", "frame": { "x": 16, "y": 400, "w": 358, "h": 200 },
+          "components": [
+            { "type": "SuggestionRow", "height": 56, "icon": "shopping_basket", "iconColor": "category.market.fg", "text": "Market listesi oluştur" },
+            { "type": "SuggestionRow", "height": 56, "icon": "cake", "iconColor": "category.dogumgunu.fg", "text": "Bir doğum günü ekle" },
+            { "type": "SuggestionRow", "height": 56, "icon": "widgets", "iconColor": "color.tertiary", "text": "Ana ekrana widget ekle" }
+          ] },
+        { "id": "footer", "frame": { "x": 24, "y": 754, "w": 342, "h": 56 }, "components": [ { "type": "FilledButton", "text": "Uygulamaya geç", "size": { "w": 342, "h": 56 } } ] }
+      ]
+    },
+
+    {
+      "id": "today",
+      "title": "Bugün (ana ekran)",
+      "roadmap": "F3.6, F4.1",
+      "background": "color.background",
+      "sections": [
+        { "id": "header", "frame": { "x": 16, "y": 54, "w": 358, "h": 112 },
+          "components": [
+            { "type": "Text", "text": "Cumartesi, 13 Eylül", "token": "type.labelLarge", "color": "color.onSurfaceVariant", "pos": { "x": 0, "y": 8 } },
+            { "type": "Text", "text": "Bugün", "token": "type.headlineLarge", "color": "color.onSurface", "pos": { "x": 0, "y": 30 } },
+            { "type": "IconButton", "icon": "search", "size": 48, "pos": { "x": 262, "y": 20 }, "platform": "android", "semantics": "Ara" },
+            { "type": "IconButton", "icon": "settings", "size": 48, "pos": { "x": 310, "y": 20 }, "semantics": "Ayarlar" },
+            { "type": "Text", "text": "6 açık · 1 gecikmiş · 2 tamamlandı", "token": "type.bodyMedium", "color": "color.onSurfaceVariant", "pos": { "x": 0, "y": 76 } },
+            { "type": "DayProgress", "pos": { "x": 0, "y": 102 }, "size": { "w": 358, "h": 6 }, "shape": "radius.full", "track": "color.surfaceContainerHigh", "fill": "color.primary", "value": 0.25, "semantics": "8 hatırlatmadan 2'si tamamlandı" }
+          ] },
+        { "id": "birthdayBanner", "frame": { "x": 16, "y": 182, "w": 358, "h": 72 }, "visibleWhen": "doğum günü bugün veya yarın",
+          "components": [
+            { "type": "BirthdayCard", "props": { "initials": "ZA", "title": "Zeynep Aydın yarın 30 yaşına giriyor", "subtitle": "Pazar, 14 Eylül · Hediye: kitap ayracı", "countdown": "Yarın" } }
+          ] },
+        { "id": "overdue", "frame": { "x": 16, "y": 270, "w": 358, "h": 124 },
+          "components": [
+            { "type": "SectionHeader", "text": "Kaçanlar", "leadingIcon": "history 18 color.primary", "trailing": { "type": "TextButton", "text": "Hepsini yarına al" } },
+            { "type": "ReminderCard", "state": ["overdue", "priorityHigh"], "props": { "title": "Elektrik faturasını öde", "meta": ["Ev", "Gecikti · Dün 18:00", "!!! Yüksek"] }, "size": { "h": 72 } }
+          ] },
+        { "id": "timeline", "frame": { "x": 16, "y": 410, "w": 358, "h": "auto" },
+          "layout": "time gutter 56 (timeLabel, sağa hizalı, color.onSurfaceVariant) | rail x=64, 2px color.outlineVariant | node 10px circle (açık: 2px category.fg ring, tamam: dolu) | kart x=80, w=278",
+          "components": [
+            { "type": "SectionHeader", "text": "Zaman çizelgesi", "trailing": { "type": "TextButton", "text": "Tamamlananları gizle" } },
+            { "type": "TimelineRow", "time": "09:00", "card": { "type": "ReminderCard", "state": ["done"], "props": { "title": "Vitamin iç", "meta": ["Sağlık", "repeat Her gün"] } }, "compact": true, "height": 56 },
+            { "type": "TimelineRow", "time": "11:30", "card": { "type": "ReminderCard", "state": ["done"], "props": { "title": "Kargoyu teslim al", "meta": ["Günlük"] } }, "compact": true, "height": 56 },
+            { "type": "NowLine", "height": 28, "line": "2px color.nowLine gutter'dan sağ kenara", "pill": { "text": "14:32", "token": "type.labelSmall", "bg": "color.primary", "fg": "color.onPrimary", "h": 22, "shape": "radius.full", "x": 4 }, "semantics": "Şu an 14:32" },
+            { "type": "TimelineRow", "time": "16:00", "card": { "type": "ReminderCard", "props": { "title": "Ali'yi kurstan al", "meta": ["Günlük", "1 sa 28 dk sonra"] } }, "height": 72 },
+            { "type": "TimelineRow", "time": "18:30", "card": { "type": "ReminderCard", "state": ["pinned"], "props": { "title": "Market alışverişi", "meta": ["Market", "place Migros Kadıköy", "checklist 2/6"] }, "extra": { "type": "SubtaskProgress", "h": 4, "value": 0.33, "color": "category.market.fg" } }, "height": 88 },
+            { "type": "TimelineRow", "time": "20:00", "card": { "type": "ReminderCard", "state": ["priorityMedium"], "props": { "title": "Sunum slaytlarını gözden geçir", "meta": ["İş", "!! Orta"] } }, "height": 72 }
+          ] },
+        { "id": "untimed", "frame": { "x": 16, "y": "after timeline + 16", "w": 358, "h": 176 },
+          "components": [
+            { "type": "SectionHeader", "text": "Bugün bir ara", "trailing": { "type": "Text", "text": "2", "token": "type.labelMedium" } },
+            { "type": "ReminderCard", "props": { "title": "Kütüphane kitabını iade et", "meta": ["Diğer"] } },
+            { "type": "ReminderCard", "props": { "title": "Bitkileri sula", "meta": ["Ev", "repeat 3 günde bir"] }, "gapTop": 8 }
+          ] },
+        { "id": "bottomChrome", "frame": { "x": 0, "y": 682, "w": 390, "h": 162 }, "fixed": true,
+          "components": [
+            { "type": "ScrollEdgeFade", "desc": "içerik altına 24px background→transparent gradient (iOS 27 'uniform toolbar' davranışına benzer okunurluk)" },
+            { "type": "CaptureBar", "pos": { "x": 16, "y": 0 } },
+            { "type": "TabBarIOS", "pos": { "x": 16, "y": 64 }, "platform": "ios", "selected": 0 },
+            { "type": "NavBarAndroid", "platform": "android", "selected": 0, "note": "Android'de CaptureBar yok; companionFab 'add' hızlı yakalamayı açar. Bugün ekranında FAB yerine CaptureBar gösterimi A/B için opsiyon." }
+          ] }
+      ],
+      "variants": [
+        { "id": "today_empty", "replaceSections": ["overdue", "timeline", "untimed"],
+          "components": [
+            { "type": "EmptyState", "frame": { "x": 32, "y": 300, "w": 326, "h": 260 },
+              "illustration": "Tek kor düğümlü boş şerit, 96px", "title": "Bugün boş", "titleToken": "type.headlineSmall",
+              "body": "Keyfine bak ya da aklındakini aşağıya yaz.", "bodyToken": "type.bodyLarge",
+              "action": { "type": "FilledTonalButton", "text": "Yarını planla", "h": 48 } }
+          ] },
+        { "id": "today_all_done", "components": [
+            { "type": "EmptyState", "title": "Hepsi tamam.", "body": "Bugünkü 8 hatırlatmanın hepsini bitirdin.", "illustration": "EmberBurst 96 (bir kez oynar)", "action": { "type": "TextButton", "text": "Tamamlananları göster" } } ] },
+        { "id": "today_permission_denied", "insertAfter": "header",
+          "components": [ { "type": "PermissionBanner", "frame": { "x": 16, "y": 182, "w": 358, "h": 112 }, "title": "Bildirimler kapalı", "body": "Hatırlatmalar zamanında gelmeyecek.", "action": "Ayarları aç" } ] }
+      ]
+    },
+
+    {
+      "id": "quick_capture_sheet",
+      "title": "Hızlı yakalama",
+      "roadmap": "yeni F4.6",
+      "presentation": "Klavyenin üstüne yapışık sheet; arka plan scrim %32; spatialSlow ile CaptureBar'dan genişler (container transform)",
+      "sections": [
+        { "id": "sheet", "frame": { "x": 0, "y": 318, "w": 390, "h": 190 }, "shape": "radius.sheetTop", "bg": "color.surface",
+          "components": [
+            { "type": "DragHandle", "size": { "w": 36, "h": 4 }, "color": "color.outlineVariant", "pos": { "x": 177, "y": 8 } },
+            { "type": "TextField", "pos": { "x": 16, "y": 24 }, "size": { "w": 358, "h": 56 }, "autofocus": true,
+              "value": "Cuma 18:00 ekmek ve süt al #market !!", "token": "type.bodyLarge",
+              "placeholder": "Ne hatırlatayım?",
+              "tokenHighlights": [
+                { "text": "Cuma 18:00", "style": "TokenChipInline color.primaryContainer / color.onPrimaryContainer" },
+                { "text": "#market", "style": "TokenChipInline category.market.container / category.market.fg" },
+                { "text": "!!", "style": "TokenChipInline color.surfaceContainerHigh" } ] },
+            { "type": "ChipRow", "pos": { "x": 16, "y": 88 }, "h": 48, "scroll": "horizontal", "gap": 8,
+              "chips": [
+                { "icon": "event", "text": "Cuma 19 Eyl, 18:00", "selected": true },
+                { "icon": "shopping_basket", "text": "Market", "selected": true, "color": "category.market" },
+                { "icon": "flag", "text": "Orta", "selected": true },
+                { "icon": "repeat", "text": "Tekrar" },
+                { "icon": "place", "text": "Konum" },
+                { "icon": "checklist", "text": "Madde ekle" } ] },
+            { "type": "Row", "pos": { "x": 16, "y": 138 }, "size": { "w": 358, "h": 48 },
+              "children": [
+                { "type": "TextButton", "text": "Tüm ayrıntılar", "icon": "open_in_full" },
+                { "type": "Spacer" },
+                { "type": "IconButtonFilled", "icon": "arrow_upward", "size": 48, "shape": "radius.md", "bg": "color.primary", "fg": "color.onPrimary", "semantics": "Kaydet" } ] }
+          ] },
+        { "id": "keyboard", "frame": { "x": 0, "y": 508, "w": 390, "h": 336 }, "components": [ { "type": "SystemKeyboard", "returnKey": "Kaydet" } ] }
+      ],
+      "behaviors": [
+        "Enter/Gönder: kaydeder, alan temizlenir, sheet açık kalır; üstte 'Eklendi: Ekmek ve süt al · Geri al' mini toast 3s",
+        "Ayrıştırılan token'a dokununca ilgili chip'in picker'ı açılır; token silinirse chip de kalkar",
+        "Ayrıştırıcı kuralları: bugün, yarın, öbür gün, haftaya, pazartesi…pazar, 'cuma 18:00', '18.30', 'akşam' (19:00), 'sabah' (09:00), 'her gün/hafta/ay', 'her pazartesi', '3 günde bir', '#kategori', '!' '!!' '!!!', '@yer' (kayıtlı yerler)",
+        "Başlıkta 've' / virgülle ayrılmış liste + #market → 'Madde olarak böl?' önerisi chip'i"
+      ]
+    },
+
+    {
+      "id": "reminder_editor",
+      "title": "Hatırlatıcı detayı / tam editör",
+      "roadmap": "F3.1, F3.3, F3.4",
+      "presentation": "iOS: büyük sheet (detent large, radius.sheetTop); Android: tam ekran route, container transform ile karttan açılır",
+      "sections": [
+        { "id": "topBar", "frame": { "x": 0, "y": 54, "w": 390, "h": 56 },
+          "components": [
+            { "type": "IconButton", "icon": "close", "size": 48, "pos": { "x": 8, "y": 4 }, "semantics": "Kapat" },
+            { "type": "IconButton", "icon": "push_pin", "size": 48, "pos": { "x": 238, "y": 4 }, "toggled": true, "semantics": "Sabitlendi" },
+            { "type": "IconButton", "icon": "more_vert", "size": 48, "pos": { "x": 286, "y": 4 }, "menu": ["Kopyala", "Paylaş (ileride)", "Sil"] },
+            { "type": "TextButton", "text": "Bitti", "pos": { "x": 334, "y": 4 }, "token": "type.labelLarge", "color": "color.primary" }
+          ] },
+        { "id": "title", "frame": { "x": 16, "y": 118, "w": 358, "h": 96 },
+          "components": [
+            { "type": "CheckboxMorph", "pos": { "x": 0, "y": 0 }, "category": "market" },
+            { "type": "EditableText", "pos": { "x": 52, "y": 8 }, "w": 306, "text": "Market alışverişi", "token": "type.headlineSmall" },
+            { "type": "EditableText", "pos": { "x": 52, "y": 50 }, "w": 306, "placeholder": "Not ekle", "text": "Kasada kart puanını kullan", "token": "type.bodyLarge", "color": "color.onSurfaceVariant" }
+          ] },
+        { "id": "whenCard", "frame": { "x": 16, "y": 226, "w": 358, "h": 164 }, "shape": "radius.lg", "bg": "color.surface", "elevation": "level1",
+          "components": [
+            { "type": "CardHeader", "icon": "schedule", "text": "Ne zaman", "token": "type.labelLarge" },
+            { "type": "Row", "gap": 8, "children": [
+              { "type": "Chip", "icon": "event", "text": "Bugün, 13 Eyl", "selected": true, "w": 160 },
+              { "type": "Chip", "icon": "schedule", "text": "18:30", "selected": true, "w": 96 },
+              { "type": "IconButton", "icon": "close", "size": 48, "semantics": "Zamanı kaldır" } ] },
+            { "type": "ListRow", "h": 48, "icon": "repeat", "title": "Tekrar", "value": "Her Cumartesi", "trailing": "chevron_right", "opens": "recurrence_sheet" },
+            { "type": "ListRow", "h": 48, "icon": "notifications", "title": "Uyarı", "value": "Zamanında", "trailing": "chevron_right", "note": "ileride: '10 dk önce' ek uyarıları" }
+          ] },
+        { "id": "whereCard", "frame": { "x": 16, "y": 402, "w": 358, "h": 212 }, "shape": "radius.lg", "bg": "color.surface", "elevation": "level1",
+          "components": [
+            { "type": "CardHeader", "icon": "place", "text": "Nerede", "trailing": { "type": "Switch.adaptive", "value": true, "semantics": "Konuma gelince hatırlat" } },
+            { "type": "MapThumbnail", "size": { "w": 326, "h": 112 }, "shape": "radius.md", "desc": "OSM statik görünüm, merkez pin, 150 m daire (color.primary %20 dolgu, 2px kontur)", "opens": "location_picker" },
+            { "type": "Text", "text": "Migros Kadıköy · 150 m", "token": "type.titleMedium", "gapTop": 8 },
+            { "type": "Text", "text": "Bölgeye girince bildirim", "token": "type.bodyMedium", "color": "color.onSurfaceVariant" }
+          ] },
+        { "id": "subtasksCard", "frame": { "x": 16, "y": 626, "w": 358, "h": 360 }, "shape": "radius.lg", "bg": "color.surface", "elevation": "level1",
+          "components": [
+            { "type": "CardHeader", "icon": "checklist", "text": "Maddeler", "trailing": { "type": "Text", "text": "2/6", "token": "type.labelLarge tabular" } },
+            { "type": "LinearProgress", "h": 6, "shape": "radius.full", "value": 0.33, "color": "category.market.fg", "track": "category.market.container" },
+            { "type": "SubtaskRow", "h": 48, "text": "Yumurta (15'li)", "done": false, "dragHandle": true },
+            { "type": "SubtaskRow", "h": 48, "text": "Domates 1 kg", "done": false, "dragHandle": true },
+            { "type": "SubtaskRow", "h": 48, "text": "Zeytinyağı", "done": false, "dragHandle": true },
+            { "type": "SubtaskRow", "h": 48, "text": "Bulaşık deterjanı", "done": false, "dragHandle": true },
+            { "type": "AddRow", "h": 48, "icon": "add", "placeholder": "Madde ekle", "behavior": "Enter yeni satır açar; yapıştırılan çok satırlı metin maddelere bölünür" },
+            { "type": "CollapsedRow", "h": 40, "text": "Tamamlanan 2 madde", "trailing": "expand_more" }
+          ] },
+        { "id": "metaCard", "frame": { "x": 16, "y": 998, "w": 358, "h": 196 }, "shape": "radius.lg", "bg": "color.surface", "elevation": "level1",
+          "components": [
+            { "type": "CardHeader", "icon": "label", "text": "Kategori" },
+            { "type": "ChipRow", "scroll": "horizontal", "chips": [
+              { "text": "Market", "icon": "shopping_basket", "selected": true, "color": "category.market" },
+              { "text": "Ev", "icon": "home" }, { "text": "İş", "icon": "work" }, { "text": "Sağlık", "icon": "favorite" }, { "text": "Günlük", "icon": "wb_sunny" }, { "text": "+ Yeni", "icon": "add" } ] },
+            { "type": "CardHeader", "icon": "flag", "text": "Öncelik", "gapTop": 12 },
+            { "type": "SegmentedButton", "h": 48, "segments": ["Yok", "Düşük", "Orta", "Yüksek"], "selected": "Yok" }
+          ] },
+        { "id": "footer", "frame": { "x": 16, "y": "sticky bottom safeBottom+8", "w": 358, "h": 56 },
+          "components": [
+            { "type": "FilledButton", "text": "Tamamlandı olarak işaretle", "icon": "check", "size": { "w": 358, "h": 56 }, "shape": "radius.full", "bg": "color.primary" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "recurrence_sheet",
+      "title": "Tekrar seçici",
+      "roadmap": "F3.1",
+      "sections": [
+        { "id": "sheet", "frame": { "x": 0, "y": 360, "w": 390, "h": 484 }, "shape": "radius.sheetTop", "bg": "color.surface",
+          "components": [
+            { "type": "Text", "text": "Tekrar", "token": "type.titleLarge", "pos": { "x": 16, "y": 24 } },
+            { "type": "SegmentedButton", "pos": { "x": 16, "y": 68 }, "size": { "w": 358, "h": 48 }, "segments": ["Yok", "Günlük", "Haftalık", "Aylık", "Özel"], "selected": "Haftalık" },
+            { "type": "Text", "text": "Günler", "token": "type.labelLarge", "pos": { "x": 16, "y": 136 } },
+            { "type": "DayToggleRow", "pos": { "x": 16, "y": 160 }, "items": ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], "selected": ["Cmt"], "itemSize": 48, "shape": "circle", "selectedStyle": "color.primary / color.onPrimary" },
+            { "type": "Stepper", "pos": { "x": 16, "y": 228 }, "label": "Her", "value": 1, "unit": "haftada bir", "h": 48 },
+            { "type": "ListRow", "pos": { "x": 16, "y": 288 }, "h": 48, "title": "Bitiş", "value": "Hiçbir zaman", "trailing": "chevron_right" },
+            { "type": "InfoText", "pos": { "x": 16, "y": 348 }, "text": "Sonraki 3: Cmt 13 Eyl · Cmt 20 Eyl · Cmt 27 Eyl", "token": "type.bodyMedium", "color": "color.onSurfaceVariant" },
+            { "type": "Row", "pos": { "x": 16, "y": 400 }, "children": [ { "type": "TextButton", "text": "İptal" }, { "type": "FilledButton", "text": "Uygula", "w": 160, "h": 48 } ] }
+          ] }
+      ],
+      "rules": ["Tekrarlayan öğe erken tamamlanabilir (bir sonraki tekrar planlanır)", "Tek bir tekrar 'yalnızca bu seferlik' yeniden planlanabilir"]
+    },
+
+    {
+      "id": "snooze_sheet",
+      "title": "Ertele",
+      "roadmap": "F3.2",
+      "sections": [
+        { "id": "sheet", "frame": { "x": 0, "y": 500, "w": 390, "h": 344 }, "shape": "radius.sheetTop", "bg": "color.surface",
+          "components": [
+            { "type": "Text", "text": "“Ali'yi kurstan al” ertele", "token": "type.titleLarge", "pos": { "x": 16, "y": 24 } },
+            { "type": "Grid", "pos": { "x": 16, "y": 72 }, "columns": 2, "gap": 8, "cell": { "w": 175, "h": 72, "shape": "radius.lg", "bg": "color.surfaceContainer" },
+              "cells": [
+                { "icon": "timer", "title": "10 dakika", "subtitle": "14:42" },
+                { "icon": "hourglass_bottom", "title": "1 saat", "subtitle": "15:32" },
+                { "icon": "nights_stay", "title": "Bu akşam", "subtitle": "20:00" },
+                { "icon": "wb_twilight", "title": "Yarın sabah", "subtitle": "Paz 09:00" } ] },
+            { "type": "ListRow", "pos": { "x": 16, "y": 236 }, "h": 48, "icon": "edit_calendar", "title": "Tarih ve saat seç…" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "calendar",
+      "title": "Takvim (Yaklaşan)",
+      "roadmap": "F4.4, F3.6",
+      "sections": [
+        { "id": "header", "frame": { "x": 16, "y": 54, "w": 358, "h": 64 },
+          "components": [
+            { "type": "Text", "text": "Takvim", "token": "type.headlineLarge", "pos": { "x": 0, "y": 12 } },
+            { "type": "TextButton", "text": "Bugün", "pos": { "x": 250, "y": 12 } },
+            { "type": "IconButton", "icon": "calendar_view_month", "size": 48, "pos": { "x": 310, "y": 8 }, "semantics": "Ay görünümüne geç" }
+          ] },
+        { "id": "monthLabel", "frame": { "x": 16, "y": 122, "w": 358, "h": 28 }, "components": [ { "type": "Text", "text": "Eylül 2026", "token": "type.titleMedium" } ] },
+        { "id": "weekStrip", "frame": { "x": 16, "y": 154, "w": 358, "h": 76 },
+          "components": [
+            { "type": "WeekStrip", "swipe": "haftalar arası yatay sayfalama", "gap": 6,
+              "days": [
+                { "weekday": "Pzt", "day": 8, "dots": [] },
+                { "weekday": "Sal", "day": 9, "dots": ["is"] },
+                { "weekday": "Çar", "day": 10, "dots": ["saglik", "ev"] },
+                { "weekday": "Per", "day": 11, "dots": [] },
+                { "weekday": "Cum", "day": 12, "dots": ["market"] },
+                { "weekday": "Cmt", "day": 13, "dots": ["saglik", "gunluk", "market"], "today": true, "selected": true },
+                { "weekday": "Paz", "day": 14, "dots": ["gunluk", "dogumgunu"] } ] },
+            { "type": "ExpandHandle", "desc": "Aşağı sürükleyince ay ızgarasına (6x7, hücre 50x48) spatialDefault ile genişler" }
+          ] },
+        { "id": "filters", "frame": { "x": 16, "y": 238, "w": 358, "h": 48 },
+          "components": [ { "type": "ChipRow", "chips": [ { "text": "Tümü", "selected": true }, { "text": "Hatırlatıcılar", "icon": "check_circle" }, { "text": "Doğum günleri", "icon": "cake" }, { "text": "Konumlu", "icon": "place" } ] } ] },
+        { "id": "agenda", "frame": { "x": 16, "y": 296, "w": 358, "h": "auto" },
+          "components": [
+            { "type": "DayHeader", "text": "Bugün · Cumartesi 13 Eylül", "token": "type.labelLarge", "sticky": true },
+            { "type": "AgendaRow", "time": "16:00", "card": { "type": "ReminderCard", "props": { "title": "Ali'yi kurstan al", "meta": ["Günlük"] } } },
+            { "type": "AgendaRow", "time": "18:30", "card": { "type": "ReminderCard", "props": { "title": "Market alışverişi", "meta": ["Market", "checklist 2/6"] } } },
+            { "type": "AgendaRow", "time": "20:00", "card": { "type": "ReminderCard", "props": { "title": "Sunum slaytlarını gözden geçir", "meta": ["İş"] } } },
+            { "type": "DayHeader", "text": "Yarın · Pazar 14 Eylül", "sticky": true },
+            { "type": "AgendaRow", "time": "Tüm gün", "card": { "type": "BirthdayCard", "props": { "initials": "ZA", "title": "Zeynep Aydın", "subtitle": "30 yaşına giriyor", "countdown": "Yarın" } } },
+            { "type": "AgendaRow", "time": "09:30", "card": { "type": "ReminderCard", "props": { "title": "Kahvaltı rezervasyonu", "meta": ["Günlük"] } } },
+            { "type": "DayHeader", "text": "Pazartesi 15 Eylül", "sticky": true },
+            { "type": "AgendaRow", "time": "08:45", "card": { "type": "ReminderCard", "props": { "title": "Haftalık ekip toplantısı", "meta": ["İş", "repeat Her Pazartesi"] } } },
+            { "type": "AgendaRow", "time": "13:00", "card": { "type": "ReminderCard", "props": { "title": "Diş hekimi randevusu", "meta": ["Sağlık"] } } },
+            { "type": "GapRow", "text": "16 Eylül — boş gün", "token": "type.bodyMedium", "color": "color.onSurfaceVariant", "h": 40 }
+          ] },
+        { "id": "bottomChrome", "fixed": true, "components": [ { "type": "TabBarIOS", "selected": 1 }, { "type": "NavBarAndroid", "selected": 1 } ] }
+      ],
+      "interactions": ["Kartı uzun bas → sürükle → WeekStrip gününe bırak = yeniden planla (erişilebilir alternatif: menü › Taşı)", "Boş güne dokun → o güne tarihli hızlı yakalama"]
+    },
+
+    {
+      "id": "lists",
+      "title": "Listeler (akıllı listeler + kategoriler)",
+      "roadmap": "F3.6, F4.3",
+      "sections": [
+        { "id": "header", "frame": { "x": 16, "y": 54, "w": 358, "h": 64 },
+          "components": [
+            { "type": "Text", "text": "Listeler", "token": "type.headlineLarge", "pos": { "x": 0, "y": 12 } },
+            { "type": "IconButton", "icon": "search", "size": 48, "pos": { "x": 262, "y": 8 }, "platform": "android" },
+            { "type": "TextButton", "text": "Düzenle", "pos": { "x": 300, "y": 12 } }
+          ] },
+        { "id": "smartGrid", "frame": { "x": 16, "y": 130, "w": 358, "h": 312 },
+          "layout": "2 sütun, gap 16, SmartListTile 171x96",
+          "components": [
+            { "type": "SmartListTile", "icon": "history", "iconBg": "color.primaryContainer", "iconFg": "color.onPrimaryContainer", "label": "Gecikmiş", "count": 1 },
+            { "type": "SmartListTile", "icon": "today", "iconBg": "color.tertiaryContainer", "iconFg": "color.onTertiaryContainer", "label": "Bugün", "count": 6 },
+            { "type": "SmartListTile", "icon": "date_range", "iconBg": "color.surfaceContainerHigh", "iconFg": "color.onSurface", "label": "Planlı", "count": 14 },
+            { "type": "SmartListTile", "icon": "inbox", "iconBg": "color.surfaceContainerHigh", "iconFg": "color.onSurface", "label": "Zamansız", "count": 5 },
+            { "type": "SmartListTile", "icon": "cake", "iconBg": "category.dogumgunu.container", "iconFg": "category.dogumgunu.fg", "label": "Doğum günleri", "count": 12 },
+            { "type": "SmartListTile", "icon": "place", "iconBg": "category.ev.container", "iconFg": "category.ev.fg", "label": "Konumlu", "count": 2 }
+          ] },
+        { "id": "categories", "frame": { "x": 16, "y": 458, "w": 358, "h": "auto" }, "shape": "radius.lg", "bg": "color.surface",
+          "components": [
+            { "type": "SectionHeader", "text": "Kategorilerim" },
+            { "type": "CategoryRow", "h": 56, "icon": "shopping_basket", "color": "market", "title": "Market", "count": 3, "trailingEditMode": "drag_handle" },
+            { "type": "CategoryRow", "h": 56, "icon": "home", "color": "ev", "title": "Ev", "count": 4 },
+            { "type": "CategoryRow", "h": 56, "icon": "work", "color": "is", "title": "İş", "count": 5 },
+            { "type": "CategoryRow", "h": 56, "icon": "favorite", "color": "saglik", "title": "Sağlık", "count": 2 },
+            { "type": "CategoryRow", "h": 56, "icon": "wb_sunny", "color": "gunluk", "title": "Günlük", "count": 4 },
+            { "type": "CategoryRow", "h": 56, "icon": "fitness_center", "color": "lacivert", "title": "Spor salonu", "count": 1 },
+            { "type": "AddRow", "h": 56, "icon": "add", "text": "Yeni kategori", "color": "color.primary", "opens": "category_editor" }
+          ] },
+        { "id": "completed", "frame": { "x": 16, "y": "after categories + 16", "w": 358, "h": 56 }, "components": [ { "type": "ListRow", "icon": "task_alt", "title": "Tamamlananlar", "value": "48", "trailing": "chevron_right" } ] }
+      ]
+    },
+
+    {
+      "id": "list_detail_checklist",
+      "title": "Kategori/Liste detayı — Market (checklist modu)",
+      "roadmap": "F3.3",
+      "sections": [
+        { "id": "largeTitle", "frame": { "x": 16, "y": 54, "w": 358, "h": 120 },
+          "components": [
+            { "type": "IconButton", "icon": "arrow_back", "size": 48, "pos": { "x": -8, "y": 0 } },
+            { "type": "IconBadge", "icon": "shopping_basket", "size": 40, "bg": "category.market.container", "fg": "category.market.fg", "pos": { "x": 0, "y": 56 } },
+            { "type": "Text", "text": "Market", "token": "type.headlineLarge", "pos": { "x": 52, "y": 54 } },
+            { "type": "Text", "text": "3 açık · 1 liste", "token": "type.bodyMedium", "color": "color.onSurfaceVariant", "pos": { "x": 52, "y": 94 } }
+          ] },
+        { "id": "inlineAdd", "frame": { "x": 16, "y": 186, "w": 358, "h": 52 }, "components": [ { "type": "TextField", "placeholder": "Bu listeye ekle…", "shape": "radius.full", "bg": "color.surfaceContainer", "leading": "add" } ] },
+        { "id": "items", "frame": { "x": 16, "y": 250, "w": 358, "h": "auto" },
+          "components": [
+            { "type": "ReminderCard", "props": { "title": "Market alışverişi", "meta": ["Bugün 18:30", "place Migros Kadıköy", "checklist 2/6"] }, "expanded": true,
+              "children": [
+                { "type": "SubtaskRow", "h": 48, "text": "Yumurta (15'li)" },
+                { "type": "SubtaskRow", "h": 48, "text": "Domates 1 kg" },
+                { "type": "SubtaskRow", "h": 48, "text": "Zeytinyağı" },
+                { "type": "SubtaskRow", "h": 48, "text": "Bulaşık deterjanı" },
+                { "type": "SubtaskRow", "h": 48, "text": "Ekmek", "done": true },
+                { "type": "SubtaskRow", "h": 48, "text": "Süt", "done": true } ] },
+            { "type": "ReminderCard", "props": { "title": "Kedi maması", "meta": ["Zamansız"] } },
+            { "type": "ReminderCard", "props": { "title": "Pil (AA)", "meta": ["Zamansız"] } }
+          ] }
+      ]
+    },
+
+    {
+      "id": "category_editor",
+      "title": "Kategori oluştur / düzenle",
+      "roadmap": "F4.3",
+      "sections": [
+        { "id": "sheet", "frame": { "x": 0, "y": 250, "w": 390, "h": 594 }, "shape": "radius.sheetTop", "bg": "color.surface",
+          "components": [
+            { "type": "Text", "text": "Yeni kategori", "token": "type.titleLarge", "pos": { "x": 16, "y": 24 } },
+            { "type": "PreviewRow", "pos": { "x": 16, "y": 68 }, "h": 56, "icon": "fitness_center", "color": "lacivert", "title": "Spor salonu", "count": 0 },
+            { "type": "TextField", "pos": { "x": 16, "y": 136 }, "size": { "w": 358, "h": 56 }, "label": "Ad", "value": "Spor salonu", "maxLength": 24 },
+            { "type": "Text", "text": "Renk", "token": "type.labelLarge", "pos": { "x": 16, "y": 208 } },
+            { "type": "SwatchGrid", "pos": { "x": 16, "y": 232 }, "columns": 6, "swatch": 40, "hit": 48, "gap": 12, "items": ["market", "ev", "is", "saglik", "gunluk", "diger", "dogumgunu", "kor", "lacivert", "zeytin", "kiremit", "arduvaz"], "selected": "lacivert", "selectedStyle": "3px ring color.onSurface + check", "semantics": "renk adı sesli okunur: 'Lacivert, seçili'" },
+            { "type": "Text", "text": "İkon", "token": "type.labelLarge", "pos": { "x": 16, "y": 352 } },
+            { "type": "IconGrid", "pos": { "x": 16, "y": 376 }, "columns": 6, "cell": 48, "gap": 10, "items": ["shopping_basket", "home", "work", "favorite", "wb_sunny", "label", "fitness_center", "pets", "school", "local_pharmacy", "directions_car", "savings", "restaurant", "flight", "child_care", "celebration", "sports_esports", "yard"], "selected": "fitness_center" },
+            { "type": "Row", "pos": { "x": 16, "y": 530 }, "children": [ { "type": "TextButton", "text": "Sil", "color": "color.error", "visibleWhen": "düzenleme" }, { "type": "Spacer" }, { "type": "FilledButton", "text": "Kaydet", "w": 140, "h": 48 } ] }
+          ] }
+      ]
+    },
+
+    {
+      "id": "birthdays",
+      "title": "Doğum günleri",
+      "roadmap": "F4.4",
+      "entry": "Listeler › Doğum günleri, Takvim filtre chip'i, Bugün banner'ı",
+      "sections": [
+        { "id": "header", "frame": { "x": 16, "y": 54, "w": 358, "h": 104 },
+          "components": [
+            { "type": "IconButton", "icon": "arrow_back", "size": 48 },
+            { "type": "Text", "text": "Doğum günleri", "token": "type.headlineLarge", "pos": { "x": 0, "y": 56 } },
+            { "type": "IconButton", "icon": "person_add", "size": 48, "pos": { "x": 310, "y": 52 }, "semantics": "Doğum günü ekle" }
+          ] },
+        { "id": "hero", "frame": { "x": 16, "y": 170, "w": 358, "h": 152 }, "shape": "radius.xl", "bg": "category.dogumgunu.container",
+          "components": [
+            { "type": "Text", "text": "SIRADAKİ", "token": "type.labelSmall", "color": "category.dogumgunu.fg", "pos": { "x": 20, "y": 18 } },
+            { "type": "Text", "text": "Zeynep Aydın", "token": "type.headlineSmall", "color": "color.onSurface", "pos": { "x": 20, "y": 40 } },
+            { "type": "Text", "text": "Yarın · 30 yaşına giriyor", "token": "type.bodyLarge", "pos": { "x": 20, "y": 76 } },
+            { "type": "Countdown", "text": "1", "unit": "gün", "token": "type.displayTime", "color": "category.dogumgunu.fg", "pos": { "x": 270, "y": 36 } },
+            { "type": "Row", "pos": { "x": 20, "y": 108 }, "children": [ { "type": "FilledTonalButton", "text": "Hediye notu", "icon": "redeem", "h": 36 }, { "type": "TextButton", "text": "Mesaj hatırlat", "h": 36 } ] }
+          ] },
+        { "id": "list", "frame": { "x": 16, "y": 338, "w": 358, "h": "auto" },
+          "components": [
+            { "type": "MonthHeader", "text": "Eylül" },
+            { "type": "BirthdayRow", "h": 64, "initials": "ZA", "title": "Zeynep Aydın", "subtitle": "14 Eylül · 30 yaşına", "trailing": "Yarın" },
+            { "type": "BirthdayRow", "h": 64, "initials": "MK", "title": "Mert Kaya", "subtitle": "21 Eylül · 27 yaşına", "trailing": "8 gün" },
+            { "type": "MonthHeader", "text": "Ekim" },
+            { "type": "BirthdayRow", "h": 64, "initials": "A", "title": "Annem", "subtitle": "3 Ekim · yaş bilinmiyor", "trailing": "20 gün" },
+            { "type": "BirthdayRow", "h": 64, "initials": "DY", "title": "Deniz Yılmaz", "subtitle": "29 Şubat · artık yıl: 28 Şubat'ta hatırlatılır", "trailing": "169 gün" }
+          ] }
+      ],
+      "emptyState": { "title": "Henüz doğum günü yok", "body": "Sevdiklerinin gününü kaçırma. Rehberden içe aktarma yakında.", "action": "Doğum günü ekle" }
+    },
+
+    {
+      "id": "birthday_editor",
+      "title": "Doğum günü editörü",
+      "sections": [
+        { "id": "sheet", "frame": { "x": 0, "y": 214, "w": 390, "h": 630 }, "shape": "radius.sheetTop", "bg": "color.surface",
+          "components": [
+            { "type": "Row", "pos": { "x": 16, "y": 20 }, "children": [ { "type": "IconBadge", "icon": "cake", "size": 44, "bg": "category.dogumgunu.container", "fg": "category.dogumgunu.fg" }, { "type": "Text", "text": "Doğum günü", "token": "type.titleLarge" } ] },
+            { "type": "TextField", "pos": { "x": 16, "y": 84 }, "size": { "w": 358, "h": 56 }, "label": "İsim", "value": "Zeynep Aydın", "autofocus": true },
+            { "type": "DateWheelOrField", "pos": { "x": 16, "y": 152 }, "size": { "w": 358, "h": 56 }, "label": "Tarih", "value": "14 Eylül 1996", "helper": "Yılı bilmiyorsan boş bırak", "yearOptional": true },
+            { "type": "Text", "text": "Ne zaman hatırlatayım?", "token": "type.labelLarge", "pos": { "x": 16, "y": 228 } },
+            { "type": "FilterChipWrap", "pos": { "x": 16, "y": 252 }, "chips": [ { "text": "Gününde", "selected": true }, { "text": "1 gün önce", "selected": true }, { "text": "3 gün önce" }, { "text": "1 hafta önce" }, { "text": "2 hafta önce" } ] },
+            { "type": "ListRow", "pos": { "x": 16, "y": 356 }, "h": 56, "icon": "schedule", "title": "Bildirim saati", "value": "09:00" },
+            { "type": "TextField", "pos": { "x": 16, "y": 424 }, "size": { "w": 358, "h": 88 }, "label": "Not", "value": "Hediye: kitap ayracı", "maxLines": 3 },
+            { "type": "FilledButton", "pos": { "x": 16, "y": 540 }, "text": "Kaydet", "size": { "w": 358, "h": 56 } }
+          ] }
+      ]
+    },
+
+    {
+      "id": "search",
+      "title": "Arama",
+      "roadmap": "F3.6",
+      "entry": "iOS: tab bar yanındaki arama düğmesi; Android: üst bardaki arama ikonu (SearchBar → SearchView)",
+      "sections": [
+        { "id": "field", "frame": { "x": 16, "y": 62, "w": 358, "h": 56 },
+          "components": [ { "type": "SearchField", "shape": "radius.full", "bg": "color.surfaceContainerHigh", "leading": "arrow_back", "value": "fatura", "trailing": "close", "autofocus": true } ] },
+        { "id": "filters", "frame": { "x": 16, "y": 128, "w": 358, "h": 48 },
+          "components": [ { "type": "ChipRow", "chips": [ { "text": "Açık", "selected": true }, { "text": "Tamamlanan" }, { "text": "Kategori", "trailingIcon": "arrow_drop_down" }, { "text": "Tarih", "trailingIcon": "arrow_drop_down" } ] } ] },
+        { "id": "results", "frame": { "x": 16, "y": 188, "w": 358, "h": "auto" },
+          "components": [
+            { "type": "SectionHeader", "text": "Hatırlatıcılar · 3" },
+            { "type": "ReminderCard", "state": ["overdue"], "props": { "title": "Elektrik **fatura**sını öde", "meta": ["Ev", "Gecikti · Dün 18:00"] }, "highlight": "eşleşen kısım weight 700 + color.primaryContainer arka plan" },
+            { "type": "ReminderCard", "props": { "title": "Su **fatura**sı", "meta": ["Ev", "17 Eyl 19:00", "repeat Her ay"] } },
+            { "type": "ReminderCard", "props": { "title": "İnternet **fatura**sına itiraz", "meta": ["İş", "Zamansız"], "note": "…geçen ayki **fatura**da fazladan ücret…" } },
+            { "type": "SectionHeader", "text": "Maddelerde · 1" },
+            { "type": "ResultRow", "h": 56, "icon": "checklist", "title": "“**Fatura** makbuzu çıktısı”", "subtitle": "İş › Vergi hazırlığı" }
+          ] }
+      ],
+      "states": {
+        "initial": { "components": [ { "type": "SectionHeader", "text": "Son aramalar" }, { "type": "ListRow", "icon": "history", "title": "market" }, { "type": "ListRow", "icon": "history", "title": "doktor" } ] },
+        "noResults": { "title": "“faturaa” için sonuç yok", "body": "Yazımı kontrol et veya tamamlananlarda ara.", "action": "Tamamlananlarda ara" }
+      }
+    },
+
+    {
+      "id": "settings",
+      "title": "Ayarlar",
+      "presentation": "Bugün'deki dişli ikonundan push; iOS'ta grouped inset list",
+      "sections": [
+        { "id": "header", "frame": { "x": 16, "y": 54, "w": 358, "h": 104 }, "components": [ { "type": "IconButton", "icon": "arrow_back", "size": 48 }, { "type": "Text", "text": "Ayarlar", "token": "type.headlineLarge", "pos": { "x": 0, "y": 56 } } ] },
+        { "id": "status", "frame": { "x": 16, "y": 170, "w": 358, "h": 120 }, "shape": "radius.lg", "bg": "color.surface",
+          "components": [
+            { "type": "SectionHeader", "text": "İzinler" },
+            { "type": "SettingsRow", "icon": "notifications", "title": "Bildirimler", "subtitle": "Açık", "trailing": { "type": "StatusDot", "color": "color.success", "label": "Açık" } },
+            { "type": "SettingsRow", "icon": "location_on", "title": "Konum", "subtitle": "Yalnızca kullanırken — arka plan hatırlatmaları çalışmaz", "trailing": { "type": "TextButton", "text": "Düzelt" }, "state": "warning" },
+            { "type": "SettingsRow", "icon": "alarm", "title": "Tam zamanlı alarmlar", "subtitle": "İzin verildi", "platform": "android" }
+          ] },
+        { "id": "appearance", "frame": { "x": 16, "y": "stack+16", "w": 358, "h": 196 }, "shape": "radius.lg", "bg": "color.surface",
+          "components": [
+            { "type": "SectionHeader", "text": "Görünüm" },
+            { "type": "SegmentedButton", "h": 48, "segments": [ { "icon": "brightness_auto", "text": "Sistem" }, { "icon": "light_mode", "text": "Açık" }, { "icon": "dark_mode", "text": "Koyu" } ], "selected": "Sistem" },
+            { "type": "SettingsRow", "icon": "wallpaper", "title": "Duvar kâğıdı renkleri", "subtitle": "Vurgu rengini sistemden al (Android 12+)", "trailing": { "type": "Switch.adaptive", "value": false }, "platform": "android" },
+            { "type": "SettingsRow", "icon": "vibration", "title": "Titreşim geri bildirimi", "trailing": { "type": "Switch.adaptive", "value": true } }
+          ] },
+        { "id": "defaults", "frame": { "x": 16, "y": "stack+16", "w": 358, "h": 232 }, "shape": "radius.lg", "bg": "color.surface",
+          "components": [
+            { "type": "SectionHeader", "text": "Varsayılanlar" },
+            { "type": "SettingsRow", "icon": "wb_twilight", "title": "Sabah saati", "trailing": "09:00 ›" },
+            { "type": "SettingsRow", "icon": "nights_stay", "title": "Akşam saati", "trailing": "20:00 ›" },
+            { "type": "SettingsRow", "icon": "snooze", "title": "Erteleme seçenekleri", "trailing": "10 dk, 1 sa ›" },
+            { "type": "SettingsRow", "icon": "calendar_view_week", "title": "Haftanın ilk günü", "trailing": "Pazartesi ›" }
+          ] },
+        { "id": "more", "frame": { "x": 16, "y": "stack+16", "w": 358, "h": 288 }, "shape": "radius.lg", "bg": "color.surface",
+          "components": [
+            { "type": "SettingsRow", "icon": "widgets", "title": "Ana ekran widget'ı ekle" },
+            { "type": "SettingsRow", "icon": "language", "title": "Dil", "trailing": "Türkçe ›" },
+            { "type": "SettingsRow", "icon": "backup", "title": "Yedekle ve geri yükle", "subtitle": "Son yedek: yok" },
+            { "type": "SettingsRow", "icon": "info", "title": "Hakkında", "trailing": "2.1.0 ›" },
+            { "type": "SettingsRow", "icon": "delete_forever", "title": "Tüm verileri sıfırla", "titleColor": "color.error", "confirm": "iki adımlı: diyalogda 'SIFIRLA' yazdır değil — önce yedek öner, sonra kırmızı onay" }
+          ] }
+      ]
+    },
+
+    {
+      "id": "location_picker",
+      "title": "Konum seçici",
+      "roadmap": "F1.1, F1.6",
+      "sections": [
+        { "id": "map", "frame": { "x": 0, "y": 0, "w": 390, "h": 844 }, "components": [ { "type": "FlutterMap", "tiles": "OSM (dark modda koyu stil veya %88 parlaklık filtresi)", "center": "Kadıköy", "zoom": 16 } ] },
+        { "id": "topBar", "frame": { "x": 16, "y": 58, "w": 358, "h": 52 },
+          "components": [
+            { "type": "IconButtonFloating", "icon": "arrow_back", "size": 52, "bg": "glass (iOS) / color.surfaceContainerHigh (Android)" },
+            { "type": "SearchField", "pos": { "x": 60, "y": 0 }, "size": { "w": 298, "h": 52 }, "shape": "radius.full", "placeholder": "Adres veya yer ara", "bg": "glass/surfaceContainerHigh" }
+          ] },
+        { "id": "pin", "frame": { "x": 115, "y": 250, "w": 160, "h": 160 },
+          "components": [ { "type": "RadiusCircle", "diameterPx": 160, "fill": "color.primary @20%", "stroke": "2px color.primary" }, { "type": "Pin", "size": 40, "color": "color.primary", "desc": "harita sürüklenirken pin 8px yükselir + gölge (spatialFast), bırakınca oturur" } ] },
+        { "id": "myLocation", "frame": { "x": 322, "y": 470, "w": 52, "h": 52 }, "components": [ { "type": "IconButtonFloating", "icon": "my_location", "size": 52, "semantics": "Konumuma git" } ] },
+        { "id": "sheet", "frame": { "x": 0, "y": 540, "w": 390, "h": 304 }, "shape": "radius.sheetTop", "bg": "color.surface", "detents": ["peek 140", "half 304", "full"],
+          "components": [
+            { "type": "DragHandle" },
+            { "type": "Text", "text": "Migros Kadıköy", "token": "type.titleLarge", "pos": { "x": 16, "y": 24 } },
+            { "type": "Text", "text": "Caferağa Mah., Moda Cd. No:12", "token": "type.bodyMedium", "color": "color.onSurfaceVariant", "pos": { "x": 16, "y": 56 } },
+            { "type": "Row", "pos": { "x": 16, "y": 92 }, "children": [ { "type": "Text", "text": "Yarıçap", "token": "type.labelLarge" }, { "type": "Spacer" }, { "type": "Text", "text": "150 m", "token": "type.labelLarge tabular" } ] },
+            { "type": "Slider", "pos": { "x": 16, "y": 116 }, "size": { "w": 358, "h": 48 }, "min": 100, "max": 500, "step": 50, "value": 150, "style": "M3E: 16px kalın track, dikey handle 4x44", "semantics": "Yarıçap 150 metre" },
+            { "type": "ChipRow", "pos": { "x": 16, "y": 172 }, "chips": [ { "text": "Varınca", "selected": true, "icon": "login" }, { "text": "Ayrılınca", "icon": "logout", "disabled": true, "note": "ileride" } ] },
+            { "type": "FilledButton", "pos": { "x": 16, "y": 232 }, "text": "Bu konumu kullan", "size": { "w": 358, "h": 56 } }
+          ] }
+      ],
+      "permissionPrePrompt": {
+        "type": "sheet",
+        "title": "Konuma gelince hatırlatmak için",
+        "steps": [
+          { "n": 1, "text": "Önce ‘Uygulamayı kullanırken’ izni", "button": "Devam" },
+          { "n": 2, "text": "Uygulama kapalıyken de çalışması için Ayarlar'da ‘Her zaman izin ver’i seç", "button": "Ayarları aç", "secondary": "Sonra" }
+        ],
+        "illustration": "iOS/Android ayar ekranının sadeleştirilmiş çizimi, seçilecek satır kor çerçeveli"
+      },
+      "noApiKeyBehavior": "‘Yakındaki marketler’ chip'i hiç gösterilmez (kullanıcıya geliştirici mesajı yok)"
+    },
+
+    {
+      "id": "notification",
+      "title": "Bildirim (sistem)",
+      "roadmap": "F3.2",
+      "android": { "smallIcon": "monokrom kor şekli", "title": "Market alışverişi", "text": "18:30 · Migros Kadıköy · 4 madde kaldı", "style": "BigTextStyle (maddeler listelenir)", "actions": ["Tamamla", "10 dk", "1 saat"], "tap": "reminder_editor açılır", "color": "#B8430F" },
+      "ios": { "title": "Market alışverişi", "subtitle": "18:30 · Migros Kadıköy", "body": "Yumurta, domates, zeytinyağı, deterjan", "category": "REMINDER", "actions": ["Tamamla", "10 dk ertele", "1 saat ertele", "Yarın sabah"], "interruptionLevel": "timeSensitive (kullanıcı izin verirse)" }
+    },
+
+    {
+      "id": "widgets_android",
+      "title": "Android widget'ları (F5.1)",
+      "common": { "background": "Android 12+: dinamik renk (@android:color/system_neutral1_50 / _900); altı: color.surface", "radius": "system_app_widget_background_radius", "padding": 16, "font": "sistem (Google Sans Flex widget'ta kullanılmaz)", "accent": "add düğmesi: system_accent1_100 bg (dinamik) veya color.primaryContainer" },
+      "widgets": [
+        { "id": "next_2x2", "cells": "2x2", "minSizeDp": { "w": 110, "h": 110 },
+          "layout": [ { "type": "Text", "text": "SIRADAKİ", "size": "11sp w600" }, { "type": "Text", "text": "16:00", "size": "28sp w600 tabular" }, { "type": "Text", "text": "Ali'yi kurstan al", "size": "14sp", "maxLines": 2 }, { "type": "Row", "children": [ { "type": "Text", "text": "+5 daha", "size": "12sp" }, { "type": "PillButton", "icon": "add", "size": "40x40" } ] } ] },
+        { "id": "today_4x2", "cells": "4x2", "minSizeDp": { "w": 250, "h": 110 },
+          "layout": [
+            { "type": "HeaderRow", "text": "Bugün · 6", "size": "16sp w600", "trailing": { "type": "PillButton", "icon": "add", "size": "56x40", "shape": "full", "note": "Google Tasks M3E widget'ına benzer hap düğme" } },
+            { "type": "Row", "h": 48, "check": "48x48 dairesel", "text": "Elektrik faturasını öde", "trailingText": "Gecikti", "trailingColor": "primary" },
+            { "type": "Row", "h": 48, "check": true, "text": "Ali'yi kurstan al", "trailingText": "16:00" }
+          ] },
+        { "id": "list_4x4", "cells": "4x4 (yeniden boyutlanabilir 3x3–5x6)", "minSizeDp": { "w": 250, "h": 250 },
+          "layout": [
+            { "type": "HeaderRow", "text": "Bugün", "subtitle": "Cumartesi 13 Eylül", "trailing": "add pill" },
+            { "type": "ScrollableList", "impl": "RemoteViewsService / RemoteCollectionItems (API 31+)", "sections": [
+              { "header": "Kaçanlar", "rows": ["Elektrik faturasını öde · Dün"] },
+              { "header": "Bugün", "rows": ["16:00 Ali'yi kurstan al", "18:30 Market alışverişi · 2/6", "20:00 Sunum slaytlarını gözden geçir", "Kütüphane kitabını iade et", "Bitkileri sula"] },
+              { "header": "Doğum günü", "rows": ["Zeynep Aydın · Yarın"] } ] }
+          ] },
+        { "id": "quickadd_1x1", "cells": "1x1", "layout": [ { "type": "IconOnly", "icon": "add", "bg": "accent", "shape": "full", "action": "hızlı yakalama sheet'i doğrudan açılır" } ] }
+      ],
+      "states": { "empty": "‘Bugün boş. Eklemek için +’", "permissionOff": "‘Bildirimler kapalı — açmak için dokun’" }
+    },
+
+    {
+      "id": "widgets_ios",
+      "title": "iOS widget'ları (F5.2, WidgetKit + App Intents)",
+      "common": { "margins": "sistem contentMargins", "renderingModes": "fullColor: kor vurgu; accented/tinted & clear (Liquid Glass): tüm grafikler template/monokrom, vurgu widgetAccentable()", "interactivity": "Tamamla düğmesi = AppIntent (iOS 17+)", "font": "SF Pro (system)" },
+      "widgets": [
+        { "id": "small", "family": "systemSmall", "layout": [ { "type": "Text", "text": "SIRADAKİ", "font": "caption2 semibold" }, { "type": "Text", "text": "16:00", "font": "title semibold monospacedDigit" }, { "type": "Text", "text": "Ali'yi kurstan al", "font": "subheadline", "lines": 2 }, { "type": "Button", "intent": "CompleteReminder", "icon": "circle", "size": "44x44" } ] },
+        { "id": "medium", "family": "systemMedium", "layout": [ { "type": "HeaderRow", "text": "Bugün", "trailing": "6 açık" }, { "type": "Rows", "count": 3, "rowHeight": 36, "items": ["◯ Elektrik faturasını öde · Gecikti", "◯ 16:00 Ali'yi kurstan al", "◯ 18:30 Market alışverişi 2/6"] } ] },
+        { "id": "large", "family": "systemLarge", "layout": [ { "type": "HeaderRow", "text": "Bugün", "subtitle": "Cumartesi 13 Eylül" }, { "type": "Rows", "count": 6 }, { "type": "BirthdayFooter", "text": "🎂 Zeynep Aydın · Yarın" } ] },
+        { "id": "extraLarge", "family": "systemExtraLarge (iPhone, iOS 27)", "layout": [ { "type": "TwoColumns", "left": "Bugün listesi (8 satır)", "right": "Yaklaşan 3 gün + doğum günleri" } ], "note": "iOS 27'de Reminders/Calendar için eklendi; opsiyonel" },
+        { "id": "lockRect", "family": "accessoryRectangular", "layout": [ { "type": "Text", "text": "16:00 Ali'yi kurstan al" }, { "type": "Text", "text": "+5 hatırlatma" } ] },
+        { "id": "lockCircular", "family": "accessoryCircular", "layout": [ { "type": "Gauge", "value": "2/8", "label": "tamamlandı" } ] },
+        { "id": "lockInline", "family": "accessoryInline", "layout": [ { "type": "Text", "text": "16:00 · Ali'yi kurstan al" } ] }
+      ]
+    }
+  ],
+
+  "microInteractions": [
+    { "id": "complete", "trigger": "checkbox tap / swipe start→end / bildirim aksiyonu", "sequence": [
+      "0ms: haptic complete; checkbox scale 1→0.85 (spatialFast)",
+      "0–240ms: circle→cookie-9 shape morph, category.fg dolgu merkezden yayılır",
+      "120–300ms: check path çizilir; başlığa soldan sağa üstü çizili çizgi",
+      "300–900ms: kart yerinde bekler (yanlış dokunuşu fark etme süresi)",
+      "900ms: kart yüksekliği 0'a (spatialDefault), timeline'da düğüm doluya döner; 'Tamamlanan' sayacı 1→1.15→1",
+      "Snackbar: '“Ali'yi kurstan al” tamamlandı' + 'Geri al' (5s)",
+      "Tekrarlayan: kart kalkmaz; meta metni 'Sonraki: Cmt 20 Eyl 16:00' ile crossfade (effectsDefault)"
+    ] },
+    { "id": "swipe", "rules": [
+      "start→end (sağa): Tamamla — arka plan color.success, ikon check",
+      "end→start (sola) kısa: Ertele — arka plan color.tertiary, ikon snooze → snooze_sheet",
+      "end→start uzun (>%60 genişlik): Sil — arka plan color.error, ikon delete; bırakınca yumuşak silme + Geri al",
+      "%30 eşiğinde ikon 0.8→1.0 scale + haptic swipeThreshold; eşik altı bırakma → spatialDefault ile geri döner",
+      "Her swipe aksiyonu uzun basma menüsünde ve semantics customActions'ta da var (WCAG 2.5.7)"
+    ] },
+    { "id": "undo", "rules": [ "Silme 5s boyunca soft delete (deletedAt); Geri al → kart eski index'e spatialDefault ile girer", "Aynı anda tek snackbar; yeni aksiyon öncekini commit eder" ] },
+    { "id": "snooze", "rules": [ "Seçim sonrası kart timeline'daki yeni saatine uçar (shared-axis Y, spatialSlow); başka güne ise kart küçülerek WeekStrip/Takvim ikonuna doğru kaybolur", "Toast: 'Yarın 09:00'a ertelendi · Geri al'" ] },
+    { "id": "reorder", "rules": [ "Uzun basma 300ms → kaldır (scale 1.03, level3, haptic reorderPickUp)", "Diğer satırlar spatialDefault ile kayar; bırakınca haptic reorderDrop", "Erişilebilir alternatif: semantics 'Yukarı taşı' / 'Aşağı taşı'" ] },
+    { "id": "captureParse", "rules": [ "Token tanındığında arka plan effectsFast ile belirir, eşleşen chip spatialFast ile 'pop' eder + haptic tokenRecognized", "Kaydedince metin alanı içeriği küçülüp CaptureBar'a akar (spatialSlow)" ] },
+    { "id": "navSwitch", "rules": [ "Android: aktif gösterge genişliği morph (spatialDefault), ikon outlined→filled", "iOS: glass kapsül seçimi kayar; içerik fade-through (effectsSlow)" ] },
+    { "id": "nowLine", "rules": [ "Dakikada bir ilerler (animasyonsuz)", "Ekran açılışında tek seferlik 1.2s yumuşak parlama; reduceMotion'da yok" ] }
+  ]
+}
