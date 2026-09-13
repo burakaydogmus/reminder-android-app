@@ -163,9 +163,8 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
-    final dateLabel = _date != null
-        ? DateFormat.yMMMd('tr_TR').format(_date!)
-        : 'Tarih seç';
+    final dateLabel =
+        _date != null ? DateFormat.yMMMd('tr_TR').format(_date!) : 'Tarih seç';
     final timeLabel = _notifyTime.format(context);
 
     return Padding(

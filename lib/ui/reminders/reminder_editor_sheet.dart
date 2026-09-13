@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -261,12 +261,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
-    final dateLabel = _date != null
-        ? DateFormat.yMMMd('tr_TR').format(_date!)
-        : 'Tarih seç';
-    final timeLabel = _time != null
-        ? _time!.format(context)
-        : 'Saat seç';
+    final dateLabel =
+        _date != null ? DateFormat.yMMMd('tr_TR').format(_date!) : 'Tarih seç';
+    final timeLabel = _time != null ? _time!.format(context) : 'Saat seç';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -340,9 +337,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                           ReminderCategoryIds.defaultLabel(id),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: selected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500,
                             color: selected
                                 ? color
                                 : theme.textTheme.bodyMedium?.color,

@@ -166,8 +166,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               for (final p in list)
                 ListTile(
                   title: Text(p.name),
-                  subtitle:
-                      p.vicinity != null ? Text(p.vicinity!) : null,
+                  subtitle: p.vicinity != null ? Text(p.vicinity!) : null,
                   onTap: () {
                     Navigator.pop(ctx);
                     setState(() {

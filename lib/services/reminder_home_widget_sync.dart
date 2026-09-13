@@ -26,9 +26,8 @@ Future<void> syncRemindersToHomeWidget(List<Reminder> reminders) async {
     return b.createdAt.compareTo(a.createdAt);
   });
   final top = active.take(8).toList();
-  final payload = top
-      .map((r) => {'id': r.id, 'title': r.title})
-      .toList(growable: false);
+  final payload =
+      top.map((r) => {'id': r.id, 'title': r.title}).toList(growable: false);
   await HomeWidget.saveWidgetData(
     kHomeWidgetRemindersJsonKey,
     jsonEncode(payload),

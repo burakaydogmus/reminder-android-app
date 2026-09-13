@@ -109,9 +109,7 @@ class Birthday {
   factory Birthday.fromJson(Map<String, dynamic> json) {
     final offsetsRaw = json['advanceOffsetsMinutes'];
     final offsets = (offsetsRaw is List)
-        ? offsetsRaw
-            .map((e) => (e as num).toInt())
-            .toList(growable: false)
+        ? offsetsRaw.map((e) => (e as num).toInt()).toList(growable: false)
         : const <int>[0, 1440];
     return Birthday(
       id: json['id'] as String,
