@@ -8,6 +8,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
+import 'package:reminder/ui/home/app_lifecycle_reloader.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
@@ -35,41 +36,44 @@ class App extends StatelessWidget {
         geofence: GeofenceService.instance,
         homeWidget: const PlatformHomeWidgetSync(),
       )..load(),
-      child: BlocBuilder<ReminderCubit, ReminderState>(
-        buildWhen: (a, b) => a.settings.themeMode != b.settings.themeMode,
-        builder: (context, state) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Hatırlatıcı',
-            theme: KorTheme.light(),
-            darkTheme: KorTheme.dark(),
-            themeMode: themeModeFor(state.settings.themeMode),
-            locale: const Locale('tr', 'TR'),
-            supportedLocales: const [
-              Locale('tr', 'TR'),
-              Locale('en', 'US'),
-            ],
-            // material_ui: includes the Cupertino and Widgets delegates.
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            builder: (context, child) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              final iconBrightness =
-                  isDark ? Brightness.light : Brightness.dark;
-              return AnnotatedRegion<SystemUiOverlayStyle>(
-                value: SystemUiOverlayStyle(
-                  statusBarColor: const Color(0x00000000),
-                  systemNavigationBarColor: const Color(0x00000000),
-                  systemNavigationBarIconBrightness: iconBrightness,
-                  statusBarIconBrightness: iconBrightness,
-                  statusBarBrightness:
-                      isDark ? Brightness.dark : Brightness.light,
-                ),
-                child: child ?? const SizedBox.shrink(),
-              );
-            },
-            home: const HomeShell(),
-          );
-        },
+      // F1.3: widget değişikliklerini ezmemek için depodan yeniden yükler.
+      child: AppStateReloader(
+        child: BlocBuilder<ReminderCubit, ReminderState>(
+          buildWhen: (a, b) => a.settings.themeMode != b.settings.themeMode,
+          builder: (context, state) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Hatırlatıcı',
+              theme: KorTheme.light(),
+              darkTheme: KorTheme.dark(),
+              themeMode: themeModeFor(state.settings.themeMode),
+              locale: const Locale('tr', 'TR'),
+              supportedLocales: const [
+                Locale('tr', 'TR'),
+                Locale('en', 'US'),
+              ],
+              // material_ui: includes the Cupertino and Widgets delegates.
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
+              builder: (context, child) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final iconBrightness =
+                    isDark ? Brightness.light : Brightness.dark;
+                return AnnotatedRegion<SystemUiOverlayStyle>(
+                  value: SystemUiOverlayStyle(
+                    statusBarColor: const Color(0x00000000),
+                    systemNavigationBarColor: const Color(0x00000000),
+                    systemNavigationBarIconBrightness: iconBrightness,
+                    statusBarIconBrightness: iconBrightness,
+                    statusBarBrightness:
+                        isDark ? Brightness.dark : Brightness.light,
+                  ),
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+              home: const HomeShell(),
+            );
+          },
+        ),
       ),
     );
   }
