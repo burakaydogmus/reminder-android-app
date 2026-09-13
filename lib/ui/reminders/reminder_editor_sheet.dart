@@ -1,37 +1,55 @@
-import 'dart:io';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
-import 'package:reminder/ui/widgets/primary_button.dart';
+import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
+import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/util/location_permissions.dart';
 
+/// Keys for tests.
+abstract final class ReminderEditorKeys {
+  static const title = Key('reminderEditor.title');
+  static const save = Key('reminderEditor.save');
+}
+
+/// Reminder editor sheet (§3.3.4, reduced to today's data): title first with
+/// autofocus, note, category chips, "Ne zaman" and "Nerede" grouped cards.
 Future<void> showReminderEditorSheet(
   BuildContext context, {
   Reminder? existing,
+  String? initialCategoryId,
+  DateTime? initialRemindAt,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    useSafeArea: true,
+    builder: (ctx) => _ReminderEditorBody(
+      existing: existing,
+      initialCategoryId: initialCategoryId,
+      initialRemindAt: initialRemindAt,
     ),
-    builder: (ctx) => _ReminderEditorBody(existing: existing),
   );
 }
 
 class _ReminderEditorBody extends StatefulWidget {
   final Reminder? existing;
+  final String? initialCategoryId;
+  final DateTime? initialRemindAt;
 
-  const _ReminderEditorBody({this.existing});
+  const _ReminderEditorBody({
+    this.existing,
+    this.initialCategoryId,
+    this.initialRemindAt,
+  });
 
   @override
   State<_ReminderEditorBody> createState() => _ReminderEditorBodyState();
@@ -52,6 +70,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   late double _locRadius;
   String? _locLabel;
 
+  String? _titleError;
+  String? _locationError;
+
   @override
   void initState() {
     super.initState();
@@ -61,10 +82,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     _customCategoryCtrl = TextEditingController(
       text: e?.customCategoryLabel ?? '',
     );
-    _categoryId = e?.categoryId ?? ReminderCategoryIds.other;
-    _schedule = e?.remindAt != null;
-    if (e?.remindAt != null) {
-      final dt = e!.remindAt!.toLocal();
+    _categoryId =
+        e?.categoryId ?? widget.initialCategoryId ?? ReminderCategoryIds.other;
+    final remindAt = e != null ? e.remindAt : widget.initialRemindAt;
+    _schedule = remindAt != null;
+    if (remindAt != null) {
+      final dt = remindAt.toLocal();
       _date = DateTime(dt.year, dt.month, dt.day);
       _time = TimeOfDay(hour: dt.hour, minute: dt.minute);
     }
@@ -144,6 +167,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
         _locLng = result.point.longitude;
         _locRadius = result.radiusMeters;
         _locLabel = result.label;
+        _locationError = null;
       });
     }
   }
@@ -152,22 +176,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     final cubit = context.read<ReminderCubit>();
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Başlık boş olamaz.')),
-      );
+      setState(() => _titleError = 'Başlık boş olamaz.');
       return;
-    }
-
-    if (_categoryId == ReminderCategoryIds.other) {
-      final c = _customCategoryCtrl.text.trim();
-      if (c.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('“Diğer” için kategori adı yazın.'),
-          ),
-        );
-        return;
-      }
     }
 
     DateTime? remindAt = _combinedRemindAt();
@@ -178,6 +188,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
         );
         return;
       }
+      // Past time still becomes "now + 1 min" until F1.8.
       final now = DateTime.now();
       if (remindAt != null && !remindAt.isAfter(now)) {
         remindAt = now.add(const Duration(minutes: 1));
@@ -188,17 +199,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
 
     if (_locationTrigger) {
       if (_locLat == null || _locLng == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Konum hatırlatması açık. Devam etmek için önce «Konum seç» '
-              'ekranında konumu kaydedin veya «Konuma gittiğimde hatırlat» '
-              'seçeneğini kapatın.',
-            ),
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.fromLTRB(16, 0, 16, 100),
-            duration: Duration(seconds: 5),
-          ),
+        setState(
+          () => _locationError =
+              'Konum seçilmedi. Bir yer seç ya da «Nerede»yi kapat.',
         );
         return;
       }
@@ -218,9 +221,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     }
 
     final note = _noteCtrl.text.trim();
-    final customCat = _categoryId == ReminderCategoryIds.other
-        ? _customCategoryCtrl.text.trim()
-        : null;
+    // "Diğer" no longer requires a custom name; empty shows "Diğer".
+    final customName = _customCategoryCtrl.text.trim();
+    final customCat =
+        _categoryId == ReminderCategoryIds.other && customName.isNotEmpty
+            ? customName
+            : null;
 
     final existing = widget.existing;
 
@@ -249,209 +255,285 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  /// Never shows raw coordinates.
   String _locationSummary() {
-    if (_locLat == null || _locLng == null) return 'Haritadan seçilmedi';
-    if (_locLabel != null && _locLabel!.isNotEmpty) return _locLabel!;
-    return '${_locLat!.toStringAsFixed(5)}, ${_locLng!.toStringAsFixed(5)} · ${_locRadius.round()} m';
+    if (_locLat == null || _locLng == null) return 'Konum seç';
+    final radius = '${_locRadius.round()} m';
+    final label = _locLabel?.trim();
+    if (label != null && label.isNotEmpty) return '$label · $radius';
+    return 'Seçilen konum · $radius';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
+    final now = DateTime.now();
+    final mutedBody = theme.textTheme.bodyMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
 
     final dateLabel =
-        _date != null ? DateFormat.yMMMd('tr_TR').format(_date!) : 'Tarih seç';
-    final timeLabel = _time != null ? _time!.format(context) : 'Saat seç';
+        _date != null ? KorFormat.relativeDay(_date!, now) : 'Tarih seç';
+    final timeLabel = _time != null
+        ? KorFormat.time(DateTime(2000, 1, 1, _time!.hour, _time!.minute))
+        : 'Saat seç';
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: 16 + bottom + viewInsets,
-      ),
+      padding: EdgeInsets.only(bottom: viewInsets),
       child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          KorSpacing.s5,
+          0,
+          KorSpacing.s5,
+          KorSpacing.s5 + bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.existing == null ? 'Yeni hatırlatıcı' : 'Düzenle',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
+            Semantics(
+              header: true,
+              child: Text(
+                widget.existing == null
+                    ? 'Yeni hatırlatıcı'
+                    : 'Hatırlatıcıyı düzenle',
+                style: theme.textTheme.titleLarge,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Kategori',
-              style: theme.textTheme.labelLarge,
+            const SizedBox(height: KorSpacing.s4),
+            TextField(
+              key: ReminderEditorKeys.title,
+              controller: _titleCtrl,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.next,
+              style: theme.textTheme.titleMedium,
+              onChanged: (_) {
+                if (_titleError != null) setState(() => _titleError = null);
+              },
+              decoration: InputDecoration(
+                labelText: 'Başlık',
+                hintText: 'Ne hatırlatayım?',
+                errorText: _titleError,
+              ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 88,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                itemCount: ReminderCategoryIds.orderedIds.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, i) {
-                  final id = ReminderCategoryIds.orderedIds[i];
-                  final selected = _categoryId == id;
-                  final color = CategoryVisuals.colorsOf(context, id).fg;
-                  return GestureDetector(
-                    onTap: () => setState(() => _categoryId = id),
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? color
-                                : color.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                            boxShadow: selected
-                                ? [
-                                    BoxShadow(
-                                      color: color.withValues(alpha: 0.35),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Icon(
-                            CategoryVisuals.iconFor(id),
-                            color: selected ? Colors.white : color,
-                            size: 26,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          ReminderCategoryIds.defaultLabel(id),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected
-                                ? color
-                                : theme.textTheme.bodyMedium?.color,
-                          ),
-                        ),
-                      ],
+            const SizedBox(height: KorSpacing.s3),
+            TextField(
+              controller: _noteCtrl,
+              minLines: 1,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Not (isteğe bağlı)',
+              ),
+            ),
+            const SizedBox(height: KorSpacing.s5),
+            const SectionHeader(
+              title: 'Kategori',
+              icon: Icons.label_outline_rounded,
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final id in ReminderCategoryIds.orderedIds)
+                    Padding(
+                      padding: const EdgeInsets.only(right: KorSpacing.s3),
+                      child: _CategoryChip(
+                        categoryId: id,
+                        selected: _categoryId == id,
+                        onSelected: () => setState(() => _categoryId = id),
+                      ),
                     ),
-                  );
-                },
+                ],
               ),
             ),
             if (_categoryId == ReminderCategoryIds.other) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: KorSpacing.s3),
               TextField(
                 controller: _customCategoryCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
-                  labelText: 'Özel kategori adı',
+                  labelText: 'Özel ad (isteğe bağlı)',
                   hintText: 'Örn. Spor salonu',
-                  border: OutlineInputBorder(),
                 ),
               ),
             ],
-            const SizedBox(height: 16),
-            TextField(
-              controller: _titleCtrl,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Başlık',
-                hintText: 'Örn. Tuvalet kağıdı al',
-                border: OutlineInputBorder(),
+            const SizedBox(height: KorSpacing.s5),
+            GroupedCard(
+              icon: Icons.schedule_rounded,
+              title: 'Ne zaman',
+              headerTrailing: Semantics(
+                label: 'Zamanla ve bildir',
+                child: Switch.adaptive(
+                  value: _schedule,
+                  onChanged: (v) => setState(() {
+                    _schedule = v;
+                    if (v && _date == null) {
+                      final n = DateTime.now();
+                      _date = DateTime(n.year, n.month, n.day);
+                      _time = TimeOfDay.fromDateTime(
+                        n.add(const Duration(hours: 1)),
+                      );
+                    }
+                  }),
+                ),
               ),
+              children: [
+                if (_schedule)
+                  Wrap(
+                    spacing: KorSpacing.s3,
+                    runSpacing: KorSpacing.s3,
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(Icons.event_rounded),
+                        label: Text(dateLabel),
+                        tooltip: 'Tarih seç',
+                        onPressed: _pickDate,
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.schedule_rounded),
+                        label: Text(
+                          timeLabel,
+                          style: const TextStyle(
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        tooltip: 'Saat seç',
+                        onPressed: _pickTime,
+                      ),
+                    ],
+                  )
+                else
+                  Text('Seçtiğin tarih ve saatte bildirim.', style: mutedBody),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Not (isteğe bağlı)',
-                border: OutlineInputBorder(),
+            const SizedBox(height: KorSpacing.s4),
+            GroupedCard(
+              icon: Icons.place_outlined,
+              title: 'Nerede',
+              borderColor: _locationError != null ? scheme.error : null,
+              headerTrailing: Semantics(
+                label: 'Konuma gelince hatırlat',
+                child: Switch.adaptive(
+                  value: _locationTrigger,
+                  onChanged: (v) {
+                    setState(() {
+                      _locationTrigger = v;
+                      _locationError = null;
+                      if (!v) {
+                        _locLat = null;
+                        _locLng = null;
+                        _locLabel = null;
+                      }
+                    });
+                  },
+                ),
               ),
+              children: [
+                if (_locationTrigger)
+                  InkWell(
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(KorSpacing.s4),
+                    ),
+                    onTap: _openLocationPicker,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 56),
+                      child: Row(
+                        children: [
+                          Icon(Icons.map_outlined, color: scheme.primary),
+                          const SizedBox(width: KorSpacing.s4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _locationSummary(),
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                Text(
+                                  PlatformChrome.isCupertino(context)
+                                      ? 'Bölgeye girince bildirim. “Her zaman” '
+                                          'konum izni gerekir.'
+                                      : 'Bölgeye girince bildirim. Arka planda '
+                                          'konum izni gerekebilir.',
+                                  style: mutedBody,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Text('Bir yere varınca hatırlat.', style: mutedBody),
+                if (_locationError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: KorSpacing.s2),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        _locationError!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Zamanla / bildir'),
-              subtitle: const Text(
-                'Belirli tarih ve saatte bildirim.',
-                style: TextStyle(fontSize: 12),
-              ),
-              value: _schedule,
-              onChanged: (v) => setState(() {
-                _schedule = v;
-                if (v && _date == null) {
-                  final n = DateTime.now();
-                  _date = DateTime(n.year, n.month, n.day);
-                  _time = TimeOfDay.fromDateTime(
-                    n.add(const Duration(hours: 1)),
-                  );
-                }
-              }),
-            ),
-            if (_schedule) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today_outlined),
-                title: Text(dateLabel),
-                onTap: _pickDate,
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.schedule),
-                title: Text(timeLabel),
-                onTap: _pickTime,
-              ),
-            ],
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Konuma gittiğimde hatırlat'),
-              subtitle: Text(
-                Platform.isAndroid
-                    ? 'Seçilen yere yaklaşınca bildirim. Arka planda konum gerekebilir.'
-                    : 'Seçilen bölgeye girince bildirim. “Her zaman” konum izni gerekir.',
-                style: const TextStyle(fontSize: 12),
-              ),
-              value: _locationTrigger,
-              onChanged: (v) {
-                setState(() {
-                  _locationTrigger = v;
-                  if (!v) {
-                    _locLat = null;
-                    _locLng = null;
-                    _locLabel = null;
-                  }
-                });
-              },
-            ),
-            if (_locationTrigger) ...[
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.map_outlined),
-                title: const Text('Konum seç'),
-                subtitle: Text(_locationSummary()),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _openLocationPicker,
-              ),
-            ],
-            const SizedBox(height: 16),
-            PrimaryButton(
+            const SizedBox(height: KorSpacing.s6),
+            FilledButton(
+              key: ReminderEditorKeys.save,
               onPressed: _save,
-              title: 'Kaydet',
+              child: const Text('Kaydet'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.categoryId,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String categoryId;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = CategoryVisuals.colorsOf(context, categoryId);
+    return FilterChip(
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => onSelected(),
+      avatar: Icon(
+        CategoryVisuals.iconFor(categoryId),
+        color: selected ? colors.fg : scheme.onSurfaceVariant,
+      ),
+      label: Text(ReminderCategoryIds.defaultLabel(categoryId)),
+      labelStyle: theme.textTheme.labelLarge?.copyWith(
+        color: selected ? colors.fg : scheme.onSurface,
+      ),
+      selectedColor: colors.container,
+      side: BorderSide(
+        color: selected ? colors.fg : scheme.outlineVariant,
       ),
     );
   }
