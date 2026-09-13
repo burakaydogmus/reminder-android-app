@@ -32,32 +32,37 @@ class Birthday {
   int notificationIdFor(int offsetMinutes) =>
       NotificationIds.birthdayNotificationId(id, offsetMinutes);
 
+  /// [year] yılındaki doğum günü (bildirim saatiyle).
+  ///
+  /// 29 Şubat doğumlular artık yıl olmayan yıllarda **28 Şubat**'ta
+  /// kutlanır; `DateTime(year, 2, 29)` bu yıllarda 1 Mart'a taşardı.
+  DateTime occurrenceInYear(int year) {
+    final day = (date.month == DateTime.february &&
+            date.day == 29 &&
+            !_isLeapYear(year))
+        ? 28
+        : date.day;
+    return DateTime(year, date.month, day, notifyHour, notifyMinute);
+  }
+
+  static bool _isLeapYear(int year) =>
+      (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+
   /// Bugünden sonraki ilk doğum günü tarihi (geçtiyse gelecek yıl).
   /// Bildirim saatini içerir.
   DateTime nextOccurrence({DateTime? from}) {
     final now = from ?? DateTime.now();
-    var candidate = DateTime(
-      now.year,
-      date.month,
-      date.day,
-      notifyHour,
-      notifyMinute,
-    );
-    if (!candidate.isAfter(now)) {
-      candidate = DateTime(
-        now.year + 1,
-        date.month,
-        date.day,
-        notifyHour,
-        notifyMinute,
-      );
-    }
-    return candidate;
+    final candidate = occurrenceInYear(now.year);
+    if (candidate.isAfter(now)) return candidate;
+    return occurrenceInYear(now.year + 1);
   }
 
   /// Bir sonraki doğum günü için dolacak yaş (yıl bilgisi makulse).
-  int? get upcomingAge {
-    final next = nextOccurrence();
+  int? get upcomingAge => upcomingAgeFrom();
+
+  /// [upcomingAge]'in saati verilebilen hali ([from] yoksa şimdi).
+  int? upcomingAgeFrom({DateTime? from}) {
+    final next = nextOccurrence(from: from);
     final age = next.year - date.year;
     if (age <= 0) return null;
     return age;
@@ -72,10 +77,13 @@ class Birthday {
     return nextDate.difference(today).inDays;
   }
 
+  /// Nullable alanlar `T? Function()?` olarak alınır (bkz. `Reminder.copyWith`);
+  /// böylece not açıkça temizlenebilir: `b.copyWith(note: () => null)`.
+  /// Parametre verilmezse mevcut değer korunur.
   Birthday copyWith({
     String? id,
     String? name,
-    String? note,
+    String? Function()? note,
     DateTime? date,
     int? notifyHour,
     int? notifyMinute,
@@ -85,7 +93,7 @@ class Birthday {
     return Birthday(
       id: id ?? this.id,
       name: name ?? this.name,
-      note: note ?? this.note,
+      note: note != null ? note() : this.note,
       date: date ?? this.date,
       notifyHour: notifyHour ?? this.notifyHour,
       notifyMinute: notifyMinute ?? this.notifyMinute,
