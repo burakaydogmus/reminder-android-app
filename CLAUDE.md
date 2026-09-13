@@ -112,6 +112,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `PermissionsGroup`), `maps/`.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
+  - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
+    `OnboardingStore` (see **Onboarding** under UI structure).
   - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
     `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
@@ -391,6 +393,16 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   "Yarın HH:mm mı?" suggestion) and `_save` blocks it inline. Only an existing
   reminder's unchanged overdue time saves (original `remindAt` kept).
   `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
+- **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
+  once. The flag `onboarding_completed_v1` lives in SharedPreferences through
+  `OnboardingStore` (UI-only; never in the repository/database). Users who already
+  have reminders or birthdays skip it (flag set), also when that data arrives while
+  step 1 is still untouched. "Atla", "Uygulamaya geç" and the step-4 suggestions set
+  the flag; suggestions open their editor on top of `HomeShell`. Step 3 asks only
+  for notifications (`PermissionFlows.fixNotifications`); exact alarms and location
+  stay contextual. The capture demo is scripted (no parsing; F4.6). Illustrations
+  are one-shot (`OneShotAnimation`, final frame under Reduce Motion) — never add a
+  repeating animation. Each step scrolls, so 200% text never overflows.
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 

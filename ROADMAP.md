@@ -99,7 +99,7 @@ Diğer tüm fazların temeli.
   `lib/ui/theme/tokens/` (palet, `ColorScheme`, tipografi, şekil, boşluk, yükselti), `ThemeExtension`'lar (`KorColors`, `KorMotion`), `KorTheme.light/dark` (henüz bağlı değil), Google Sans Flex alt kümesi (latin + latin-ext; wght/opsz/ROND), kontrast testi. **Görsel değişiklik yok.**
 - [x] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0a, F4.0b*
   `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
-- [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
+- [x] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
 - [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
   Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; mevcut "Diğer + özel ad" yapısının migration'ı.
