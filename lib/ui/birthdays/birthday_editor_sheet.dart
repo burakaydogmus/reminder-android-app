@@ -5,9 +5,16 @@ import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/birthday.dart';
-import 'package:reminder/ui/widgets/primary_button.dart';
+import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
-const Color kBirthdayAccent = Color(0xFFEC407A); // pembe
+/// Keys for tests.
+abstract final class BirthdayEditorKeys {
+  static const name = Key('birthdayEditor.name');
+  static const save = Key('birthdayEditor.save');
+}
 
 Future<void> showBirthdayEditorSheet(
   BuildContext context, {
@@ -16,9 +23,7 @@ Future<void> showBirthdayEditorSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+    useSafeArea: true,
     builder: (ctx) => _BirthdayEditorBody(existing: existing),
   );
 }
@@ -38,6 +43,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
   late DateTime? _date;
   late TimeOfDay _notifyTime;
   late Set<int> _offsets;
+  String? _nameError;
 
   @override
   void initState() {
@@ -86,9 +92,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final cubit = context.read<ReminderCubit>();
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İsim boş olamaz.')),
-      );
+      setState(() => _nameError = 'İsim boş olamaz.');
       return;
     }
     if (_date == null) {
@@ -136,20 +140,26 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     if (existing == null) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Silinsin mi?'),
-        content: Text('"${existing.name}" doğum günü hatırlatması silinecek.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('İptal'),
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: const Text('Silinsin mi?'),
+          content: Text(
+            '"${existing.name}" doğum günü hatırlatması silinecek.',
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sil'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('İptal'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: scheme.error),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Sil'),
+            ),
+          ],
+        );
+      },
     );
     if (ok == true && mounted) {
       await context.read<ReminderCubit>().deleteBirthday(existing.id);
@@ -160,251 +170,169 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final colors = CategoryVisuals.birthdayColorsOf(context);
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
-    final dateLabel =
-        _date != null ? DateFormat.yMMMd('tr_TR').format(_date!) : 'Tarih seç';
-    final timeLabel = _notifyTime.format(context);
+    final dateLabel = _date != null
+        ? DateFormat('d MMMM y', 'tr_TR').format(_date!)
+        : 'Tarih seç';
+    final timeLabel = KorFormat.time(
+      DateTime(2000, 1, 1, _notifyTime.hour, _notifyTime.minute),
+    );
 
     return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: 16 + bottom + viewInsets,
-      ),
+      padding: EdgeInsets.only(bottom: viewInsets),
       child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          KorSpacing.s5,
+          0,
+          KorSpacing.s5,
+          KorSpacing.s5 + bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: kBirthdayAccent.withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.cake_rounded,
-                    color: kBirthdayAccent,
-                    size: 24,
-                  ),
+                IconBadge(
+                  icon: CategoryVisuals.birthdayIcon,
+                  foreground: colors.fg,
+                  background: colors.container,
+                  size: 44,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: KorSpacing.s4),
                 Expanded(
-                  child: Text(
-                    widget.existing == null
-                        ? 'Yeni doğum günü'
-                        : 'Doğum günü düzenle',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      widget.existing == null
+                          ? 'Yeni doğum günü'
+                          : 'Doğum günü düzenle',
+                      style: theme.textTheme.titleLarge,
                     ),
                   ),
                 ),
                 if (widget.existing != null)
                   IconButton(
+                    tooltip: 'Sil',
                     onPressed: _confirmDelete,
                     icon: Icon(
                       Icons.delete_outline_rounded,
-                      color: theme.colorScheme.error,
+                      color: scheme.error,
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: KorSpacing.s4),
             TextField(
+              key: BirthdayEditorKeys.name,
               controller: _nameCtrl,
+              autofocus: widget.existing == null,
+              textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
+              onChanged: (_) {
+                if (_nameError != null) setState(() => _nameError = null);
+              },
+              decoration: InputDecoration(
                 labelText: 'İsim',
                 hintText: 'Örn. Ayşe',
-                border: OutlineInputBorder(),
+                errorText: _nameError,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: KorSpacing.s3),
             TextField(
               controller: _noteCtrl,
+              minLines: 1,
               maxLines: 2,
               decoration: const InputDecoration(
                 labelText: 'Not (isteğe bağlı)',
                 hintText: 'Örn. Hediye fikri',
-                border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 12),
-            Row(
+            const SizedBox(height: KorSpacing.s5),
+            GroupedCard(
+              icon: Icons.event_rounded,
+              title: 'Tarih ve bildirim saati',
               children: [
-                Expanded(
-                  child: _PickerTile(
-                    icon: Icons.calendar_today_rounded,
-                    label: dateLabel,
-                    placeholder: _date == null,
-                    onTap: _pickDate,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _PickerTile(
-                    icon: Icons.schedule_rounded,
-                    label: timeLabel,
-                    placeholder: false,
-                    onTap: _pickTime,
-                  ),
+                Wrap(
+                  spacing: KorSpacing.s3,
+                  runSpacing: KorSpacing.s3,
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(Icons.calendar_today_rounded),
+                      label: Text(dateLabel),
+                      tooltip: 'Doğum tarihi seç',
+                      onPressed: _pickDate,
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.schedule_rounded),
+                      label: Text(
+                        timeLabel,
+                        style: const TextStyle(
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      tooltip: 'Bildirim saati seç',
+                      onPressed: _pickTime,
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Hatırlatma zamanı',
-              style: theme.textTheme.labelLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Birden fazla seçim yapabilirsin.',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            const SizedBox(height: KorSpacing.s4),
+            GroupedCard(
+              icon: Icons.notifications_outlined,
+              title: 'Ne zaman hatırlatayım?',
               children: [
-                for (final preset in BirthdayAdvanceOffset.presets)
-                  _OffsetChip(
-                    label: preset.label,
-                    selected: _offsets.contains(preset.minutes),
-                    onTap: () {
-                      setState(() {
-                        if (_offsets.contains(preset.minutes)) {
-                          _offsets.remove(preset.minutes);
-                        } else {
-                          _offsets.add(preset.minutes);
-                        }
-                      });
-                    },
+                Text(
+                  'Birden fazla seçim yapabilirsin.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
+                ),
+                const SizedBox(height: KorSpacing.s3),
+                Wrap(
+                  spacing: KorSpacing.s3,
+                  runSpacing: KorSpacing.s3,
+                  children: [
+                    for (final preset in BirthdayAdvanceOffset.presets)
+                      FilterChip(
+                        label: Text(preset.label),
+                        selected: _offsets.contains(preset.minutes),
+                        selectedColor: colors.container,
+                        checkmarkColor: colors.fg,
+                        labelStyle: theme.textTheme.labelLarge?.copyWith(
+                          color: _offsets.contains(preset.minutes)
+                              ? colors.fg
+                              : scheme.onSurface,
+                        ),
+                        side: BorderSide(
+                          color: _offsets.contains(preset.minutes)
+                              ? colors.fg
+                              : scheme.outlineVariant,
+                        ),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _offsets.add(preset.minutes);
+                            } else {
+                              _offsets.remove(preset.minutes);
+                            }
+                          });
+                        },
+                      ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 20),
-            PrimaryButton(
+            const SizedBox(height: KorSpacing.s6),
+            FilledButton(
+              key: BirthdayEditorKeys.save,
               onPressed: _save,
-              title: 'Kaydet',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PickerTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool placeholder;
-  final VoidCallback onTap;
-
-  const _PickerTile({
-    required this.icon,
-    required this.label,
-    required this.placeholder,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fg = placeholder
-        ? theme.colorScheme.onSurface.withValues(alpha: 0.55)
-        : theme.colorScheme.onSurface;
-    return Material(
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, color: kBirthdayAccent, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: fg, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OffsetChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _OffsetChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const color = kBirthdayAccent;
-    final bg = selected ? color : color.withValues(alpha: 0.12);
-    final fg = selected ? Colors.white : color;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : color.withValues(alpha: 0.25),
-            width: 1,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.30),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              selected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              size: 16,
-              color: fg,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: fg,
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              ),
+              child: const Text('Kaydet'),
             ),
           ],
         ),

@@ -1,0 +1,265 @@
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/reminder_actions.dart';
+import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
+import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
+import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
+
+/// How the trailing time is written.
+enum ReminderTimeStyle {
+  /// `18:30` today, `Yarın 09:00` / `14 Eyl 09:00` otherwise.
+  relative,
+
+  /// Always `18:30` (the day is given by a surrounding header).
+  timeOnly,
+}
+
+/// Reminder card (§3.3.2, `components.ReminderCard`).
+///
+/// The leading circle is its own 48 dp toggle target. Tap opens the editor,
+/// long-press opens Düzenle / Sil. Overdue is signalled by text + icon
+/// ("Gecikti"), not by colour alone.
+class ReminderCard extends StatelessWidget {
+  const ReminderCard({
+    super.key,
+    required this.reminder,
+    required this.now,
+    this.timeStyle = ReminderTimeStyle.relative,
+  });
+
+  final Reminder reminder;
+  final DateTime now;
+  final ReminderTimeStyle timeStyle;
+
+  bool get _isOverdue {
+    final at = reminder.remindAt;
+    return !reminder.isDone && at != null && at.toLocal().isBefore(now);
+  }
+
+  String? get _placeLabel {
+    if (!reminder.locationTriggerEnabled) return null;
+    final label = reminder.locationPlaceLabel?.trim();
+    return label != null && label.isNotEmpty ? label : 'Konum';
+  }
+
+  String _semanticLabel() {
+    final at = reminder.remindAt?.toLocal();
+    return [
+      reminder.title,
+      reminder.categoryDisplayLabel,
+      if (at != null)
+        '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
+      if (_isOverdue) 'gecikti',
+      if (_placeLabel != null) 'konum: $_placeLabel',
+      reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
+    ].join(', ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final cubit = context.read<ReminderCubit>();
+    final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
+    final done = reminder.isDone;
+    final overdue = _isOverdue;
+    final at = reminder.remindAt?.toLocal();
+    final note = reminder.note?.trim();
+
+    final metaStyle = theme.textTheme.labelMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    WidgetSpan metaIcon(IconData icon, Color color) => WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.only(right: KorSpacing.s1),
+            child: Icon(icon, size: 14, color: color),
+          ),
+        );
+    const separator = TextSpan(text: '  ·  ');
+
+    final meta = TextSpan(
+      style: metaStyle,
+      children: [
+        metaIcon(CategoryVisuals.iconFor(reminder.categoryId), category.fg),
+        TextSpan(
+          text: reminder.categoryDisplayLabel,
+          style: TextStyle(color: category.fg),
+        ),
+        if (overdue) ...[
+          separator,
+          metaIcon(Icons.schedule_rounded, scheme.primary),
+          TextSpan(text: 'Gecikti', style: TextStyle(color: scheme.primary)),
+        ],
+        if (_placeLabel != null) ...[
+          separator,
+          metaIcon(Icons.place_rounded, scheme.onSurfaceVariant),
+          TextSpan(text: _placeLabel),
+        ],
+      ],
+    );
+
+    final timeText = at == null
+        ? null
+        : (timeStyle == ReminderTimeStyle.timeOnly
+            ? KorFormat.time(at)
+            : KorFormat.when(at, now));
+
+    return Semantics(
+      container: true,
+      label: _semanticLabel(),
+      customSemanticsActions: {
+        CustomSemanticsAction(
+          label: done ? 'Tamamlanmadı olarak işaretle' : 'Tamamla',
+        ): () => cubit.toggleDone(reminder.id),
+        const CustomSemanticsAction(label: 'Düzenle'): () =>
+            showReminderEditorSheet(context, existing: reminder),
+        const CustomSemanticsAction(label: 'Sil'): () =>
+            confirmAndDeleteReminder(context, reminder),
+      },
+      child: DecoratedBox(
+        decoration: korCardDecoration(context, flat: done),
+        child: Material(
+          type: MaterialType.transparency,
+          child: Builder(
+            builder: (anchorContext) => InkWell(
+              borderRadius: KorRadius.cardAll,
+              onTap: () => showReminderEditorSheet(context, existing: reminder),
+              onLongPress: () => showReminderMenu(anchorContext, reminder),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 64),
+                child: Padding(
+                  padding: KorSpacing.reminderCardPadding,
+                  child: Row(
+                    children: [
+                      _CompleteToggle(
+                        done: done,
+                        color: category.fg,
+                        onColor: category.onFg,
+                        onTap: () => cubit.toggleDone(reminder.id),
+                      ),
+                      const SizedBox(width: KorSpacing.s3),
+                      Expanded(
+                        child: ExcludeSemantics(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                reminder.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: done ? scheme.onSurfaceVariant : null,
+                                  decoration:
+                                      done ? TextDecoration.lineThrough : null,
+                                ),
+                              ),
+                              const SizedBox(height: KorSpacing.s1),
+                              Text.rich(
+                                meta,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (note != null && note.isNotEmpty)
+                                Text(
+                                  note,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (timeText != null) ...[
+                        const SizedBox(width: KorSpacing.s3),
+                        ExcludeSemantics(
+                          child: Text(
+                            timeText,
+                            style: KorTimeText.of(context).copyWith(
+                              color: overdue
+                                  ? scheme.primary
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tabular time style derived from the theme (labelLarge + tabular figures).
+abstract final class KorTimeText {
+  static TextStyle of(BuildContext context) =>
+      (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+}
+
+class _CompleteToggle extends StatelessWidget {
+  const _CompleteToggle({
+    required this.done,
+    required this.color,
+    required this.onColor,
+    required this.onTap,
+  });
+
+  final bool done;
+  final Color color;
+  final Color onColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.korMotion.short;
+    return Semantics(
+      container: true,
+      button: true,
+      checked: done,
+      label: done ? 'Tamamlanmadı olarak işaretle' : 'Tamamla',
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onTap,
+        radius: KorSizes.minTouch / 2,
+        child: SizedBox.square(
+          dimension: KorSizes.minTouch,
+          child: Center(
+            child: AnimatedContainer(
+              duration: duration,
+              width: KorSizes.checkboxVisual,
+              height: KorSizes.checkboxVisual,
+              decoration: ShapeDecoration(
+                color: done ? color : null,
+                shape: CircleBorder(side: BorderSide(color: color, width: 2)),
+              ),
+              child: done
+                  ? Icon(Icons.check_rounded, size: 18, color: onColor)
+                  : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
