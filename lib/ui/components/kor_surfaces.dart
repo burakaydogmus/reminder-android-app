@@ -105,45 +105,68 @@ class GroupedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    var decoration = korCardDecoration(context, borderRadius: KorRadius.lgAll);
-    if (borderColor != null) {
-      decoration = decoration.copyWith(
-        border: Border.all(color: borderColor!, width: 2),
-      );
-    }
-    return Container(
-      decoration: decoration,
-      padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (title != null)
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: KorSizes.minTouch),
-              child: Row(
-                children: [
-                  if (icon != null) ...[
-                    Icon(
-                      icon,
-                      size: KorSizes.iconSm,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: KorSpacing.s3),
-                  ],
-                  Expanded(
-                    child: Semantics(
-                      header: true,
-                      child: Text(title!, style: theme.textTheme.labelLarge),
-                    ),
-                  ),
-                  if (headerTrailing != null) headerTrailing!,
-                ],
-              ),
-            ),
-          ...children,
-        ],
+    final decoration = korCardDecoration(
+      context,
+      borderRadius: KorRadius.lgAll,
+    );
+    final hairline = decoration.border is Border
+        ? (decoration.border! as Border).top
+        : BorderSide.none;
+    final side = borderColor != null
+        ? BorderSide(color: borderColor!, width: 2)
+        : hairline;
+    // Fill is painted by a Material so ListTile/InkWell ink stays visible;
+    // the shadow stays on a colourless DecoratedBox.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: KorRadius.lgAll,
+        boxShadow: decoration.boxShadow,
       ),
+      child: Material(
+        color: decoration.color,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: KorRadius.lgAll,
+          side: side,
+        ),
+        child: Padding(
+          padding: padding,
+          child: _content(theme, scheme),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(ThemeData theme, ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (title != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: KorSizes.minTouch),
+            child: Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: KorSizes.iconSm,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: KorSpacing.s3),
+                ],
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(title!, style: theme.textTheme.labelLarge),
+                  ),
+                ),
+                if (headerTrailing != null) headerTrailing!,
+              ],
+            ),
+          ),
+        ...children,
+      ],
     );
   }
 }
