@@ -79,7 +79,7 @@ Diğer tüm fazların temeli.
 
 - [x] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
-- [ ] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
+- [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [ ] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.

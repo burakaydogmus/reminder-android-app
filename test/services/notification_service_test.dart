@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/notification_ids.dart';
+import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_fingerprint_store.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -426,6 +430,177 @@ void main() {
         other.notificationId,
         ...allBirthdayIds,
       });
+    });
+  });
+
+  group('notification actions (F3.2)', () {
+    const actionIds = [
+      NotificationActionIds.complete,
+      NotificationActionIds.snooze10Minutes,
+      NotificationActionIds.snooze1Hour,
+    ];
+
+    void expectReminderActions(NotificationDetails? details) {
+      final android = details!.android!;
+      expect(android.actions!.map((a) => a.id), actionIds);
+      expect(
+        android.actions!.map((a) => a.title),
+        ['Tamamla', '10 dk', '1 saat'],
+      );
+      for (final action in android.actions!) {
+        expect(action.showsUserInterface, isFalse);
+        expect(action.cancelNotification, isTrue);
+      }
+      expect(details.iOS!.categoryIdentifier, reminderNotificationCategoryId);
+    }
+
+    test('timed reminders carry actions, category and a reminder payload',
+        () async {
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+
+      final pending = plugin.pending[future.notificationId]!;
+      expectReminderActions(pending.details);
+      expect(pending.payload, 'reminder:future');
+    });
+
+    test('birthday notifications have no actions', () async {
+      await service.syncSchedules(
+        reminders: const [],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+
+      for (final id in _birthdayIds(birthday)) {
+        final details = plugin.pending[id]!.details!;
+        expect(details.android!.actions, anyOf(isNull, isEmpty));
+        expect(details.iOS!.categoryIdentifier, isNull);
+      }
+    });
+
+    test('geofence entry notifications carry actions', () async {
+      final geo = buildReminder(id: 'geo');
+      await service.showGeofenceEntry(geo);
+
+      expectReminderActions(plugin.shownDetails[geo.geoNotificationId]);
+      expect(plugin.shownPayloads[geo.geoNotificationId], 'reminder:geo');
+    });
+
+    test('initialize registers the iOS category and both handlers, no prompt',
+        () async {
+      await service.initialize();
+
+      final darwin = plugin.initializeSettings!.iOS!;
+      expect(darwin.requestAlertPermission, isFalse);
+      expect(darwin.requestBadgePermission, isFalse);
+      expect(darwin.requestSoundPermission, isFalse);
+      final category = darwin.notificationCategories.single;
+      expect(category.identifier, reminderNotificationCategoryId);
+      expect(
+        category.actions.map((a) => a.identifier),
+        [...actionIds, NotificationActionIds.snoozeTomorrowMorning],
+      );
+      expect(
+        category.actions.map((a) => a.title),
+        ['Tamamla', '10 dk ertele', '1 saat ertele', 'Yarın sabah'],
+      );
+      expect(plugin.foregroundCallback, same(onNotificationResponse));
+      expect(
+        plugin.backgroundCallback,
+        same(notificationActionBackgroundHandler),
+      );
+    });
+
+    test('app launch details come from the plugin', () async {
+      plugin.launchDetails = const NotificationAppLaunchDetails(true);
+
+      expect(
+        (await service.appLaunchDetails())!.didNotificationLaunchApp,
+        isTrue,
+      );
+    });
+
+    test('fingerprints of the previous version reschedule everything once',
+        () async {
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+
+      /// Mirrors `_ScheduleSpec.fingerprint` for a pending notification.
+      String fingerprint(
+        FakePendingNotification n, {
+        required int version,
+        required String? payload,
+      }) {
+        final canonical = jsonEncode([
+          'v$version',
+          n.details!.android!.channelId,
+          AndroidScheduleMode.exactAllowWhileIdle.name,
+          n.title,
+          n.body,
+          n.scheduledDate.millisecondsSinceEpoch,
+          n.scheduledDate.location.name,
+          n.matchDateTimeComponents?.name ?? '-',
+          payload ?? '-',
+          // v3 (F3.1): the reminder's recurrence rule ("null" = none);
+          // birthdays have none.
+          if (version >= 3) n.id == future.notificationId ? 'null' : '-',
+        ]);
+        final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
+        return '$hash:${canonical.length}';
+      }
+
+      // Control: the mirror matches the current version, so nothing changes.
+      const store = NotificationFingerprintStore();
+      await store.save({
+        for (final n in plugin.pending.values)
+          n.id: fingerprint(
+            n,
+            version: NotificationService.scheduleFingerprintVersion,
+            payload: n.payload,
+          ),
+      });
+      plugin.resetCounters();
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+      expect(plugin.writeCalls, 0);
+
+      // Store written by v2 (before F3.1: no recurrence rule in the
+      // fingerprint).
+      expect(NotificationService.scheduleFingerprintVersion, 3);
+      await store.save({
+        for (final n in plugin.pending.values)
+          n.id: fingerprint(n, version: 2, payload: n.payload),
+      });
+
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+
+      expect(
+        plugin.scheduledIds.toSet(),
+        {future.notificationId, ..._birthdayIds(birthday)},
+      );
+      expect(plugin.cancelledIds, isEmpty);
+      expectReminderActions(plugin.pending[future.notificationId]!.details);
+
+      plugin.resetCounters();
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+      expect(plugin.writeCalls, 0, reason: 'rescheduled only once');
     });
   });
 }

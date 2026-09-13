@@ -357,6 +357,39 @@ algorithm or key format requires clearing old-id notifications. The F1.5 migrati
 relies on every `syncSchedules` (run on each app load) cancelling all pending ids it
 does not recognise; keep that cleanup if the sync changes again.
 
+### Notification actions (F3.2)
+
+- **Payload** (`services/notification_payload.dart`): timed and geofence reminder
+  notifications carry `reminder:<id>`, birthdays `birthday:<id>`; `NotificationPayload.parse`
+  also accepts a bare id (geofence notifications shown before F3.2).
+- **Actions:** reminder and geofence notifications only (birthdays: tap only). Android
+  `androidReminderActions` — Tamamla · 10 dk · 1 saat (`showsUserInterface: false`,
+  `cancelNotification: true`, needs `ActionBroadcastReceiver` in the manifest). iOS
+  category `reminder_actions` (`darwinNotificationCategories`, registered in
+  `NotificationService.initialize` with the F1.6 no-prompt flags; details set
+  `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
+  ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2).
+- **Handling** (`services/notification_actions.dart`): non-foreground actions always run
+  in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
+  `@pragma('vm:entry-point')`), even while the app is open. It reloads the
+  SharedPreferences cache, builds real services, closes its repository in `finally` and
+  delegates to `handleNotificationAction(response, repository:, schedules:, now:)`:
+  complete → `isDone`; snooze → `remindAt` from `snoozedRemindAt`, which reuses the
+  Ertele sheet's `SnoozeOptions.from(now)` (10 dk, 1 saat, Yarın sabah 09:00), also for
+  untimed/overdue reminders; then save →
+  `ScheduleSync.syncAll` (birthdays + settings from the repository) →
+  `notifyAppOfWidgetChange()`. Unknown action, non-reminder payload, missing or done
+  reminder → no-op. Keep "Tamamla" in that one function (F3.1's recurrence helper plugs
+  in there). `NotificationService.initialize` always passes both handlers, also in
+  background isolates.
+- **Tap:** `onNotificationResponse` (main isolate) and, for cold starts, `main.dart`
+  (`NotificationTapRouter.instance.openFromLaunch(NotificationService.instance.appLaunchDetails)`)
+  queue the target in `NotificationTapRouter`. `HomeShell` listens (and checks once
+  after its first frame): a reminder payload opens `showReminderEditorSheet` once the
+  reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
+  a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
 ## Workflow rules (from ROADMAP.md)
 
 - **Branch name:** `<type>/<short-name>` — `feat/`, `fix/`, `chore/`, `refactor/`,
