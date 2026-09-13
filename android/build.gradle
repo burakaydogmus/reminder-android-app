@@ -13,6 +13,23 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// home_widget 0.9.1 declares dynamic versions (glance-appwidget:1.+,
+// work-runtime-ktx:2.+, kotlinx-coroutines-android:1.+). On a clean resolve these
+// pick up releases that need compileSdk 37 / AGP 9.1 or JVM 11 bytecode, which
+// breaks the build. Pin stable versions compatible with compileSdk 35 / AGP 8.6.
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.glance:glance-appwidget:1.1.1'
+            force 'androidx.work:work-runtime:2.9.1'
+            force 'androidx.work:work-runtime-ktx:2.9.1'
+            force 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+            force 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1'
+            force 'org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1'
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
