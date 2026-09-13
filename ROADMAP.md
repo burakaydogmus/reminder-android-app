@@ -84,7 +84,7 @@ Diğer tüm fazların temeli.
 - [ ] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.
 - [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
-- [ ] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
+- [x] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
   Kaydırarak tamamla (sağa) / ertele (sola kısa) / sil (sola uzun) + "Geri al" snackbar; her aksiyonun menü ve ekran okuyucu karşılığı.
 - [ ] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
   Bugün zaman şeridi (Kaçanlar / şerit / Bugün bir ara), Takvim gündemi (Yaklaşan), Listeler › akıllı listeler (Zamansız dahil), Türkçe karakter duyarsız arama.
@@ -99,7 +99,7 @@ Diğer tüm fazların temeli.
   `lib/ui/theme/tokens/` (palet, `ColorScheme`, tipografi, şekil, boşluk, yükselti), `ThemeExtension`'lar (`KorColors`, `KorMotion`), `KorTheme.light/dark` (henüz bağlı değil), Google Sans Flex alt kümesi (latin + latin-ext; wght/opsz/ROND), kontrast testi. **Görsel değişiklik yok.**
 - [x] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0a, F4.0b*
   `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
-- [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
+- [x] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
 - [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
   Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; mevcut "Diğer + özel ad" yapısının migration'ı.
