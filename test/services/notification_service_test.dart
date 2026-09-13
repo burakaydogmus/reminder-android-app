@@ -107,6 +107,35 @@ void main() {
       expect(plugin.pending, isEmpty);
     });
 
+    // F1.5 geçişi: eski `String.hashCode` kimlikleriyle zamanlanmış
+    // bildirimler yeni kimliklerle `cancel` edilemez. Güncellemeden sonraki
+    // ilk senkron (her uygulama açılışında `ScheduleSync.syncAll`) önce
+    // `cancelAll` çağırdığı için bunlar da temizlenir.
+    test('cancels everything, including unknown old-scheme ids, first',
+        () async {
+      final legacy = FakePendingNotification(
+        id: 424242,
+        title: 'old-scheme',
+        scheduledDate: tz.TZDateTime.now(tz.local).add(
+          const Duration(days: 3),
+        ),
+      );
+      plugin.pending[legacy.id] = legacy;
+
+      await service.syncSchedules(
+        reminders: [future],
+        birthdays: [birthday],
+        notificationsEnabled: true,
+      );
+
+      expect(plugin.cancelAllCalls, 1);
+      expect(plugin.pending.containsKey(legacy.id), isFalse);
+      expect(
+        plugin.pending.keys.toSet(),
+        {future.notificationId, ..._birthdayIds(birthday)},
+      );
+    });
+
     test('initializes the plugin lazily, once', () async {
       for (var i = 0; i < 2; i++) {
         await service.syncSchedules(

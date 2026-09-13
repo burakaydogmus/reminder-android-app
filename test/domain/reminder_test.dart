@@ -156,6 +156,23 @@ void main() {
         expect(r.geoNotificationId, lessThanOrEqualTo(0x7FFFFFFF));
       }
     });
+
+    test('are positive, non-zero and stable (F1.5)', () {
+      for (final id in ids) {
+        final r = buildReminder(id: id);
+        final copy = r.copyWith(title: 'değişti');
+        expect(r.notificationId, inInclusiveRange(1, 0x7FFFFFFF), reason: id);
+        expect(r.geoNotificationId, inInclusiveRange(1, 0x7FFFFFFF),
+            reason: id);
+        expect(copy.notificationId, r.notificationId, reason: id);
+        expect(copy.geoNotificationId, r.geoNotificationId, reason: id);
+      }
+      expect(
+        buildReminder(id: '6f1c2b1e-0000-4000-8000-000000000000')
+            .notificationId,
+        1064515057,
+      );
+    });
   });
 
   group('Reminder.copyWith', () {
