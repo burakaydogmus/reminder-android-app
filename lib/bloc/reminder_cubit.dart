@@ -4,6 +4,7 @@ import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
@@ -62,15 +63,7 @@ class ReminderCubit extends Cubit<ReminderState> {
     final reminders = await _repository.loadReminders();
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
-    reminders.sort((a, b) {
-      if (a.isDone != b.isDone) return a.isDone ? 1 : -1;
-      final ta = a.remindAt;
-      final tb = b.remindAt;
-      if (ta != null && tb != null) return ta.compareTo(tb);
-      if (ta != null) return -1;
-      if (tb != null) return 1;
-      return b.createdAt.compareTo(a.createdAt);
-    });
+    reminders.sort(compareReminders);
     emit(ReminderState(
       reminders: reminders,
       birthdays: birthdays,
