@@ -136,7 +136,9 @@ class _HomeShellState extends State<HomeShell> {
       return await found.future;
     } finally {
       timer.cancel();
-      await subscription.cancel();
+      // Not awaited: cancelling from inside the delivering listener would
+      // delay opening the editor.
+      unawaited(subscription.cancel());
     }
   }
 
