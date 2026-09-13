@@ -65,7 +65,14 @@ class _TodayPageState extends State<TodayPage> {
                         key: TodayPageKeys.notificationBanner,
                         title: 'Bildirimler kapalı',
                         body: 'Hatırlatmalar zamanında gelmeyecek.',
-                        actionLabel: 'Ayarları aç',
+                        // Same wording as Ayarlar → İzinler: ask while the
+                        // system has never asked, settings after a denial.
+                        actionLabel: PermissionScope.of(context)
+                                    .snapshot
+                                    ?.notifications ==
+                                NotificationPermissionState.notRequested
+                            ? 'İzin ver'
+                            : 'Ayarları aç',
                         onAction: () =>
                             PermissionFlows.fixNotifications(context),
                       ),

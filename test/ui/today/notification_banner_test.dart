@@ -72,7 +72,8 @@ void main() {
         expect(_banner, findsNothing);
       });
 
-      testWidgets('shown for birthdays too', (tester) async {
+      testWidgets('never asked: shown for birthdays, "İzin ver" requests',
+          (tester) async {
         final h = await UiHarness.create(birthdays: [buildBirthday()]);
         h.permissions.snapshot = PermissionSnapshot.allGranted.copyWith(
           notifications: NotificationPermissionState.notRequested,
@@ -82,6 +83,18 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(_banner, findsOneWidget);
+        expect(
+          find.descendant(of: _banner, matching: find.text('Ayarları aç')),
+          findsNothing,
+        );
+
+        await tester.tap(
+          find.descendant(of: _banner, matching: find.text('İzin ver')),
+        );
+        await tester.pumpAndSettle();
+        expect(h.permissions.calls, ['requestNotifications']);
+        // The fake grants it: the banner goes away.
+        expect(_banner, findsNothing);
       });
     });
   }
