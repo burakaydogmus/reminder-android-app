@@ -6,7 +6,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
+import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/home/home_page.dart';
 import 'package:reminder/ui/theme/app_theme.dart';
 
@@ -31,6 +33,8 @@ class App extends StatelessWidget {
       create: (_) => ReminderCubit(
         ReminderRepository(),
         NotificationService.instance,
+        geofence: GeofenceService.instance,
+        homeWidget: const PlatformHomeWidgetSync(),
       )..load(),
       child: BlocBuilder<ReminderCubit, ReminderState>(
         buildWhen: (a, b) => a.settings.themeMode != b.settings.themeMode,

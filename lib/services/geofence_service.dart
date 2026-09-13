@@ -6,9 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/sync_interfaces.dart';
 
 /// OS geofence kayıtlarını hatırlatıcılarla senkronlar; girişte bildirim gösterir.
-class GeofenceService {
+class GeofenceService implements GeofenceSync {
   GeofenceService._();
   static final GeofenceService instance = GeofenceService._();
 
@@ -58,6 +59,7 @@ class GeofenceService {
   }
 
   /// Hatırlatıcı listesine göre geofence’leri günceller.
+  @override
   Future<void> syncWithReminders(
     List<Reminder> reminders, {
     required bool notificationsEnabled,

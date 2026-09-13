@@ -40,6 +40,51 @@ class Reminder {
     this.locationPlaceLabel,
   });
 
+  /// Belirtilen alanları değiştirilmiş bir kopya döndürür.
+  ///
+  /// Nullable alanlar `T? Function()?` olarak alınır; böylece değer açıkça
+  /// `null` yapılabilir: `r.copyWith(note: () => null)`. Parametre verilmezse
+  /// mevcut değer korunur.
+  Reminder copyWith({
+    String? id,
+    String? title,
+    String? Function()? note,
+    bool? isDone,
+    DateTime? createdAt,
+    DateTime? Function()? remindAt,
+    String? categoryId,
+    String? Function()? customCategoryLabel,
+    bool? locationTriggerEnabled,
+    double? Function()? locationLatitude,
+    double? Function()? locationLongitude,
+    double? locationRadiusMeters,
+    String? Function()? locationPlaceLabel,
+  }) {
+    return Reminder(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      note: note != null ? note() : this.note,
+      isDone: isDone ?? this.isDone,
+      createdAt: createdAt ?? this.createdAt,
+      remindAt: remindAt != null ? remindAt() : this.remindAt,
+      categoryId: categoryId ?? this.categoryId,
+      customCategoryLabel: customCategoryLabel != null
+          ? customCategoryLabel()
+          : this.customCategoryLabel,
+      locationTriggerEnabled:
+          locationTriggerEnabled ?? this.locationTriggerEnabled,
+      locationLatitude:
+          locationLatitude != null ? locationLatitude() : this.locationLatitude,
+      locationLongitude: locationLongitude != null
+          ? locationLongitude()
+          : this.locationLongitude,
+      locationRadiusMeters: locationRadiusMeters ?? this.locationRadiusMeters,
+      locationPlaceLabel: locationPlaceLabel != null
+          ? locationPlaceLabel()
+          : this.locationPlaceLabel,
+    );
+  }
+
   int get notificationId => id.hashCode & 0x7FFFFFFF;
 
   /// Zamanlı bildirimlerden ayrı kimlik (çakışmayı azaltır).

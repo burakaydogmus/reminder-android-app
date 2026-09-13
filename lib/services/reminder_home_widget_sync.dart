@@ -4,6 +4,8 @@ import 'dart:io' show Platform;
 import 'package:home_widget/home_widget.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/services/sync_interfaces.dart';
 
 /// Ana ekran widget'ına giden veri anahtarı (Android `HomeWidget` önbelleği).
 const String kHomeWidgetRemindersJsonKey = 'reminders_active_json';
@@ -17,14 +19,7 @@ Future<void> syncRemindersToHomeWidget(List<Reminder> reminders) async {
   if (!Platform.isAndroid) return;
 
   final active = reminders.where((r) => !r.isDone).toList();
-  active.sort((a, b) {
-    final ta = a.remindAt;
-    final tb = b.remindAt;
-    if (ta != null && tb != null) return ta.compareTo(tb);
-    if (ta != null) return -1;
-    if (tb != null) return 1;
-    return b.createdAt.compareTo(a.createdAt);
-  });
+  active.sort(compareReminders);
   final top = active.take(8).toList();
   final payload =
       top.map((r) => {'id': r.id, 'title': r.title}).toList(growable: false);
@@ -35,4 +30,14 @@ Future<void> syncRemindersToHomeWidget(List<Reminder> reminders) async {
   await HomeWidget.updateWidget(
     qualifiedAndroidName: kReminderListWidgetQualifiedAndroidName,
   );
+}
+
+/// [HomeWidgetSync]'in gerçek uygulaması; [syncRemindersToHomeWidget]'e
+/// delege eder.
+class PlatformHomeWidgetSync implements HomeWidgetSync {
+  const PlatformHomeWidgetSync();
+
+  @override
+  Future<void> sync(List<Reminder> reminders) =>
+      syncRemindersToHomeWidget(reminders);
 }
