@@ -11,6 +11,9 @@ import '../helpers/factories.dart';
 const _keyReminders = 'reminders_v1';
 const _keySettings = 'app_settings_v1';
 const _keyBirthdays = 'birthdays_v1';
+const _backupReminders = 'reminders_v1_backup';
+const _backupSettings = 'app_settings_v1_backup';
+const _backupBirthdays = 'birthdays_v1_backup';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +24,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     repository = ReminderRepository();
   });
+
+  Future<String?> stored(String key) async =>
+      (await SharedPreferences.getInstance()).getString(key);
 
   group('empty storage', () {
     test('loadReminders returns empty list', () async {
@@ -46,6 +52,7 @@ void main() {
       expect(await repository.loadReminders(), isEmpty);
       expect(await repository.loadBirthdays(), isEmpty);
       expect((await repository.loadSettings()).notificationsEnabled, isTrue);
+      expect(await repository.hasRecoveryBackup(), isFalse);
     });
   });
 
@@ -91,28 +98,93 @@ void main() {
       expect(loaded.notificationsEnabled, isFalse);
       expect(loaded.themeMode, AppThemeModeIds.dark);
     });
+
+    test('all-valid data writes no backup', () async {
+      await repository.saveReminders([buildReminder()]);
+      await repository.saveBirthdays([buildBirthday()]);
+      await repository
+          .saveSettings(const AppSettings(themeMode: AppThemeModeIds.light));
+
+      await repository.loadReminders();
+      await repository.loadBirthdays();
+      await repository.loadSettings();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(_backupReminders), isFalse);
+      expect(prefs.containsKey(_backupBirthdays), isFalse);
+      expect(prefs.containsKey(_backupSettings), isFalse);
+      expect(await repository.hasRecoveryBackup(), isFalse);
+    });
   });
 
-  test('clearAll removes reminders, birthdays and settings', () async {
-    await repository.saveReminders([buildReminder()]);
-    await repository.saveBirthdays([buildBirthday()]);
-    await repository
-        .saveSettings(const AppSettings(notificationsEnabled: false));
+  group('clearAll', () {
+    test('removes reminders, birthdays and settings', () async {
+      await repository.saveReminders([buildReminder()]);
+      await repository.saveBirthdays([buildBirthday()]);
+      await repository
+          .saveSettings(const AppSettings(notificationsEnabled: false));
 
-    await repository.clearAll();
+      await repository.clearAll();
 
-    expect(await repository.loadReminders(), isEmpty);
-    expect(await repository.loadBirthdays(), isEmpty);
-    expect((await repository.loadSettings()).notificationsEnabled, isTrue);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.containsKey(_keyReminders), isFalse);
-    expect(prefs.containsKey(_keyBirthdays), isFalse);
-    expect(prefs.containsKey(_keySettings), isFalse);
+      expect(await repository.loadReminders(), isEmpty);
+      expect(await repository.loadBirthdays(), isEmpty);
+      expect((await repository.loadSettings()).notificationsEnabled, isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(_keyReminders), isFalse);
+      expect(prefs.containsKey(_keyBirthdays), isFalse);
+      expect(prefs.containsKey(_keySettings), isFalse);
+    });
+
+    test('removes recovery backups', () async {
+      SharedPreferences.setMockInitialValues({
+        _keyReminders: '{not json',
+        _keyBirthdays: '{not json',
+        _keySettings: '{not json',
+      });
+      await repository.loadReminders();
+      await repository.loadBirthdays();
+      await repository.loadSettings();
+      expect(await repository.hasRecoveryBackup(), isTrue);
+
+      await repository.clearAll();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(_backupReminders), isFalse);
+      expect(prefs.containsKey(_backupBirthdays), isFalse);
+      expect(prefs.containsKey(_backupSettings), isFalse);
+      expect(await repository.hasRecoveryBackup(), isFalse);
+    });
   });
 
-  test('corrupt settings JSON falls back to defaults', () async {
-    SharedPreferences.setMockInitialValues({_keySettings: '{not json'});
-    expect((await repository.loadSettings()).themeMode, AppThemeModeIds.system);
+  group('corrupt settings', () {
+    test('undecodable JSON falls back to defaults and backs up raw', () async {
+      SharedPreferences.setMockInitialValues({_keySettings: '{not json'});
+
+      final settings = await repository.loadSettings();
+
+      expect(settings.themeMode, AppThemeModeIds.system);
+      expect(settings.notificationsEnabled, isTrue);
+      expect(await stored(_backupSettings), '{not json');
+    });
+
+    test('non-object JSON falls back to defaults and backs up raw', () async {
+      SharedPreferences.setMockInitialValues({_keySettings: '[1, 2]'});
+
+      expect((await repository.loadSettings()).notificationsEnabled, isTrue);
+      expect(await stored(_backupSettings), '[1, 2]');
+    });
+
+    test('missing fields use defaults without a backup', () async {
+      SharedPreferences.setMockInitialValues({
+        _keySettings: jsonEncode({'notificationsEnabled': false}),
+      });
+
+      final settings = await repository.loadSettings();
+
+      expect(settings.notificationsEnabled, isFalse);
+      expect(settings.themeMode, AppThemeModeIds.system);
+      expect(await repository.hasRecoveryBackup(), isFalse);
+    });
   });
 
   group('corrupt stored list', () {
@@ -147,27 +219,87 @@ void main() {
       expect(loaded.map((b) => b.id), ['ok-1']);
     });
 
-    test('non-object list items are skipped', () async {
-      SharedPreferences.setMockInitialValues({
-        _keyReminders: jsonEncode([
-          'string',
-          7,
-          null,
-          buildReminder(id: 'ok').toJson(),
-        ]),
-      });
+    test('corrupt reminder item: valid kept and exact raw backed up', () async {
+      final raw = storedRemindersWithOneCorruptItem();
+      SharedPreferences.setMockInitialValues({_keyReminders: raw});
 
-      expect((await repository.loadReminders()).map((r) => r.id), ['ok']);
+      final loaded = await repository.loadReminders();
+
+      expect(loaded.map((r) => r.id), ['ok-1', 'ok-2']);
+      expect(await stored(_backupReminders), raw);
+      expect(await repository.hasRecoveryBackup(), isTrue);
     });
 
-    test('undecodable or non-list JSON returns []', () async {
+    test('corrupt birthday item: valid kept and exact raw backed up', () async {
+      final raw = storedBirthdaysWithOneCorruptItem();
+      SharedPreferences.setMockInitialValues({_keyBirthdays: raw});
+
+      final loaded = await repository.loadBirthdays();
+
+      expect(loaded.map((b) => b.id), ['ok-1']);
+      expect(await stored(_backupBirthdays), raw);
+    });
+
+    test('saving after recovery keeps valid items and the backup', () async {
+      final raw = storedRemindersWithOneCorruptItem();
+      SharedPreferences.setMockInitialValues({_keyReminders: raw});
+
+      await repository.saveReminders(await repository.loadReminders());
+
+      expect(
+        (await repository.loadReminders()).map((r) => r.id),
+        ['ok-1', 'ok-2'],
+      );
+      expect(await stored(_backupReminders), raw);
+    });
+
+    test('non-object list items are skipped', () async {
+      final raw = jsonEncode([
+        'string',
+        7,
+        null,
+        buildReminder(id: 'ok').toJson(),
+      ]);
+      SharedPreferences.setMockInitialValues({_keyReminders: raw});
+
+      expect((await repository.loadReminders()).map((r) => r.id), ['ok']);
+      expect(await stored(_backupReminders), raw);
+    });
+
+    test('undecodable JSON returns [] and backs up raw', () async {
       SharedPreferences.setMockInitialValues({
         _keyReminders: '[{"id": "a", ',
+        _keyBirthdays: 'garbage',
+      });
+
+      expect(await repository.loadReminders(), isEmpty);
+      expect(await repository.loadBirthdays(), isEmpty);
+      expect(await stored(_backupReminders), '[{"id": "a", ');
+      expect(await stored(_backupBirthdays), 'garbage');
+    });
+
+    test('non-list JSON returns [] and backs up raw', () async {
+      final raw = jsonEncode({'id': 'a'});
+      SharedPreferences.setMockInitialValues({
+        _keyReminders: raw,
         _keyBirthdays: '42',
       });
 
       expect(await repository.loadReminders(), isEmpty);
       expect(await repository.loadBirthdays(), isEmpty);
+      expect(await stored(_backupReminders), raw);
+      expect(await stored(_backupBirthdays), '42');
+    });
+
+    test('a newer corrupt payload replaces the previous backup', () async {
+      SharedPreferences.setMockInitialValues({
+        _keyReminders: 'old garbage',
+        _backupReminders: 'older garbage',
+      });
+
+      await repository.loadReminders();
+
+      expect(await stored(_backupReminders), 'old garbage');
     });
   });
 }
