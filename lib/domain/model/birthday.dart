@@ -1,3 +1,5 @@
+import 'package:reminder/domain/notification_ids.dart';
+
 /// Yıllık tekrarlayan doğum günü hatırlatıcısı.
 ///
 /// [date] orijinal tarihtir (yaş hesabı için yıl bilgisi de saklanır), ancak
@@ -25,12 +27,10 @@ class Birthday {
     required this.createdAt,
   });
 
-  /// Bildirim ID'si tabanı; her offset için bu tabandan türetilir.
-  int notificationIdFor(int offsetMinutes) {
-    var h = id.hashCode ^ 0xB17DA1 ^ offsetMinutes;
-    if (h < 0) h = -h;
-    return h & 0x7FFFFFFF;
-  }
+  /// [offsetMinutes] önbildirimi için kararlı kimlik; FNV-1a
+  /// (`birthday:<id>:<offsetMinutes>`), bkz. [NotificationIds].
+  int notificationIdFor(int offsetMinutes) =>
+      NotificationIds.birthdayNotificationId(id, offsetMinutes);
 
   /// Bugünden sonraki ilk doğum günü tarihi (geçtiyse gelecek yıl).
   /// Bildirim saatini içerir.

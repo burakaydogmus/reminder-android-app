@@ -1,4 +1,5 @@
 ﻿import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/notification_ids.dart';
 
 class Reminder {
   final String id;
@@ -85,14 +86,13 @@ class Reminder {
     );
   }
 
-  int get notificationId => id.hashCode & 0x7FFFFFFF;
+  /// Zamanlı bildirim kimliği; kararlı FNV-1a (`reminder:<id>`), bkz.
+  /// [NotificationIds].
+  int get notificationId => NotificationIds.reminderNotificationId(id);
 
-  /// Zamanlı bildirimlerden ayrı kimlik (çakışmayı azaltır).
-  int get geoNotificationId {
-    var h = id.hashCode ^ 0x5f3759df;
-    if (h < 0) h = -h;
-    return h & 0x7FFFFFFF;
-  }
+  /// Konum bildirimi kimliği; zamanlı bildirimden ayrı isim alanı
+  /// (`geo:<id>`), bkz. [NotificationIds].
+  int get geoNotificationId => NotificationIds.geoNotificationId(id);
 
   bool get hasValidLocation =>
       locationLatitude != null &&
