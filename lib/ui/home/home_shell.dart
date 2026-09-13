@@ -86,6 +86,10 @@ class _HomeShellState extends State<HomeShell> {
                   children: [
                     Flexible(
                       child: Align(
+                        // Without a height factor the Align fills the
+                        // scaffold's bottom slot (whole screen), which put
+                        // the nav mid-screen and floating snackbars off it.
+                        heightFactor: 1,
                         alignment: AlignmentDirectional.centerStart,
                         child: KorPillNavigation(
                           selectedIndex: _index,
