@@ -138,7 +138,7 @@ class _CaptureDemoState extends State<CaptureDemo>
     const categoryStart = sentence.length - CaptureDemo.categoryToken.length;
 
     TextSpan span(int start, int end, {Color? bg, Color? fg}) {
-      final visibleEnd = end.clamp(start, typed);
+      final visibleEnd = typed.clamp(start, end);
       return TextSpan(
         text: sentence.substring(start, visibleEnd),
         style: bg == null || highlight == 0
