@@ -63,6 +63,12 @@
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
 
+        <!-- flutter_local_notifications: bildirim aksiyonları (Tamamla/Ertele,
+             F3.2) bu receiver üzerinden arka plan isolate'ine iletilir. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
