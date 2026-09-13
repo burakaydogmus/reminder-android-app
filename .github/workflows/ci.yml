@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: '3.29.2'
+  FLUTTER_VERSION: '3.47.4'
 
 jobs:
   analyze-test:
@@ -74,7 +74,8 @@ jobs:
 
   build-ios:
     name: Build iOS (no codesign)
-    runs-on: macos-latest
+    # Pinned so a future macos-latest move (Xcode 27) does not change the build.
+    runs-on: macos-26
     needs: analyze-test
     timeout-minutes: 45
     steps:

@@ -108,7 +108,7 @@ class _IndicatorBall extends StatelessWidget {
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: const StadiumBorder(),
-        color: Theme.of(context).indicatorColor,
+        color: TabBarTheme.of(context).indicatorColor,
       ),
     );
   }
