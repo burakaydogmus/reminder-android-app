@@ -233,5 +233,11 @@ until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
 
 - Development happens on Windows: **iOS is only verified through the CI macOS runner**
   (`build-ios` job). Device testing is planned separately.
-- Android package / app group currently `com.fabirt.reminder` (rename planned in F1.9).
+- Package / bundle id `com.burakaydogmus.reminder` (Android `namespace`/`applicationId`,
+  Kotlin package, iOS `PRODUCT_BUNDLE_IDENTIFIER`); home_widget App Group
+  `group.com.burakaydogmus.reminder` (iOS entitlements come with F5.2).
+- Release (Android): signed from `android/key.properties` when present, otherwise with the
+  debug key plus a Gradle warning (never publish those). R8 + `shrinkResources` are on;
+  keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
+  `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
 - Widget and geofence behaviour differs per platform; the home widget is Android-only today.

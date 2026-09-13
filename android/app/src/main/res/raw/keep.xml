@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources looked up by name at runtime must survive shrinkResources:
+     flutter_local_notifications uses '@mipmap/ic_launcher' as the notification
+     icon and native_geofence resolves "ic_launcher" via getIdentifier. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@mipmap/ic_launcher,@drawable/*" />

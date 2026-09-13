@@ -12,7 +12,7 @@ const String kHomeWidgetRemindersJsonKey = 'reminders_active_json';
 
 /// Android AppWidgetProvider tam sınıf adı (`updateWidget` için).
 const String kReminderListWidgetQualifiedAndroidName =
-    'com.fabirt.reminder.ReminderListWidgetProvider';
+    'com.burakaydogmus.reminder.ReminderListWidgetProvider';
 
 /// Tamamlanmamış hatırlatıcıların özetini widget depolama alanına yazar ve görünümü yeniler.
 Future<void> syncRemindersToHomeWidget(List<Reminder> reminders) async {

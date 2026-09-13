@@ -1,4 +1,4 @@
-package com.fabirt.reminder
+package com.burakaydogmus.reminder
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
