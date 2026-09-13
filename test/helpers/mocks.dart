@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/schedule_sync.dart';
 import 'package:reminder/services/sync_interfaces.dart';
 
 import 'factories.dart';
@@ -13,6 +14,8 @@ class MockReminderRepository extends Mock implements ReminderRepository {}
 /// `NotificationService`'in private constructor'ı olsa da `implements` ile
 /// mock'lanabilir; mock gerçek plugin'e dokunmaz.
 class MockNotificationService extends Mock implements NotificationService {}
+
+class MockNotificationSync extends Mock implements NotificationSync {}
 
 class MockGeofenceSync extends Mock implements GeofenceSync {}
 
