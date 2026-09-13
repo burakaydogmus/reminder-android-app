@@ -10,7 +10,8 @@ class CategoryColors {
     required this.fg,
     required this.container,
     required this.onFg,
-  });
+    Color? onContainer,
+  }) : onContainer = onContainer ?? fg;
 
   /// Icon, text and filled background.
   final Color fg;
@@ -21,11 +22,16 @@ class CategoryColors {
   /// Text/icon drawn on a filled [fg] background.
   final Color onFg;
 
+  /// Text drawn on the tonal [container]. Equals [fg] except where [fg] on
+  /// [container] is below 4.5:1 (e.g. light "kor"); use [fg] for icons there.
+  final Color onContainer;
+
   static CategoryColors lerp(CategoryColors a, CategoryColors b, double t) {
     return CategoryColors(
       fg: Color.lerp(a.fg, b.fg, t)!,
       container: Color.lerp(a.container, b.container, t)!,
       onFg: Color.lerp(a.onFg, b.onFg, t)!,
+      onContainer: Color.lerp(a.onContainer, b.onContainer, t)!,
     );
   }
 
@@ -34,10 +40,11 @@ class CategoryColors {
       other is CategoryColors &&
       other.fg == fg &&
       other.container == container &&
-      other.onFg == onFg;
+      other.onFg == onFg &&
+      other.onContainer == onContainer;
 
   @override
-  int get hashCode => Object.hash(fg, container, onFg);
+  int get hashCode => Object.hash(fg, container, onFg, onContainer);
 }
 
 /// Kor colours that have no [ColorScheme] role: success, glass, the "now"
@@ -108,6 +115,7 @@ class KorColors extends ThemeExtension<KorColors> {
           fg: tones[key]!.fg,
           container: tones[key]!.container,
           onFg: onFg,
+          onContainer: tones[key]!.onContainer,
         ),
     });
   }
