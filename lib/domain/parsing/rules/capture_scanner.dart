@@ -264,12 +264,6 @@ class _Scanner {
     return true;
   }
 
-  // -------------------------------------------------------------- stubs
-  // Rule groups not implemented yet return null.
-
-  _Unit? recurrenceRule(int i) => null;
-  _Unit? timeRule(int i) => null;
-
   // -------------------------------------------------------------- result
 
   CaptureParseResult buildResult() {

@@ -30,8 +30,10 @@ export 'capture_parse_result.dart';
 
 part 'rules/capture_scanner.dart';
 part 'rules/date_rules.dart';
+part 'rules/recurrence_rules.dart';
 part 'rules/resolution.dart';
 part 'rules/tag_rules.dart';
+part 'rules/time_rules.dart';
 
 abstract final class CaptureParser {
   /// Parses [input] relative to [now] (local wall-clock time).
