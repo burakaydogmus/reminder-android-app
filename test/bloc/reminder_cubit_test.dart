@@ -91,6 +91,90 @@ void main() {
       expect(s.active.map((r) => r.id), ['a', 'c']);
       expect(s.completed.map((r) => r.id), ['b']);
     });
+
+    group('upcomingBirthdays uses the injected clock (F1.8)', () {
+      final march =
+          buildBirthday(id: 'm', name: 'Mart', date: DateTime(1990, 3, 1));
+      final june =
+          buildBirthday(id: 'j', name: 'Haziran', date: DateTime(1990, 6, 1));
+      final leap =
+          buildBirthday(id: 'l', name: 'Şubat', date: DateTime(2000, 2, 29));
+
+      test('orders by next occurrence relative to clock', () {
+        final spring = ReminderState(
+          reminders: const [],
+          birthdays: [june, march, leap],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 2, 1),
+        );
+        expect(spring.upcomingBirthdays.map((b) => b.id), ['l', 'm', 'j']);
+
+        final summer = ReminderState(
+          reminders: const [],
+          birthdays: [june, march, leap],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 4, 1),
+        );
+        expect(summer.upcomingBirthdays.map((b) => b.id), ['j', 'l', 'm']);
+      });
+
+      test('breaks same-day ties by name', () {
+        final s = ReminderState(
+          reminders: const [],
+          birthdays: [
+            buildBirthday(id: '2', name: 'Zeki'),
+            buildBirthday(id: '1', name: 'Ali'),
+          ],
+          settings: const AppSettings(),
+          clock: () => DateTime(2026, 1, 1),
+        );
+        expect(s.upcomingBirthdays.map((b) => b.name), ['Ali', 'Zeki']);
+      });
+
+      test('copyWith keeps the clock', () {
+        final s = ReminderState(
+          reminders: const [],
+          birthdays: [june, march],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 4, 1),
+        ).copyWith(reminders: const []);
+        expect(s.upcomingBirthdays.map((b) => b.id), ['j', 'm']);
+      });
+
+      blocTest<ReminderCubit, ReminderState>(
+        'cubit passes its clock to loaded and mutated states',
+        setUp: () {
+          when(() => repository.loadReminders()).thenAnswer((_) async => []);
+          when(() => repository.loadBirthdays())
+              .thenAnswer((_) async => [march, june]);
+          when(() => repository.loadSettings())
+              .thenAnswer((_) async => const AppSettings());
+        },
+        build: () => ReminderCubit(
+          repository,
+          notifications,
+          geofence: geofence,
+          homeWidget: homeWidget,
+          now: () => DateTime(2027, 4, 1),
+        ),
+        act: (cubit) async {
+          await cubit.load();
+          await cubit.addBirthday(leap);
+        },
+        expect: () => [
+          isA<ReminderState>().having(
+            (s) => s.upcomingBirthdays.map((b) => b.id).toList(),
+            'upcoming',
+            ['j', 'm'],
+          ),
+          isA<ReminderState>().having(
+            (s) => s.upcomingBirthdays.map((b) => b.id).toList(),
+            'upcoming',
+            ['j', 'l', 'm'],
+          ),
+        ],
+      );
+    });
   });
 
   group('load', () {
