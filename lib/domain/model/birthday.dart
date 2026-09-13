@@ -77,10 +77,13 @@ class Birthday {
     return nextDate.difference(today).inDays;
   }
 
+  /// Nullable alanlar `T? Function()?` olarak alınır (bkz. `Reminder.copyWith`);
+  /// böylece not açıkça temizlenebilir: `b.copyWith(note: () => null)`.
+  /// Parametre verilmezse mevcut değer korunur.
   Birthday copyWith({
     String? id,
     String? name,
-    String? note,
+    String? Function()? note,
     DateTime? date,
     int? notifyHour,
     int? notifyMinute,
@@ -90,7 +93,7 @@ class Birthday {
     return Birthday(
       id: id ?? this.id,
       name: name ?? this.name,
-      note: note ?? this.note,
+      note: note != null ? note() : this.note,
       date: date ?? this.date,
       notifyHour: notifyHour ?? this.notifyHour,
       notifyMinute: notifyMinute ?? this.notifyMinute,

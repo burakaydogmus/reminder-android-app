@@ -232,14 +232,17 @@ void main() {
       expect(copy.advanceOffsetsMinutes, b.advanceOffsetsMinutes);
     });
 
-    test(
-      'can clear note',
-      () {
-        final b = buildBirthday(note: 'silinecek');
+    test('can clear note', () {
+      final b = buildBirthday(note: 'silinecek');
 
-        expect(b.copyWith(note: null).note, isNull);
-      },
-      skip: 'Known bug — fixed in F1.8',
-    );
+      expect(b.copyWith(note: () => null).note, isNull);
+    });
+
+    test('can replace note and keeps it when omitted', () {
+      final b = buildBirthday(note: 'eski');
+
+      expect(b.copyWith(note: () => 'yeni').note, 'yeni');
+      expect(b.copyWith(name: 'Başka').note, 'eski');
+    });
   });
 }
