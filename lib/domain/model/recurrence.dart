@@ -110,6 +110,35 @@ class RecurrenceRule {
           until: _dateOnly(value),
         );
 
+  /// Serinin tarihi [date]'e taşınınca ("tüm seri") kuralı yeni güne uyarlar:
+  /// tek günlük haftalık kural o güne geçer, çok günlüye gün eklenir; aylık
+  /// kural ayın yeni gününü alır (ay sonu kırpılmış gün aynı kalır). Diğer
+  /// kurallar değişmez. Aralık ve bitiş korunur.
+  RecurrenceRule alignedTo(DateTime date) {
+    switch (frequency) {
+      case RecurrenceFrequency.weekly:
+        if (weekdays.contains(date.weekday)) return this;
+        return RecurrenceRule.weekly(
+          weekdays.length <= 1 ? [date.weekday] : [...weekdays, date.weekday],
+          interval: interval,
+          until: until,
+        );
+      case RecurrenceFrequency.monthly:
+        final dom = dayOfMonth ?? date.day;
+        if (math.min(dom, daysInMonth(date.year, date.month)) == date.day) {
+          return this;
+        }
+        return RecurrenceRule.monthly(
+          dayOfMonth: date.day,
+          interval: interval,
+          until: until,
+        );
+      case RecurrenceFrequency.none:
+      case RecurrenceFrequency.daily:
+        return this;
+    }
+  }
+
   /// [after]'dan **kesin sonraki** ilk tekrar; saat [anchor]'dan. [anchor]
   /// dizinin başlangıcıdır ve kurala uyuyorsa kendisi de bir tekrardır;
   /// [anchor]'dan önceki günler hiçbir zaman döndürülmez. Tekrar yoksa veya

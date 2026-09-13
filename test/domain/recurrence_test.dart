@@ -301,6 +301,49 @@ void main() {
     });
   });
 
+  group('RecurrenceRule.alignedTo (moving the whole series)', () {
+    final sunday = DateTime(2026, 9, 20);
+    final monday = DateTime(2026, 9, 21);
+
+    test('a single-day weekly rule moves to the new weekday', () {
+      final until = DateTime(2026, 12, 31);
+      expect(
+        RecurrenceRule.weekly([DateTime.saturday], interval: 2, until: until)
+            .alignedTo(sunday),
+        RecurrenceRule.weekly([DateTime.sunday], interval: 2, until: until),
+      );
+    });
+
+    test('a multi-day weekly rule gains the new weekday', () {
+      expect(
+        RecurrenceRule.weekly([DateTime.tuesday, DateTime.thursday])
+            .alignedTo(monday),
+        RecurrenceRule.weekly([1, 2, 4]),
+      );
+      final rule = RecurrenceRule.weekly([DateTime.monday]);
+      expect(identical(rule.alignedTo(monday), rule), isTrue);
+    });
+
+    test('a monthly rule takes the new day unless it is the clamped day', () {
+      expect(
+        RecurrenceRule.monthly(dayOfMonth: 17).alignedTo(sunday),
+        RecurrenceRule.monthly(dayOfMonth: 20),
+      );
+      final endOfMonth = RecurrenceRule.monthly(dayOfMonth: 31);
+      expect(endOfMonth.alignedTo(DateTime(2026, 9, 30)), endOfMonth);
+      expect(
+        endOfMonth.alignedTo(DateTime(2026, 10, 30)),
+        RecurrenceRule.monthly(dayOfMonth: 30),
+      );
+    });
+
+    test('daily and none are unchanged', () {
+      expect(RecurrenceRule.daily(interval: 3).alignedTo(sunday),
+          RecurrenceRule.daily(interval: 3));
+      expect(RecurrenceRule.none.alignedTo(sunday), RecurrenceRule.none);
+    });
+  });
+
   group('RecurrenceRule JSON', () {
     final rules = [
       RecurrenceRule.daily(),
