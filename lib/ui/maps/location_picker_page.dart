@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:reminder/config/maps_config.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/places_nearby_service.dart';
-import 'package:reminder/ui/widgets/primary_button.dart';
+import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 class LocationPickResult {
   final LatLng point;
@@ -205,7 +205,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Widget build(BuildContext context) {
     final isMarket = widget.categoryId == ReminderCategoryIds.market;
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
+    final scheme = theme.colorScheme;
+    final primary = scheme.primary;
+    final label = _label?.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -214,14 +216,38 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              KorSpacing.s5,
+              KorSpacing.s2,
+              KorSpacing.s5,
+              KorSpacing.s2,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Haritaya dokunun, yarıçapı ayarlayın; ardından alttaki '
-                  '«Bu konumu kaydet» ile onaylayın. Yarıçap: ${_radius.round()} m',
-                  style: theme.textTheme.bodySmall,
+                  label != null && label.isNotEmpty ? label : 'Seçilen konum',
+                  style: theme.textTheme.titleLarge,
+                ),
+                Text(
+                  'Haritaya dokun, yarıçapı ayarla ve «Bu konumu kaydet» ile '
+                  'onayla.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: KorSpacing.s3),
+                Row(
+                  children: [
+                    Text('Yarıçap', style: theme.textTheme.labelLarge),
+                    const Spacer(),
+                    Text(
+                      '${_radius.round()} m',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
                 Slider(
                   value: _radius,
@@ -229,9 +255,12 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   max: 500,
                   divisions: 20,
                   label: '${_radius.round()} m',
+                  semanticFormatterCallback: (v) =>
+                      'Yarıçap ${v.round()} metre',
                   onChanged: (v) => setState(() => _radius = v),
                 ),
-                if (isMarket)
+                // No developer hint without an API key (§3.3.10).
+                if (isMarket && mapsConfigured)
                   OutlinedButton.icon(
                     onPressed: _loadingPlaces ? null : _loadNearbyMarkets,
                     icon: _loadingPlaces
@@ -296,18 +325,18 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   ],
                 ),
                 Positioned(
-                  right: 12,
-                  bottom: 12,
+                  right: KorSpacing.s4,
+                  bottom: KorSpacing.s4,
                   child: Material(
                     elevation: 2,
                     shape: const CircleBorder(),
-                    color: theme.colorScheme.surface,
+                    color: scheme.surfaceContainerHigh,
                     child: IconButton(
-                      tooltip: 'Konumum',
+                      tooltip: 'Konumuma git',
                       onPressed: _goToMyLocation,
                       icon: Icon(
-                        Icons.my_location,
-                        color: theme.colorScheme.primary,
+                        Icons.my_location_rounded,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
@@ -318,13 +347,15 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         ],
       ),
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: SizedBox(
-          width: double.infinity,
-          child: PrimaryButton(
-            onPressed: _confirmAndPop,
-            title: 'Bu konumu kaydet',
-          ),
+        minimum: const EdgeInsets.fromLTRB(
+          KorSpacing.s5,
+          KorSpacing.s3,
+          KorSpacing.s5,
+          KorSpacing.s4,
+        ),
+        child: FilledButton(
+          onPressed: _confirmAndPop,
+          child: const Text('Bu konumu kaydet'),
         ),
       ),
     );

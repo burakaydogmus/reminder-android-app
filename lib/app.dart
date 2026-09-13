@@ -8,13 +8,13 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
-import 'package:reminder/ui/home/home_page.dart';
-import 'package:reminder/ui/theme/app_theme.dart';
+import 'package:reminder/ui/home/home_shell.dart';
+import 'package:reminder/ui/theme/kor_theme.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
 
-  ThemeMode _themeMode(String id) {
+  static ThemeMode themeModeFor(String id) {
     switch (id) {
       case AppThemeModeIds.light:
         return ThemeMode.light;
@@ -41,9 +41,9 @@ class App extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Hatırlatıcı',
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: _themeMode(state.settings.themeMode),
+            theme: KorTheme.light(),
+            darkTheme: KorTheme.dark(),
+            themeMode: themeModeFor(state.settings.themeMode),
             locale: const Locale('tr', 'TR'),
             supportedLocales: const [
               Locale('tr', 'TR'),
@@ -52,21 +52,22 @@ class App extends StatelessWidget {
             // material_ui: includes the Cupertino and Widgets delegates.
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
             builder: (context, child) {
-              final brightness = Theme.of(context).brightness;
-              final isDark = brightness == Brightness.dark;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final iconBrightness =
+                  isDark ? Brightness.light : Brightness.dark;
               return AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle(
-                  statusBarColor: Colors.transparent,
-                  systemNavigationBarColor: Colors.transparent,
-                  systemNavigationBarIconBrightness:
-                      isDark ? Brightness.light : Brightness.dark,
-                  statusBarIconBrightness:
-                      isDark ? Brightness.light : Brightness.dark,
+                  statusBarColor: const Color(0x00000000),
+                  systemNavigationBarColor: const Color(0x00000000),
+                  systemNavigationBarIconBrightness: iconBrightness,
+                  statusBarIconBrightness: iconBrightness,
+                  statusBarBrightness:
+                      isDark ? Brightness.dark : Brightness.light,
                 ),
                 child: child ?? const SizedBox.shrink(),
               );
             },
-            home: const HomePage(),
+            home: const HomeShell(),
           );
         },
       ),

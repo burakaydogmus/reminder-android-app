@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reminder/ui/theme/app_theme.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
@@ -75,11 +74,18 @@ void main() {
     });
   });
 
-  test('AppTheme stays on the legacy look (no visual change)', () {
-    expect(AppTheme.light.useMaterial3, isFalse);
-    expect(AppTheme.dark.useMaterial3, isFalse);
-    expect(AppTheme.light.textTheme.bodyMedium?.fontFamily, 'Comfortaa');
-    expect(AppTheme.light.extension<KorColors>(), isNull);
+  test('component themes use Kor roles and touch targets', () {
+    for (final (build, scheme) in [
+      (KorTheme.light, KorColorScheme.light),
+      (KorTheme.dark, KorColorScheme.dark),
+    ]) {
+      final theme = build();
+      expect(theme.floatingActionButtonTheme.backgroundColor, scheme.primary);
+      expect(theme.inputDecorationTheme.fillColor, scheme.surfaceContainer);
+      expect(theme.navigationBarTheme.indicatorColor, scheme.primaryContainer);
+      expect(theme.materialTapTargetSize, MaterialTapTargetSize.padded);
+      expect(theme.textTheme.bodyMedium?.fontFamily, KorTypography.fontFamily);
+    }
   });
 
   group('KorTypography', () {

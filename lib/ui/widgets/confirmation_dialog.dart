@@ -1,8 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:reminder/ui/widgets/primary_button.dart';
-import 'package:reminder/ui/widgets/secondary_button.dart';
-
+/// Destructive confirmation (M3 dialog, confirm in `error`).
 class ConfirmationDialog extends StatelessWidget {
   final String title;
   final String content;
@@ -19,24 +17,22 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      title: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(content, textAlign: TextAlign.center),
-          const SizedBox(height: 24),
-          PrimaryButton(onPressed: onConfirm, title: "Onayla"),
-          const SizedBox(height: 10),
-          SecondaryButton(onPressed: onCancel, title: "İptal"),
-        ],
-      ),
+      title: Text(title),
+      content: Text(content),
+      actions: [
+        TextButton(onPressed: onCancel, child: const Text('İptal')),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: scheme.error,
+            foregroundColor: scheme.onError,
+            minimumSize: const Size(48, 48),
+          ),
+          onPressed: onConfirm,
+          child: const Text('Onayla'),
+        ),
+      ],
     );
   }
 }

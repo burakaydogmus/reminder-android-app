@@ -82,8 +82,21 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   services itself and delegates to `handleReminderHomeWidgetToggle` (injected
   repository + `ScheduleSync`, tested in `test/home/`).
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
-- `ui/` — screens and widgets: `home/`, `reminders/`, `birthdays/`, `maps/`,
-  `settings/`, `theme/`, `widgets/`.
+- `ui/` — screens and widgets (Kor look, see **UI structure** below):
+  - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
+    minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
+    `KorTabBar`, `NewItemFab`).
+  - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
+    grouping, pure). `calendar/` — `CalendarPage` + `buildAgenda` (30-day agenda,
+    `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
+  - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
+    `KorColorKey`/icon mapping), `reminder_actions.dart` (Düzenle/Sil menu, delete
+    confirm). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/`, `maps/`.
+  - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
+    `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
+    date/time, locale-aware upper case), `NowScope` (injectable clock).
+  - `theme/` — Kor tokens (below); `theme/adaptive/platform_chrome.dart` is the single
+    Android/iOS chrome decision. `widgets/` — `ConfirmationDialog`.
 - `util/` — dialogs, location permission helpers, `local_timezone.dart`
   (`configureLocalTimezone`: device zone via `flutter_timezone`, `Etc/UTC` fallback;
   used by `main()` and the home widget callback).
@@ -104,6 +117,12 @@ Tests mirror `lib/`:
 - `test/home/` — widget callback core with a real repository (mock
   `SharedPreferences`) and the fake notifications plugin.
 - `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
+- `test/ui/` — widget tests on `UiHarness` (`test/ui/ui_harness.dart`: a real
+  `ReminderCubit` over the mocks, loaded with given reminders/birthdays, wrapped like
+  `App`). Pass a fixed clock (`HomeShell(clock: ...)`) for date-dependent screens, run
+  light and dark via `korThemes`, and select iOS chrome with
+  `platform: TargetPlatform.iOS`. Pure groupings (`TodaySections`, `buildAgenda`,
+  `KorFormat`) have plain unit tests.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
 
@@ -198,8 +217,10 @@ land **sequentially**; keep changes there minimal and rebase often.
 ## Theme tokens
 
 The "Kor" design system (`docs/design/kor-design-proposal.md` §3.1, §5.3) lives in
-`lib/ui/theme/`. **Not wired yet:** the app still uses `AppTheme` (M2, Comfortaa)
-until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
+`lib/ui/theme/` and is wired in `app.dart` (`theme: KorTheme.light()`,
+`darkTheme: KorTheme.dark()`, `themeMode` from the stored setting). `KorTheme` also
+owns the component themes (app bar, buttons, inputs, chips, segmented button,
+dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 
 - `tokens/` — `kor_palette.dart` (raw hex, `KorColorKey` category keys),
   `kor_color_scheme.dart` (all M3 roles by hand), `kor_typography.dart` (Google Sans
@@ -212,11 +233,38 @@ until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
 - Imports: `package:material_ui/material_ui.dart` / `package:cupertino_ui/cupertino_ui.dart`,
   never `package:flutter/material.dart` or `cupertino.dart` (deprecated in-framework
   libraries; the types are not interchangeable).
-- Rules for new UI: colours from `Theme.of(context).colorScheme` / `context.korColors`,
+- Rules for UI: colours from `Theme.of(context).colorScheme` / `context.korColors`,
   text from `textTheme`, sizes from the token files. **No raw `Color(0x…)`, `Colors.*`
-  or hard-coded `fontSize` in new widgets.** Categories store a `KorColorKey`, never a hex.
+  or hard-coded `fontSize` in widgets** (token files and `KorTheme` are the only
+  places with literal values). Categories store a `KorColorKey`, never a hex.
 - New colour tokens must pass `test/ui/theme/contrast_test.dart` (text ≥ 4.5, UI ≥ 3.0);
   a failing design value is skipped with its measured ratio, not silently changed.
+
+## UI structure
+
+- **Shell:** `HomeShell` has three tabs (Bugün / Takvim / Listeler) in an
+  `IndexedStack`; Ayarlar is a pushed route from the gear in `TabHeader`. Back on
+  Takvim/Listeler selects Bugün (`PopScope`). Android: floating `KorPillNavigation` +
+  64 px `NewItemFab` (long-press: Hatırlatıcı / Doğum günü); iOS: plain `KorTabBar` +
+  FAB. Decide platform chrome only through `PlatformChrome` (reads
+  `Theme.of(context).platform`, so tests override it via the theme).
+- **Date logic in the UI layer:** groupings are pure functions of cubit state and a
+  clock (`TodaySections.from`, `buildAgenda`); screens read the clock from `NowScope`
+  (the shell ticks it every minute; pushed routes use `NowScope.carry`). Do not add
+  view groupings to `ReminderCubit`.
+- **Components:** reuse `ReminderCard` for any reminder row (48 dp complete toggle as
+  its own target, tap → editor, long-press → Düzenle/Sil, semantics label +
+  custom actions), `BirthdayCard`, `SectionHeader`, `GroupedCard` (fills with a
+  `Material`, so `ListTile`/`InkWell` children keep their ink), `EmptyState` (one
+  title, one sentence, max one action).
+- **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
+  (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
+  icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
+  `KorFormat.spokenTime` for screen readers), `KorFormat.upperTr` instead of
+  `toUpperCase()`, no fixed heights for text (use `minHeight`), honour
+  `MediaQuery.disableAnimationsOf`.
+- **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
+  `kor-design-proposal.md` §3.3.11.
 
 ## Geofencing
 
