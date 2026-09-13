@@ -1,7 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/data/reminder_repository.dart';
@@ -50,11 +49,8 @@ class App extends StatelessWidget {
               Locale('tr', 'TR'),
               Locale('en', 'US'),
             ],
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
+            // material_ui: includes the Cupertino and Widgets delegates.
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             builder: (context, child) {
               final brightness = Theme.of(context).brightness;
               final isDark = brightness == Brightness.dark;
