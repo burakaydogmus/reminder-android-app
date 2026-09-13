@@ -157,4 +157,86 @@ void main() {
       }
     });
   });
+
+  group('Reminder.copyWith', () {
+    final full = buildReminder(
+      id: 'full',
+      title: 'Tam',
+      note: 'not',
+      isDone: false,
+      createdAt: DateTime(2026, 2, 1),
+      remindAt: DateTime(2026, 2, 2, 8),
+      categoryId: ReminderCategoryIds.other,
+      customCategoryLabel: 'Hobi',
+      locationTriggerEnabled: true,
+      locationLatitude: 41,
+      locationLongitude: 29,
+      locationRadiusMeters: 250,
+      locationPlaceLabel: 'Yer',
+    );
+
+    test('without arguments keeps every field', () {
+      expect(full.copyWith().toJson(), full.toJson());
+    });
+
+    test('replaces every field', () {
+      final copy = full.copyWith(
+        id: 'new',
+        title: 'Yeni',
+        note: () => 'yeni not',
+        isDone: true,
+        createdAt: DateTime(2027, 1, 1),
+        remindAt: () => DateTime(2027, 1, 2),
+        categoryId: ReminderCategoryIds.work,
+        customCategoryLabel: () => 'Özel',
+        locationTriggerEnabled: false,
+        locationLatitude: () => 1,
+        locationLongitude: () => 2,
+        locationRadiusMeters: 400,
+        locationPlaceLabel: () => 'Başka yer',
+      );
+
+      expect(copy.toJson(), {
+        'id': 'new',
+        'title': 'Yeni',
+        'note': 'yeni not',
+        'isDone': true,
+        'createdAt': DateTime(2027, 1, 1).toIso8601String(),
+        'remindAt': DateTime(2027, 1, 2).toIso8601String(),
+        'categoryId': ReminderCategoryIds.work,
+        'customCategoryLabel': 'Özel',
+        'locationTriggerEnabled': false,
+        'locationLatitude': 1.0,
+        'locationLongitude': 2.0,
+        'locationRadiusMeters': 400.0,
+        'locationPlaceLabel': 'Başka yer',
+      });
+    });
+
+    test('clears nullable fields when the getter returns null', () {
+      final copy = full.copyWith(
+        note: () => null,
+        remindAt: () => null,
+        customCategoryLabel: () => null,
+        locationLatitude: () => null,
+        locationLongitude: () => null,
+        locationPlaceLabel: () => null,
+      );
+
+      expect(copy.note, isNull);
+      expect(copy.remindAt, isNull);
+      expect(copy.customCategoryLabel, isNull);
+      expect(copy.locationLatitude, isNull);
+      expect(copy.locationLongitude, isNull);
+      expect(copy.locationPlaceLabel, isNull);
+      expect(copy.title, 'Tam');
+      expect(copy.locationTriggerEnabled, isTrue);
+    });
+
+    test('does not modify the original', () {
+      full.copyWith(isDone: true, note: () => null);
+      expect(full.isDone, isFalse);
+      expect(full.note, 'not');
+    });
+  });
 }

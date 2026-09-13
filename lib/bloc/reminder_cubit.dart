@@ -144,21 +144,7 @@ class ReminderCubit extends Cubit<ReminderState> {
   Future<void> toggleDone(String id) async {
     final next = state.reminders.map((r) {
       if (r.id != id) return r;
-      return Reminder(
-        id: r.id,
-        title: r.title,
-        note: r.note,
-        isDone: !r.isDone,
-        createdAt: r.createdAt,
-        remindAt: r.remindAt,
-        categoryId: r.categoryId,
-        customCategoryLabel: r.customCategoryLabel,
-        locationTriggerEnabled: r.locationTriggerEnabled,
-        locationLatitude: r.locationLatitude,
-        locationLongitude: r.locationLongitude,
-        locationRadiusMeters: r.locationRadiusMeters,
-        locationPlaceLabel: r.locationPlaceLabel,
-      );
+      return r.copyWith(isDone: !r.isDone);
     }).toList();
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
