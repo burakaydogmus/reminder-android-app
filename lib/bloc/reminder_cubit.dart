@@ -74,11 +74,15 @@ class ReminderCubit extends Cubit<ReminderState> {
   /// kullanır.
   final ScheduleSync _schedules;
 
+  /// Durumdaki hatırlatıcı listesi her zaman [compareReminders] sırasındadır;
+  /// listeyi değiştiren her yol bu yardımcıdan geçer.
+  static List<Reminder> _sorted(Iterable<Reminder> reminders) =>
+      List<Reminder>.of(reminders)..sort(compareReminders);
+
   Future<void> load() async {
-    final reminders = await _repository.loadReminders();
+    final reminders = _sorted(await _repository.loadReminders());
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
-    reminders.sort(compareReminders);
     emit(ReminderState(
       reminders: reminders,
       birthdays: birthdays,
@@ -104,15 +108,14 @@ class ReminderCubit extends Cubit<ReminderState> {
   }
 
   Future<void> addReminder(Reminder reminder) async {
-    final next = [...state.reminders, reminder];
+    final next = _sorted([...state.reminders, reminder]);
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
 
   Future<void> updateReminder(Reminder updated) async {
-    final next = state.reminders
-        .map((r) => r.id == updated.id ? updated : r)
-        .toList(growable: false);
+    final next =
+        _sorted(state.reminders.map((r) => r.id == updated.id ? updated : r));
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
@@ -125,7 +128,7 @@ class ReminderCubit extends Cubit<ReminderState> {
         break;
       }
     }
-    final next = state.reminders.where((r) => r.id != id).toList();
+    final next = _sorted(state.reminders.where((r) => r.id != id));
     emit(state.copyWith(reminders: next));
     if (removed != null) {
       await _notifications.cancelReminder(removed);
@@ -134,10 +137,10 @@ class ReminderCubit extends Cubit<ReminderState> {
   }
 
   Future<void> toggleDone(String id) async {
-    final next = state.reminders.map((r) {
+    final next = _sorted(state.reminders.map((r) {
       if (r.id != id) return r;
       return r.copyWith(isDone: !r.isDone);
-    }).toList();
+    }));
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
