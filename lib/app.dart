@@ -9,7 +9,7 @@ import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/home/app_lifecycle_reloader.dart';
-import 'package:reminder/ui/home/home_shell.dart';
+import 'package:reminder/ui/onboarding/onboarding_gate.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
 class App extends StatelessWidget {
@@ -70,7 +70,7 @@ class App extends StatelessWidget {
                   child: child ?? const SizedBox.shrink(),
                 );
               },
-              home: const HomeShell(),
+              home: const OnboardingGate(),
             );
           },
         ),
