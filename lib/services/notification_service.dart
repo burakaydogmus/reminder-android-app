@@ -1,16 +1,34 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/services/schedule_sync.dart';
 
-class NotificationService {
-  NotificationService._();
+/// `flutter_local_notifications` üzerinden zamanlı hatırlatıcı ve yıllık doğum
+/// günü bildirimlerini yönetir.
+///
+/// **Zamanlama politikası (F1.2):** zamanlanmış bildirimleri toplu olarak
+/// kuran tek genel metot [syncSchedules]'tır; önce her şeyi iptal eder, sonra
+/// hatırlatıcıları **ve** doğum günlerini birlikte yeniden kurar. Yalnızca
+/// hatırlatıcıları kurup doğum günlerini silen bir yol yoktur. Uygulama
+/// genelinde bu metot doğrudan değil, [ScheduleSync.syncAll] üzerinden
+/// çağrılır.
+class NotificationService implements NotificationSync {
+  NotificationService._(this._plugin);
 
-  static final NotificationService instance = NotificationService._();
+  static final NotificationService instance =
+      NotificationService._(FlutterLocalNotificationsPlugin());
 
-  final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  /// Gerçek plugin yerine sahte bir plugin ile çalışan örnek (testler).
+  @visibleForTesting
+  factory NotificationService.forTesting(
+    FlutterLocalNotificationsPlugin plugin,
+  ) =>
+      NotificationService._(plugin);
+
+  final FlutterLocalNotificationsPlugin _plugin;
 
   bool _initialized = false;
 
@@ -99,14 +117,33 @@ class NotificationService {
     );
   }
 
+  /// Bu uygulamanın tüm bildirimlerini (hatırlatıcı, doğum günü, konum) iptal
+  /// eder. Yalnızca "Tüm verileri sıfırla" gibi her şeyin silindiği durumlar
+  /// içindir; senkron için [syncSchedules] kullanın.
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }
 
-  Future<void> syncFromReminders(
-    List<Reminder> reminders, {
+  /// Zamanlanmış bildirimleri saklanan durumla eşitler.
+  ///
+  /// Önce tüm bildirimleri iptal eder (silinen hatırlatıcı/doğum günlerinin
+  /// artıkları da gider), ardından bildirimler açıksa gelecekteki
+  /// tamamlanmamış hatırlatıcıları ve tüm doğum günlerini yeniden kurar.
+  /// İkisi her zaman birlikte kurulduğu için bir hatırlatıcı değişikliği doğum
+  /// günü bildirimlerini silemez. Plugin başlatılmamışsa (ör. arka plan
+  /// isolate'i) önce başlatılır.
+  ///
+  /// F1.7 bu metodun içini fark bazlı güncellemeye çevirebilir; sözleşme
+  /// ("çağrıdan sonra zamanlamalar tam olarak bu listelere karşılık gelir")
+  /// aynı kalır.
+  @override
+  Future<void> syncSchedules({
+    required List<Reminder> reminders,
+    required List<Birthday> birthdays,
     required bool notificationsEnabled,
   }) async {
+    if (!_initialized) await initialize();
+
     await cancelAll();
     if (!notificationsEnabled) return;
 
@@ -119,20 +156,9 @@ class NotificationService {
       if (!scheduled.isAfter(now)) continue;
       await _scheduleOne(r, scheduled);
     }
-  }
 
-  /// Yıllık tekrarlayan doğum günü hatırlatmalarını planlar. Her aktif
-  /// offset için ayrı bildirim oluşturulur ve `DateTimeComponents.dateAndTime`
-  /// ile her yıl aynı ay-gün-saat-dakikada yeniden tetiklenir.
-  Future<void> scheduleBirthdays(
-    List<Birthday> birthdays, {
-    required bool notificationsEnabled,
-  }) async {
-    for (final b in birthdays) {
-      await cancelBirthday(b);
-    }
-    if (!notificationsEnabled) return;
-
+    // Yıllık tekrarlayan doğum günü hatırlatmaları: her aktif offset için ayrı
+    // bildirim, `DateTimeComponents.dateAndTime` ile her yıl yeniden tetiklenir.
     for (final b in birthdays) {
       await _scheduleBirthdayOne(b);
     }

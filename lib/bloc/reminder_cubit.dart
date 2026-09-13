@@ -6,6 +6,7 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/schedule_sync.dart';
 import 'package:reminder/services/sync_interfaces.dart';
 
 class ReminderState {
@@ -53,6 +54,11 @@ class ReminderCubit extends Cubit<ReminderState> {
     required HomeWidgetSync homeWidget,
   })  : _geofence = geofence,
         _homeWidget = homeWidget,
+        _schedules = ScheduleSync(
+          notifications: _notifications,
+          geofence: geofence,
+          homeWidget: homeWidget,
+        ),
         super(const ReminderState(
           reminders: [],
           birthdays: [],
@@ -64,6 +70,10 @@ class ReminderCubit extends Cubit<ReminderState> {
   final GeofenceSync _geofence;
   final HomeWidgetSync _homeWidget;
 
+  /// Tüm zamanlamaların tek giriş noktası; widget callback'i de aynısını
+  /// kullanır.
+  final ScheduleSync _schedules;
+
   Future<void> load() async {
     final reminders = await _repository.loadReminders();
     final birthdays = await _repository.loadBirthdays();
@@ -74,19 +84,11 @@ class ReminderCubit extends Cubit<ReminderState> {
       birthdays: birthdays,
       settings: settings,
     ));
-    await _notifications.syncFromReminders(
-      reminders,
-      notificationsEnabled: settings.notificationsEnabled,
+    await _schedules.syncAll(
+      reminders: reminders,
+      birthdays: birthdays,
+      settings: settings,
     );
-    await _notifications.scheduleBirthdays(
-      birthdays,
-      notificationsEnabled: settings.notificationsEnabled,
-    );
-    await _geofence.syncWithReminders(
-      reminders,
-      notificationsEnabled: settings.notificationsEnabled,
-    );
-    await _homeWidget.sync(reminders);
   }
 
   Future<void> _persistAndSync() async {
@@ -94,19 +96,11 @@ class ReminderCubit extends Cubit<ReminderState> {
     await _repository.saveReminders(s.reminders);
     await _repository.saveBirthdays(s.birthdays);
     await _repository.saveSettings(s.settings);
-    await _notifications.syncFromReminders(
-      s.reminders,
-      notificationsEnabled: s.settings.notificationsEnabled,
+    await _schedules.syncAll(
+      reminders: s.reminders,
+      birthdays: s.birthdays,
+      settings: s.settings,
     );
-    await _notifications.scheduleBirthdays(
-      s.birthdays,
-      notificationsEnabled: s.settings.notificationsEnabled,
-    );
-    await _geofence.syncWithReminders(
-      s.reminders,
-      notificationsEnabled: s.settings.notificationsEnabled,
-    );
-    await _homeWidget.sync(s.reminders);
   }
 
   Future<void> addReminder(Reminder reminder) async {
