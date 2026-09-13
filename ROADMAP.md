@@ -56,7 +56,7 @@ Diğer tüm fazların temeli.
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
 - [ ] **F1.6 İzin akışı** · `fix/permission-flow`
   Açılışta tüm izinleri (exact alarm dahil) istemek yerine ihtiyaç anında, açıklamalı istek. `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` Play politikası kararı. İzin reddedilmişse ayarlarda uyarı.
-- [ ] **F1.7 Senkronizasyon verimliliği ve yarış durumu** · `fix/sync-diffing` · *bağımlı: F1.2*
+- [x] **F1.7 Senkronizasyon verimliliği ve yarış durumu** · `fix/sync-diffing` · *bağımlı: F1.2*
   Her değişiklikte tüm bildirim ve geofence'lerin silinip yeniden kurulması yerine fark bazlı güncelleme; eşzamanlı `_persistAndSync` çağrılarının sıraya alınması.
 - [ ] **F1.8 Küçük hatalar** · `fix/misc-reminder-bugs`
   Liste yalnızca yüklemede sıralanıyor · 29 Şubat doğum günleri 1 Mart'a kayıyor · yıllık bildirimde yaş metni bayat kalıyor · geçmiş zaman sessizce "1 dk sonra" oluyor · `Birthday.copyWith` notu temizleyemiyor.

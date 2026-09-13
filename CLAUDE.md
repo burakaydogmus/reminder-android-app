@@ -98,8 +98,9 @@ Tests mirror `lib/`:
 - `test/services/` — geofence rules, `GeofenceService` sync against a fake
   `GeofencePlatform` (no platform channels), background entry handling;
   `NotificationService` against `FakeNotificationsPlugin`
-  (`test/helpers/fake_notifications_plugin.dart`, via `NotificationService.forTesting`);
-  `ScheduleSync` ordering.
+  (`test/helpers/fake_notifications_plugin.dart`, via `NotificationService.forTesting`;
+  records cancelled/scheduled ids and shown notifications, needs mock
+  `SharedPreferences` for fingerprints); `ScheduleSync` ordering and coalescing.
 - `test/home/` — widget callback core with a real repository (mock
   `SharedPreferences`) and the fake notifications plugin.
 - `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
@@ -134,12 +135,33 @@ Every "bring schedules in line with stored state" goes through
 notification/geofence/widget services one by one for a full sync; a caller that
 forgot birthdays once deleted all birthday notifications (F1.2).
 
-`NotificationService.syncSchedules` cancels everything and reschedules reminders
-**and** birthdays together (there is no reminder-only sync), so the notification
-layer cannot drop birthdays. `cancelAll` is only for `clearAllData`. Background
-isolates must load birthdays and settings from the repository before syncing.
-F1.7 may make `syncSchedules` diff-based and serialise concurrent `syncAll` calls
-inside `ScheduleSync` without changing callers.
+`NotificationService.syncSchedules` handles reminders **and** birthdays together
+(there is no reminder-only sync), so the notification layer cannot drop birthdays.
+Background isolates must load birthdays and settings from the repository before
+syncing.
+
+The sync is **diff-based** (F1.7):
+
+- Desired set = id → spec (title, body, time + zone, repeat components, channel,
+  payload) for future, not-done timed reminders and every birthday offset; empty
+  when notifications are disabled.
+- Every id in `pendingNotificationRequests()` that is not desired is cancelled with
+  `cancel(id:)` — removed items and unknown/old-scheme ids included. Geo ids
+  (`geo:<id>`) of the given reminders are never cancelled (they are shown, not
+  scheduled). **Never use `cancelAll` in the sync path**: it would also dismiss
+  shown notifications (e.g. a geofence entry). `cancelAll` is only for
+  `clearAllData`, and it also clears the fingerprints.
+- A desired entry is scheduled only when it is not pending or its fingerprint
+  changed. Fingerprints live in SharedPreferences under
+  `notification_schedule_fingerprints_v1` (`NotificationFingerprintStore`, reloaded
+  before reading); they are written after scheduling. Missing/corrupt store → all
+  desired entries are rescheduled. Changing how notifications are built (channel
+  settings, schedule mode) → bump `_ScheduleSpec._version`.
+
+`ScheduleSync.syncAll` runs one sync at a time per instance; calls arriving while
+one runs are coalesced (only the latest snapshot runs, all queued callers complete
+with it). The widget callback isolate has its own instance, so cross-isolate races
+are not serialised — the next diff sync repairs the state.
 
 ### Notification ids
 
@@ -151,8 +173,8 @@ inside `ScheduleSync` without changing callers.
 isolates — it is not stable across Dart versions/runs (F1.5). The ids are a persisted
 contract (hard-coded in `test/domain/notification_ids_test.dart`); changing the
 algorithm or key format requires clearing old-id notifications. The F1.5 migration
-relies on `syncSchedules` starting with `cancelAll()` on every app load; a diff-based
-F1.7 sync must keep an equivalent cleanup for ids it does not recognise.
+relies on every `syncSchedules` (run on each app load) cancelling all pending ids it
+does not recognise; keep that cleanup if the sync changes again.
 
 ## Workflow rules (from ROADMAP.md)
 
