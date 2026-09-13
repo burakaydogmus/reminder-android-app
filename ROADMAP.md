@@ -90,9 +90,11 @@ Diğer tüm fazların temeli.
 
 *Referans: [`docs/design/kor-design-proposal.md`](docs/design/kor-design-proposal.md) (§3 token'lar ve ekranlar, §5 Flutter notları) ve [`docs/design/kor-screens.json`](docs/design/kor-screens.json).*
 
-- [ ] **F4.0 Araç zinciri + tema altyapısı** · `chore/flutter-upgrade-theme-tokens` · *bağımlı: F0.3*
-  **Önce doğrula:** araştırmadaki güncel sürüm iddiaları (Flutter 3.47, `material_ui`/`cupertino_ui` paketleri, iOS 15 minimumu, UIScene, `flutter_local_notifications` 22, `home_widget` 0.9.4) resmi kaynaklardan teyit edilir; tutmayan kısım o günkü kararlı sürüme göre uyarlanır. Kapsam: Flutter yükseltmesi + CI pin'i, gerekiyorsa `material_ui`/`cupertino_ui` geçişi, bağımlılık yükseltmeleri (F0.1'deki Android sürüm sabitlemelerinin gözden geçirilmesi dahil), `geo_fencing`/`flutter_map` uyumu, tema token dosyaları + `ThemeExtension`'lar, Google Sans Flex asset'i. **Görsel değişiklik yok.**
-- [ ] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0*
+- [ ] **F4.0a Araç zinciri** · `chore/flutter-upgrade` · *bağımlı: F0.3, F1.1*
+  **Önce doğrula:** araştırmadaki güncel sürüm iddiaları (Flutter 3.47, `material_ui`/`cupertino_ui` paketleri, iOS 15 minimumu, UIScene, `flutter_local_notifications` 22, `home_widget` 0.9.4) resmi kaynaklardan teyit edilir; tutmayan kısım o günkü kararlı sürüme göre uyarlanır. Kapsam: Flutter yükseltmesi + CI pin'i, `material_ui`/`cupertino_ui` geçişi, bağımlılık yükseltmeleri (F0.1'deki Android sürüm sabitlemelerinin gözden geçirilmesi dahil), native yapılandırma, `flutter_map` uyumu. **Görsel değişiklik yok.**
+- [x] **F4.0b Kor tema token'ları + font** · `feat/kor-theme-tokens` · *bağımlı: F0.3*
+  `lib/ui/theme/tokens/` (palet, `ColorScheme`, tipografi, şekil, boşluk, yükselti), `ThemeExtension`'lar (`KorColors`, `KorMotion`), `KorTheme.light/dark` (henüz bağlı değil), Google Sans Flex alt kümesi (latin + latin-ext; wght/opsz/ROND), kontrast testi. **Görsel değişiklik yok.**
+- [ ] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0a, F4.0b*
   `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
 - [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
@@ -138,8 +140,9 @@ Diğer tüm fazların temeli.
 ## Önerilen yürütme sırası
 
 ```
-F0.1 → F0.2 → F0.3 → F4.0 (araç zinciri + tema altyapısı)       F1.4 (F4.0 ile paralel)
-                        ├─ F1.1 (bağımsız hat)
+F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri)       F1.4 (paralel)
+                    └─ F4.0b (tema token'ları + font; F1.1 ile paralel)
+                                   ↓ F4.0a + F4.0b
                         ├─ F1.6 · F1.9 (paralel)
                         ├─ F1.2 → F1.3 → F1.7 → F1.5 → F1.8
                         └─ F4.1 Kor temel görünüm (Faz 1 ile paralel; lib/ui)
