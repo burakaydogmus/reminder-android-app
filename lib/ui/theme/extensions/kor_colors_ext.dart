@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:flutter/material.dart';
 
 import '../tokens/kor_palette.dart';
@@ -110,6 +111,28 @@ class KorColors extends ThemeExtension<KorColors> {
         ),
     });
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is KorColors &&
+      other.success == success &&
+      other.onSuccess == onSuccess &&
+      other.successContainer == successContainer &&
+      other.glassTint == glassTint &&
+      other.glassStroke == glassStroke &&
+      other.nowLine == nowLine &&
+      mapEquals(other.categories, categories);
+
+  @override
+  int get hashCode => Object.hash(
+        success,
+        onSuccess,
+        successContainer,
+        glassTint,
+        glassStroke,
+        nowLine,
+        Object.hashAll(KorColorKey.values.map((k) => categories[k])),
+      );
 
   @override
   KorColors copyWith({
