@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 const double _kItemWidth = 56.0;
 const double _kBarHeight = 64.0;
@@ -108,7 +108,7 @@ class _IndicatorBall extends StatelessWidget {
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: const StadiumBorder(),
-        color: Theme.of(context).indicatorColor,
+        color: TabBarTheme.of(context).indicatorColor,
       ),
     );
   }

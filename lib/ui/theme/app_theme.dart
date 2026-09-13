@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show CupertinoPageTransitionsBuilder;
+import 'package:material_ui/material_ui.dart';
 
 class AppTheme {
   AppTheme._();
@@ -19,9 +21,20 @@ class AppTheme {
   static const _surfaceContainerDark = Color(0xFF2A2540);
   static const _inactiveDark = Color(0xFF3A2F55);
 
+  // Flutter 3.38 changed the Android default to the predictive-back
+  // transition; keep the zoom transition the app has always used.
+  static const _pageTransitions = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+    },
+  );
+
   static final ThemeData light = ThemeData(
     useMaterial3: false,
     brightness: Brightness.light,
+    pageTransitionsTheme: _pageTransitions,
     colorScheme: const ColorScheme.light(
       primary: _purple,
       secondary: _purpleAccent,
@@ -31,7 +44,7 @@ class AppTheme {
       onSurface: Colors.black,
     ),
     primaryColor: _purple,
-    indicatorColor: _purple,
+    tabBarTheme: const TabBarThemeData(indicatorColor: _purple),
     scaffoldBackgroundColor: _scaffoldLight,
     canvasColor: Colors.white,
     cardColor: Colors.white,
@@ -93,7 +106,7 @@ class AppTheme {
       onSurface: Colors.white,
     ),
     primaryColor: _purpleLight,
-    indicatorColor: _purpleAccent,
+    tabBarTheme: const TabBarThemeData(indicatorColor: _purpleAccent),
     scaffoldBackgroundColor: _scaffoldDark,
     canvasColor: _surfaceDark,
     cardColor: _surfaceDark,

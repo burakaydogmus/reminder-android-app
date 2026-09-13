@@ -90,7 +90,7 @@ Diğer tüm fazların temeli.
 
 *Referans: [`docs/design/kor-design-proposal.md`](docs/design/kor-design-proposal.md) (§3 token'lar ve ekranlar, §5 Flutter notları) ve [`docs/design/kor-screens.json`](docs/design/kor-screens.json).*
 
-- [ ] **F4.0a Araç zinciri** · `chore/flutter-upgrade` · *bağımlı: F0.3, F1.1*
+- [x] **F4.0a Araç zinciri** · `chore/flutter-upgrade` · *bağımlı: F0.3, F1.1*
   **Önce doğrula:** araştırmadaki güncel sürüm iddiaları (Flutter 3.47, `material_ui`/`cupertino_ui` paketleri, iOS 15 minimumu, UIScene, `flutter_local_notifications` 22, `home_widget` 0.9.4) resmi kaynaklardan teyit edilir; tutmayan kısım o günkü kararlı sürüme göre uyarlanır. Kapsam: Flutter yükseltmesi + CI pin'i, `material_ui`/`cupertino_ui` geçişi, bağımlılık yükseltmeleri (F0.1'deki Android sürüm sabitlemelerinin gözden geçirilmesi dahil), native yapılandırma, `flutter_map` uyumu. **Görsel değişiklik yok.**
 - [x] **F4.0b Kor tema token'ları + font** · `feat/kor-theme-tokens` · *bağımlı: F0.3*
   `lib/ui/theme/tokens/` (palet, `ColorScheme`, tipografi, şekil, boşluk, yükselti), `ThemeExtension`'lar (`KorColors`, `KorMotion`), `KorTheme.light/dark` (henüz bağlı değil), Google Sans Flex alt kümesi (latin + latin-ext; wght/opsz/ROND), kontrast testi. **Görsel değişiklik yok.**

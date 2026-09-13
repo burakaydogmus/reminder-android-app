@@ -2,15 +2,13 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:timezone/data/latest_all.dart' as tzdata;
-import 'package:timezone/timezone.dart' as tz;
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
+import 'package:reminder/util/local_timezone.dart';
 
 @pragma('vm:entry-point')
 Future<void> reminderHomeWidgetCallback(Uri? uri) async {
@@ -24,13 +22,7 @@ Future<void> reminderHomeWidgetCallback(Uri? uri) async {
   if (id == null || id.isEmpty) return;
 
   await initializeDateFormatting('tr_TR');
-  tzdata.initializeTimeZones();
-  try {
-    final name = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(name));
-  } catch (_) {
-    tz.setLocalLocation(tz.getLocation('UTC'));
-  }
+  await configureLocalTimezone();
 
   final repo = ReminderRepository();
   final list = await repo.loadReminders();

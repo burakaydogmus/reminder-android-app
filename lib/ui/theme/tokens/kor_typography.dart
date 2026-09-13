@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Kor type scale on the bundled variable font Google Sans Flex
 /// (`fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf`: latin + latin-ext, axes wght 300–800,

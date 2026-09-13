@@ -24,8 +24,17 @@ flutter build ios --no-codesign --debug              # iOS build (macOS only)
 dart run flutter_launcher_icons # regenerate app icons
 ```
 
-Toolchain: Flutter 3.29.2 stable / Dart 3.7 (pinned in CI).
+Toolchain: Flutter 3.47.4 stable / Dart 3.13 (pinned in CI). Android: AGP 9.1.0,
+Gradle 9.3.1, KGP 2.4.0 (`android.builtInKotlin=false`), compileSdk/targetSdk 36,
+minSdk 26, Java 17. iOS minimum 15.0 with the UIScene lifecycle. Upgrade record and
+reasons: [`docs/upgrades/flutter-3.47.md`](docs/upgrades/flutter-3.47.md).
 `GOOGLE_MAPS_KEY` is optional; the map (OpenStreetMap via `flutter_map`) works without it.
+
+Local SDK: an older global Flutter cannot resolve the dependencies. Install 3.47.4 side
+by side (e.g. `C:/src/flutter-3.47`) and call it by absolute path instead of running
+`flutter upgrade` on a shared SDK. On Windows, when the project path contains non-ASCII
+characters, `flutter analyze` crashes (LSP) — use `dart analyze --fatal-infos` locally —
+and `flutter build apk` fails; build from an ASCII-path copy or rely on CI.
 
 Formatting is enforced in CI: run `dart format lib test` before committing
 (`dart format --output=none --set-exit-if-changed lib test` is the CI check).
@@ -70,7 +79,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
 - `ui/` — screens and widgets: `home/`, `reminders/`, `birthdays/`, `maps/`,
   `settings/`, `theme/`, `widgets/`.
-- `util/` — dialogs, location permission helpers.
+- `util/` — dialogs, location permission helpers, `local_timezone.dart`
+  (`configureLocalTimezone`: device zone via `flutter_timezone`, `Etc/UTC` fallback;
+  used by `main()` and the home widget callback).
 
 ## Tests (`test/`)
 
@@ -138,6 +149,9 @@ until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
   `category(key)`) and `KorMotion` (`context.korMotion`: 6 springs, Reduce Motion
   resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`.
 - Font: `fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf` (OFL, subset latin + latin-ext).
+- Imports: `package:material_ui/material_ui.dart` / `package:cupertino_ui/cupertino_ui.dart`,
+  never `package:flutter/material.dart` or `cupertino.dart` (deprecated in-framework
+  libraries; the types are not interchangeable).
 - Rules for new UI: colours from `Theme.of(context).colorScheme` / `context.korColors`,
   text from `textTheme`, sizes from the token files. **No raw `Color(0x…)`, `Colors.*`
   or hard-coded `fontSize` in new widgets.** Categories store a `KorColorKey`, never a hex.
@@ -146,9 +160,8 @@ until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
 
 ## Geofencing
 
-- Plugin: [`native_geofence`](https://pub.dev/packages/native_geofence) (constraint
-  `^1.2.1`; 1.2.2+ needs `meta` 1.17, i.e. a newer Flutter than 3.29 — it upgrades
-  itself to 1.3.x with the F4.0 Flutter upgrade).
+- Plugin: [`native_geofence`](https://pub.dev/packages/native_geofence) `^1.3.1`
+  (AGP 9 support).
 - **Events never reach the UI isolate.** The OS wakes the app (Android: broadcast →
   WorkManager → headless `FlutterEngine`; iOS: CoreLocation relaunch → headless
   engine) and runs `geofenceEntryCallback` (`@pragma('vm:entry-point')`, top level).
@@ -168,9 +181,13 @@ until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
   regions on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED`; `GeofenceService.initialize()`
   also re-creates them on every app start (covers force-stop). iOS keeps regions
   across reboots itself.
-- iOS: `AppDelegate` must call `NativeGeofencePlugin.setPluginRegistrantCallback`
-  before `GeneratedPluginRegistrant.register`. No `UIBackgroundModes` needed; events
-  while the app is closed require "Always" location permission.
+- iOS (UIScene lifecycle, `FlutterSceneDelegate` in `Info.plist`): `AppDelegate` sets
+  `NativeGeofencePlugin.setPluginRegistrantCallback` at the top of
+  `didFinishLaunchingWithOptions`, before any plugin registration (a location relaunch
+  may have no scene). Plugins register in `didInitializeImplicitFlutterEngine`, together
+  with `FlutterLocalNotificationsPlugin.setPluginRegistrantCallback`. No
+  `UIBackgroundModes` needed; events while the app is closed require "Always" location
+  permission.
 - Do **not** add a foreground service for geofencing (Google Play disallows it from
   28 Oct 2026); `NativeGeofenceBackgroundManager.promoteToForeground` is unused.
 
