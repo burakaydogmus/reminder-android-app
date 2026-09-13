@@ -8,6 +8,10 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 - **Veri:** Drift (SQLite)
 - **Bulut:** Şimdilik yerel; veri modeli ileride Firebase senkronuna hazır tasarlanır (UUID, `updatedAt`, soft delete)
 - **Paket adı:** `com.burakaydogmus.reminder`
+- **Tasarım yönü:** "Kor" — sıcak nötrler + tek vurgu rengi kor turuncusu (`#B8430F` / koyu `#FF9B63`), Google Sans Flex, Bugün ekranında zaman şeridi. Spesifikasyon: [`docs/design/kor-design-proposal.md`](docs/design/kor-design-proposal.md), ekran verisi: [`docs/design/kor-screens.json`](docs/design/kor-screens.json)
+- **Navigasyon:** Bugün / Takvim / Listeler sekmeleri; Ayarlar dişli ikonunda
+- **Dinamik renk:** Uygulama içinde isteğe bağlı ayar (varsayılan kapalı); Android widget'ları sistem renklerini kullanır
+- **Cihaz içi yapay zekâ:** Şimdilik yok; hızlı yakalama kural tabanlı Türkçe ayrıştırıcıyla
 - **Takip:** Bu dosya; her PR ilgili maddeyi `[x]` yapar
 
 **Durum işaretleri:** `[ ]` bekliyor · `[~]` devam ediyor · `[x]` tamamlandı
@@ -37,6 +41,8 @@ Diğer tüm fazların temeli.
   `Reminder.copyWith`; tekrarlanan elle kopyalamaların kaldırılması; servisler için arayüz + constructor injection (`GeofenceService.instance` doğrudan çağrılarının kaldırılması); ortak sıralama fonksiyonu.
 
 ## Faz 1 — Kritik düzeltmeler
+
+*F1.4 dışındaki maddeler F4.0'dan sonra başlar: F4.0 bildirim paketini (18 → 22), iOS minimumunu ve native yapılandırmayı değiştirdiği için bu düzeltmelerin iki kez yazılmasını önler.*
 
 - [ ] **F1.1 Konum hatırlatmaları arka planda çalışmıyor** · `fix/background-geofence` · *bağımsız hat*
   `geo_fencing_android` receiver'ı olayı yalnızca canlı Flutter engine'e iletiyor; uygulama kapalıyken bildirim gelmiyor. Reboot sonrası bölgeler yeniden kaydedilmiyor. Paket değişimi (arka plan callback destekli alternatif) veya native receiver'da doğrudan bildirim + boot receiver. iOS'ta region monitoring doğrulaması.
@@ -75,31 +81,42 @@ Diğer tüm fazların temeli.
 - [ ] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.
 - [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
-- [ ] **F3.5 Liste etkileşimleri** · `feat/swipe-actions`
-  Kaydırarak tamamla/sil + "Geri al" snackbar.
-- [ ] **F3.6 Arama ve görünümler** · `feat/search-and-views`
-  Arama; Bugün / Yaklaşan / Gecikmiş / Zamansız grupları; sıralama seçenekleri.
+- [ ] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
+  Kaydırarak tamamla (sağa) / ertele (sola kısa) / sil (sola uzun) + "Geri al" snackbar; her aksiyonun menü ve ekran okuyucu karşılığı.
+- [ ] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
+  Bugün zaman şeridi (Kaçanlar / şerit / Bugün bir ara), Takvim gündemi (Yaklaşan), Listeler › akıllı listeler (Zamansız dahil), Türkçe karakter duyarsız arama.
 
-## Faz 4 — Arayüz ve deneyim
+## Faz 4 — Arayüz ve deneyim ("Kor")
 
-- [ ] **F4.1 Material 3 geçişi** · `feat/material3`
-  `useMaterial3: true`, renk şeması, bileşenlerin güncellenmesi.
-- [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6*
-  İlk açılış tanıtımı + izin adımları.
-- [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1*
-  Kullanıcı tanımlı kategori (ad, renk, ikon), sıralama; mevcut "Diğer + özel ad" yapısının migration'ı.
-- [ ] **F4.4 Doğum günleri sekmesi / takvim görünümü** · `feat/calendar-view`
-- [ ] **F4.5 Erişilebilirlik** · `feat/a11y`
-  Semantik etiketler, dokunma alanları, yazı ölçeği, kontrast.
+*Referans: [`docs/design/kor-design-proposal.md`](docs/design/kor-design-proposal.md) (§3 token'lar ve ekranlar, §5 Flutter notları) ve [`docs/design/kor-screens.json`](docs/design/kor-screens.json).*
+
+- [ ] **F4.0 Araç zinciri + tema altyapısı** · `chore/flutter-upgrade-theme-tokens` · *bağımlı: F0.3*
+  **Önce doğrula:** araştırmadaki güncel sürüm iddiaları (Flutter 3.47, `material_ui`/`cupertino_ui` paketleri, iOS 15 minimumu, UIScene, `flutter_local_notifications` 22, `home_widget` 0.9.4) resmi kaynaklardan teyit edilir; tutmayan kısım o günkü kararlı sürüme göre uyarlanır. Kapsam: Flutter yükseltmesi + CI pin'i, gerekiyorsa `material_ui`/`cupertino_ui` geçişi, bağımlılık yükseltmeleri (F0.1'deki Android sürüm sabitlemelerinin gözden geçirilmesi dahil), `geo_fencing`/`flutter_map` uyumu, tema token dosyaları + `ThemeExtension`'lar, Google Sans Flex asset'i. **Görsel değişiklik yok.**
+- [ ] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0*
+  `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
+- [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
+  4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
+- [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
+  Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; mevcut "Diğer + özel ad" yapısının migration'ı.
+- [ ] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
+  Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
+- [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
+  Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.
+- [ ] **F4.6 Hızlı yakalama + Türkçe ayrıştırıcı** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4*
+  iOS yakalama çubuğu / Android FAB, token vurgulu alan, `TurkishDateParser` (saf Dart, 200+ örnek cümlelik test tablosu, İ/ı testleri), "maddelere böl" önerisi.
+- [ ] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
+  Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
 ## Faz 5 — Widget ve platform
 
-- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2`
-  `RemoteViewsService` ile kaydırılabilir liste (8 satır sınırı kalkar), hızlı ekle butonu, doğum günleri, tema uyumu.
-- [ ] **F5.2 iOS widget** · `feat/ios-widget`
-  WidgetKit extension + App Group; `home_widget` iOS entegrasyonu.
-- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts`
-  Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Yeni doğum günü").
+- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6*
+  4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
+- [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
+  WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
+- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6*
+  Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
+- [ ] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
+  Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.
 
 ## Faz 6 — Yayın hazırlığı
 
@@ -121,16 +138,22 @@ Diğer tüm fazların temeli.
 ## Önerilen yürütme sırası
 
 ```
-F0.1 → F0.2 → F0.3
-          ├─ F1.1 (paralel, bağımsız hat)
-          ├─ F1.4 · F1.6 · F1.9 (paralel)
-          └─ F1.2 → F1.3 → F1.7 → F1.5 → F1.8
+F0.1 → F0.2 → F0.3 → F4.0 (araç zinciri + tema altyapısı)       F1.4 (F4.0 ile paralel)
+                        ├─ F1.1 (bağımsız hat)
+                        ├─ F1.6 · F1.9 (paralel)
+                        ├─ F1.2 → F1.3 → F1.7 → F1.5 → F1.8
+                        └─ F4.1 Kor temel görünüm (Faz 1 ile paralel; lib/ui)
                                    ↓
                           F2.1 → F2.2
                                    ↓
-          F3.x (sıralı) ‖ F4.1 · F4.5 (paralel)
+          F3.1 → F3.2 → F3.3 → F3.4 → F4.6 (hızlı yakalama)
                                    ↓
-                     F5.x ‖ F6.1 → F6.2 → F6.3
+          F3.5 · F3.6 → F4.4   ‖   F4.2 · F4.3 · F4.7 · F5.4
+                                   ↓
+          F5.1 · F5.2 → F5.3   ‖   F6.1 → F6.2 → F6.3
                                    ↓
                                   F7.x
 ```
+
+- **F4.5 erişilebilirlik** tek seferlik bir adım değil: F4.1'den itibaren her PR'ın kabul kriteri, sonda kapanış denetimi.
+- **F4.1 ile Faz 1 paralelliği:** F1.6 (izin arayüzü) ve F1.8 (editörde geçmiş saat) `lib/ui` dosyalarına da dokunur; hangisi önce merge edilirse diğeri rebase eder.
