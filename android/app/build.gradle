@@ -39,6 +39,9 @@ android {
             force 'org.jetbrains.kotlin:kotlin-stdlib:2.1.10'
             force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.10'
             force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.10'
+            // home_widget declares glance-appwidget:1.+ which resolves to 1.3.0-alpha
+            // (needs compileSdk 37 / AGP 9.1). Pin the latest stable line.
+            force 'androidx.glance:glance-appwidget:1.1.1'
         }
     }
 
