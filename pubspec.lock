@@ -230,14 +230,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "8.1.6"
-  flutter_geofence_manager:
-    dependency: "direct main"
-    description:
-      name: flutter_geofence_manager
-      sha256: "87b269250b92eb7a757802ea5d371d6a1a99a9cae22ac33db16392624fa98466"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.2"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -317,30 +309,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
-  geo_fencing_android:
-    dependency: transitive
-    description:
-      name: geo_fencing_android
-      sha256: bcd6878670684d7c184342fe85451c3e4ce6ae7088752af197f5581bcc761fe6
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.2"
-  geo_fencing_ios:
-    dependency: transitive
-    description:
-      name: geo_fencing_ios
-      sha256: aadac62e4bceaca31a27aaff7d1a3cbca8dd9a12cdac7c40e8bd34e8dacb509f
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
-  geo_fencing_platform_interface:
-    dependency: transitive
-    description:
-      name: geo_fencing_platform_interface
-      sha256: "27d399c3c46bb641e1523fc601b3a8ef85d3d0e971b86d8d1ee6891ecfa1cb4c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
   geoclue:
     dependency: transitive
     description:
@@ -589,6 +557,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.5"
+  native_geofence:
+    dependency: "direct main"
+    description:
+      name: native_geofence
+      sha256: b24e2987c403e8be164b5710475c448d00fa80e9257a7c13c9c6447fb362f69c
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.1"
   nested:
     dependency: transitive
     description:

@@ -1,105 +1,100 @@
 import 'dart:async';
 
-import 'package:flutter_geofence_manager/flutter_geofence_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
-import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/services/geofence_logic.dart';
+import 'package:reminder/services/geofence_platform.dart';
+import 'package:reminder/services/geofence_state_store.dart';
 import 'package:reminder/services/notification_service.dart';
 
-/// OS geofence kayıtlarını hatırlatıcılarla senkronlar; girişte bildirim gösterir.
+/// OS geofence kayıtlarını hatırlatıcılarla senkronlar.
+///
+/// Giriş bildirimleri ana isolate'te değil, `geofenceEntryCallback` arka plan
+/// callback'inde gösterilir; böylece uygulama kapalıyken de çalışır.
 class GeofenceService {
-  GeofenceService._();
-  static final GeofenceService instance = GeofenceService._();
+  GeofenceService._(this._platform, this._store, this._clock);
 
-  static const _prefsRegisteredIds = 'geofence_registered_ids_v1';
+  static final GeofenceService instance = GeofenceService._(
+    NativeGeofencePlatform(),
+    GeofenceStateStore(),
+    DateTime.now,
+  );
 
-  final FlutterGeofenceManager _manager = FlutterGeofenceManager.instance;
-  final ReminderRepository _repository = ReminderRepository();
-  StreamSubscription<GeoFenceEvent>? _subscription;
+  @visibleForTesting
+  factory GeofenceService.forTesting({
+    required GeofencePlatform platform,
+    GeofenceStateStore? store,
+    DateTime Function()? clock,
+  }) =>
+      GeofenceService._(
+        platform,
+        store ?? GeofenceStateStore(),
+        clock ?? DateTime.now,
+      );
+
+  final GeofencePlatform _platform;
+  final GeofenceStateStore _store;
+  final DateTime Function() _clock;
   bool _initialized = false;
 
   Future<void> initialize() async {
     if (_initialized) return;
-    await _manager.initialize();
+    await _platform.initialize();
+    await _platform.reCreateRegistered();
     _initialized = true;
   }
 
-  void startListening(NotificationService notifications) {
-    _subscription ??= _manager.onEvent().listen((event) async {
-      if (event.transitionType != TransitionType.enter) return;
+  /// Uyumluluk için korunur; artık bir şey yapmaz.
+  ///
+  /// Giriş olayları arka plan callback'i (`geofenceEntryCallback`) tarafından
+  /// işlenir, ana isolate'te dinleyici gerekmez.
+  void startListening(NotificationService notifications) {}
 
-      final settings = await _repository.loadSettings();
-      if (!settings.notificationsEnabled) return;
-
-      final reminders = await _repository.loadReminders();
-      Reminder? match;
-      for (final r in reminders) {
-        if (r.id == event.id) {
-          match = r;
-          break;
-        }
-      }
-      if (match == null ||
-          match.isDone ||
-          !match.locationTriggerEnabled ||
-          match.locationLatitude == null ||
-          match.locationLongitude == null) {
-        return;
-      }
-
-      await notifications.showGeofenceEntry(match);
-    });
-  }
-
-  Future<void> dispose() async {
-    await _subscription?.cancel();
-    _subscription = null;
-  }
-
-  /// Hatırlatıcı listesine göre geofence’leri günceller.
+  /// Hatırlatıcı listesine göre geofence'leri günceller (yalnızca fark).
   Future<void> syncWithReminders(
     List<Reminder> reminders, {
     required bool notificationsEnabled,
   }) async {
     if (!_initialized) await initialize();
 
-    final desired = reminders
-        .where(
-          (r) =>
-              !r.isDone &&
-              r.locationTriggerEnabled &&
-              r.locationLatitude != null &&
-              r.locationLongitude != null,
-        )
-        .map(
-          (r) => GeoFenceRegion(
-            id: r.id,
-            latitude: r.locationLatitude!,
-            longitude: r.locationLongitude!,
-            radius: r.locationRadiusMeters.clamp(100.0, 500.0),
-          ),
-        )
-        .toList();
+    final desired = buildGeofenceTargets(
+      reminders,
+      notificationsEnabled: notificationsEnabled,
+      maxRegions: _platform.maxRegions,
+    );
+    final records = await _store.loadRegistrations();
+    final legacyIds = await _store.takeLegacyRegisteredIds();
+    final platformIds = {...await _platform.registeredIds(), ...legacyIds};
 
-    final prefs = await SharedPreferences.getInstance();
-    final oldIds = prefs.getStringList(_prefsRegisteredIds) ?? [];
+    final plan = planGeofenceSync(
+      desired: desired,
+      platformIds: platformIds,
+      recordedSignatures: records.map((id, r) => MapEntry(id, r.signature)),
+    );
 
-    for (final id in oldIds) {
-      await _manager.removeGeoFence(id);
+    for (final id in plan.toRemove) {
+      await _platform.remove(id);
+      records.remove(id);
     }
 
-    if (!notificationsEnabled || desired.isEmpty) {
-      await prefs.setStringList(_prefsRegisteredIds, []);
-      return;
-    }
+    final desiredIds = {for (final t in desired) t.id};
+    records.removeWhere((id, _) => !desiredIds.contains(id));
 
-    final ok = await _manager.registerGeoFences(desired);
-    if (ok) {
-      await prefs.setStringList(
-        _prefsRegisteredIds,
-        desired.map((e) => e.id).toList(),
+    for (final target in plan.toCreate) {
+      // Kayıt zamanı, oluşturmadan ÖNCE yazılır: iOS'un kayıt sonrası
+      // gönderebileceği ilk durum olayı callback'te bununla ayıklanır.
+      records[target.id] = GeofenceRegistration(
+        signature: target.signature,
+        registeredAt: _clock(),
       );
+      await _store.saveRegistrations(records);
+      if (!await _platform.create(target)) {
+        records.remove(target.id);
+      }
     }
+
+    await _store.saveRegistrations(records);
+    await _store.retainLastNotified(desiredIds);
   }
 }
