@@ -28,15 +28,21 @@ Future<void> reminderHomeWidgetCallback(Uri? uri) async {
   await initializeDateFormatting('tr_TR');
   await configureLocalTimezone();
 
-  await handleReminderHomeWidgetToggle(
-    id,
-    repository: ReminderRepository(),
-    schedules: ScheduleSync(
-      notifications: NotificationService.instance,
-      geofence: GeofenceService.instance,
-      homeWidget: const PlatformHomeWidgetSync(),
-    ),
-  );
+  // Ayrı engine: veritabanı bağlantısı bu çağrıya özeldir, sonunda kapatılır.
+  final repository = ReminderRepository();
+  try {
+    await handleReminderHomeWidgetToggle(
+      id,
+      repository: repository,
+      schedules: ScheduleSync(
+        notifications: NotificationService.instance,
+        geofence: GeofenceService.instance,
+        homeWidget: const PlatformHomeWidgetSync(),
+      ),
+    );
+  } finally {
+    await repository.close();
+  }
 }
 
 /// `reminderwidget://toggle?id=<id>` adresinden hatırlatıcı id'sini çıkarır;
