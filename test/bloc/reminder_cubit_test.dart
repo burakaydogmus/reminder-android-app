@@ -9,18 +9,6 @@ import 'package:reminder/domain/model/reminder.dart';
 import '../helpers/factories.dart';
 import '../helpers/mocks.dart';
 
-/// `ReminderCubit`, `GeofenceService.instance`'ı doğrudan çağırıyor.
-/// `FlutterGeofenceManager.registerPlatforms()` Android/iOS dışındaki her
-/// platformda (test host'u dahil) method channel'a ulaşmadan
-/// `UnsupportedError` fırlatıyor; bu yüzden channel stub'lamak işe yaramıyor.
-///
-/// Sonuç: geofence senkronuna ulaşan her cubit metodu testte bu hatayla
-/// biter. Testler hatadan ÖNCEKİ davranışı (emit edilen state, repository
-/// kayıtları, bildirim senkronu) doğrular ve hatayı `errors` ile bekler.
-/// Geofence ve home widget senkronu doğrulanamıyor — F0.3'te servisler
-/// constructor injection ile verildiğinde bu testler sadeleştirilmeli.
-final _geofenceUnsupportedOnHost = [isA<UnsupportedError>()];
-
 ReminderState _state({
   List<Reminder> reminders = const [],
   List<Birthday> birthdays = const [],
@@ -38,17 +26,28 @@ Matcher _hasReminderIds(List<String> ids) => isA<ReminderState>()
 void main() {
   late MockReminderRepository repository;
   late MockNotificationService notifications;
+  late MockGeofenceSync geofence;
+  late MockHomeWidgetSync homeWidget;
 
   setUpAll(registerModelFallbackValues);
 
   setUp(() {
     repository = MockReminderRepository();
     notifications = MockNotificationService();
+    geofence = MockGeofenceSync();
+    homeWidget = MockHomeWidgetSync();
     stubRepositoryWrites(repository);
     stubNotificationService(notifications);
+    stubGeofenceSync(geofence);
+    stubHomeWidgetSync(homeWidget);
   });
 
-  ReminderCubit buildCubit() => ReminderCubit(repository, notifications);
+  ReminderCubit buildCubit() => ReminderCubit(
+        repository,
+        notifications,
+        geofence: geofence,
+        homeWidget: homeWidget,
+      );
 
   test('initial state is empty with default settings', () {
     final cubit = buildCubit();
@@ -102,7 +101,6 @@ void main() {
       'untimed by createdAt desc',
       build: buildCubit,
       act: (cubit) => cubit.load(),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.reminders.map((r) => r.id).toList(),
@@ -153,7 +151,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a]),
       act: (cubit) => cubit.addReminder(b),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['a', 'b'])
       ],
@@ -172,7 +169,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a, b]),
       act: (cubit) => cubit.updateReminder(buildReminder(id: 'a', title: 'A2')),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.reminders.map((r) => r.title).toList(),
@@ -188,7 +184,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a, b]),
       act: (cubit) => cubit.deleteReminder('a'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['b'])
       ],
@@ -203,7 +198,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [a]),
       act: (cubit) => cubit.deleteReminder('missing'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         _hasReminderIds(['a'])
       ],
@@ -234,7 +228,6 @@ void main() {
         b,
       ]),
       act: (cubit) => cubit.toggleDone('full'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.reminders, 'reminders', [
           isA<Reminder>()
@@ -267,7 +260,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x]),
       act: (cubit) => cubit.addBirthday(y),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.birthdays, 'birthdays', [x, y]),
       ],
@@ -287,7 +279,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x, y]),
       act: (cubit) => cubit.updateBirthday(x.copyWith(name: 'X2')),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.birthdays.map((b) => b.name).toList(),
@@ -303,7 +294,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(birthdays: [x, y]),
       act: (cubit) => cubit.deleteBirthday('x'),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having((s) => s.birthdays, 'birthdays', [y]),
       ],
@@ -353,7 +343,6 @@ void main() {
       build: buildCubit,
       seed: () => _state(reminders: [buildReminder()]),
       act: (cubit) => cubit.setNotificationsEnabled(false),
-      errors: () => _geofenceUnsupportedOnHost,
       expect: () => [
         isA<ReminderState>().having(
           (s) => s.settings.notificationsEnabled,
@@ -374,24 +363,6 @@ void main() {
   });
 
   group('clearAllData', () {
-    // Beklenen davranış: bildirimler iptal, depo temizlenir, state sıfırlanır.
-    // Test host'unda GeofenceService, `_repository.clearAll()` ve emit'ten
-    // ÖNCE hata fırlattığı için sıfırlama doğrulanamıyor (bkz. dosya başı).
-    blocTest<ReminderCubit, ReminderState>(
-      'test host limitation: cancels notifications, then geofence sync '
-      'throws before storage is cleared',
-      build: buildCubit,
-      seed: () => _state(reminders: [buildReminder()]),
-      act: (cubit) => cubit.clearAllData(),
-      errors: () => _geofenceUnsupportedOnHost,
-      expect: () => <ReminderState>[],
-      verify: (_) {
-        verify(() => notifications.cancelAll()).called(1);
-        verifyNever(() => repository.clearAll());
-      },
-    );
-
-    // Hedef davranış; GeofenceService enjekte edilebilir olunca açılmalı.
     group(
       'with injectable GeofenceService',
       () {

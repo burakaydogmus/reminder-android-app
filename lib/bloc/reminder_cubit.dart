@@ -5,9 +5,8 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
-import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
-import 'package:reminder/services/reminder_home_widget_sync.dart';
+import 'package:reminder/services/sync_interfaces.dart';
 
 class ReminderState {
   final List<Reminder> reminders;
@@ -49,8 +48,12 @@ class ReminderState {
 class ReminderCubit extends Cubit<ReminderState> {
   ReminderCubit(
     this._repository,
-    this._notifications,
-  ) : super(const ReminderState(
+    this._notifications, {
+    required GeofenceSync geofence,
+    required HomeWidgetSync homeWidget,
+  })  : _geofence = geofence,
+        _homeWidget = homeWidget,
+        super(const ReminderState(
           reminders: [],
           birthdays: [],
           settings: AppSettings(),
@@ -58,6 +61,8 @@ class ReminderCubit extends Cubit<ReminderState> {
 
   final ReminderRepository _repository;
   final NotificationService _notifications;
+  final GeofenceSync _geofence;
+  final HomeWidgetSync _homeWidget;
 
   Future<void> load() async {
     final reminders = await _repository.loadReminders();
@@ -77,11 +82,11 @@ class ReminderCubit extends Cubit<ReminderState> {
       birthdays,
       notificationsEnabled: settings.notificationsEnabled,
     );
-    await GeofenceService.instance.syncWithReminders(
+    await _geofence.syncWithReminders(
       reminders,
       notificationsEnabled: settings.notificationsEnabled,
     );
-    await syncRemindersToHomeWidget(reminders);
+    await _homeWidget.sync(reminders);
   }
 
   Future<void> _persistAndSync() async {
@@ -97,11 +102,11 @@ class ReminderCubit extends Cubit<ReminderState> {
       s.birthdays,
       notificationsEnabled: s.settings.notificationsEnabled,
     );
-    await GeofenceService.instance.syncWithReminders(
+    await _geofence.syncWithReminders(
       s.reminders,
       notificationsEnabled: s.settings.notificationsEnabled,
     );
-    await syncRemindersToHomeWidget(s.reminders);
+    await _homeWidget.sync(s.reminders);
   }
 
   Future<void> addReminder(Reminder reminder) async {
@@ -190,7 +195,7 @@ class ReminderCubit extends Cubit<ReminderState> {
 
   Future<void> clearAllData() async {
     await _notifications.cancelAll();
-    await GeofenceService.instance.syncWithReminders(
+    await _geofence.syncWithReminders(
       [],
       notificationsEnabled: false,
     );
@@ -200,6 +205,6 @@ class ReminderCubit extends Cubit<ReminderState> {
       birthdays: [],
       settings: AppSettings(),
     ));
-    await syncRemindersToHomeWidget(const []);
+    await _homeWidget.sync(const []);
   }
 }
