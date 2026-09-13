@@ -320,8 +320,9 @@ does not recognise; keep that cleanup if the sync changes again.
   `@pragma('vm:entry-point')`), even while the app is open. It reloads the
   SharedPreferences cache, builds real services, closes its repository in `finally` and
   delegates to `handleNotificationAction(response, repository:, schedules:, now:)`:
-  complete → `isDone`; snooze → `remindAt` = now (minute) + 10 min / 1 h, or next day
-  09:00 (`snoozedRemindAt`), also for untimed/overdue reminders; then save →
+  complete → `isDone`; snooze → `remindAt` from `snoozedRemindAt`, which reuses the
+  Ertele sheet's `SnoozeOptions.from(now)` (10 dk, 1 saat, Yarın sabah 09:00), also for
+  untimed/overdue reminders; then save →
   `ScheduleSync.syncAll` (birthdays + settings from the repository) →
   `notifyAppOfWidgetChange()`. Unknown action, non-reminder payload, missing or done
   reminder → no-op. Keep "Tamamla" in that one function (F3.1's recurrence helper plugs

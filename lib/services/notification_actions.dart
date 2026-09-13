@@ -15,6 +15,7 @@ import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/services/schedule_sync.dart';
+import 'package:reminder/ui/reminders/snooze_options.dart';
 import 'package:reminder/util/local_timezone.dart';
 
 /// Hatırlatıcı bildirim aksiyonlarının id'leri (F3.2). Platforma kalıcı
@@ -28,9 +29,6 @@ abstract final class NotificationActionIds {
 
 /// Hatırlatıcı bildirimlerinin iOS kategori id'si.
 const String reminderNotificationCategoryId = 'reminder_actions';
-
-/// "Yarın sabah" ertelemesinin yerel saati.
-const int tomorrowMorningHour = 9;
 
 /// Android hatırlatıcı bildirimi düğmeleri (§3.3.12): Tamamla · 10 dk · 1 saat.
 ///
@@ -180,20 +178,20 @@ bool _isKnownAction(String? id) => switch (id) {
       _ => false,
     };
 
-/// Erteleme aksiyonunun yeni zamanı; [now] dakikaya yuvarlanır. Erteleme
-/// değilse `null`.
+/// Erteleme aksiyonunun yeni zamanı; erteleme değilse `null`.
+///
+/// Kurallar uygulama içi Ertele sheet'iyle ortaktır ([SnoozeOptions.from],
+/// F3.5): göreli seçenekler saniyeyi atar, "Yarın sabah" ertesi gün 09:00.
 @visibleForTesting
 DateTime? snoozedRemindAt(String actionId, DateTime now) {
-  final minute = DateTime(now.year, now.month, now.day, now.hour, now.minute);
-  return switch (actionId) {
-    NotificationActionIds.snooze10Minutes =>
-      minute.add(const Duration(minutes: 10)),
-    NotificationActionIds.snooze1Hour => minute.add(const Duration(hours: 1)),
-    // `DateTime` gün taşmasını normalize eder (31 → sonraki ayın 1'i).
-    NotificationActionIds.snoozeTomorrowMorning =>
-      DateTime(now.year, now.month, now.day + 1, tomorrowMorningHour),
+  final kind = switch (actionId) {
+    NotificationActionIds.snooze10Minutes => SnoozeKind.tenMinutes,
+    NotificationActionIds.snooze1Hour => SnoozeKind.oneHour,
+    NotificationActionIds.snoozeTomorrowMorning => SnoozeKind.tomorrowMorning,
     _ => null,
   };
+  if (kind == null) return null;
+  return SnoozeOptions.from(now).firstWhere((o) => o.kind == kind).at;
 }
 
 /// Bir bildirim aksiyonunu uygular.
