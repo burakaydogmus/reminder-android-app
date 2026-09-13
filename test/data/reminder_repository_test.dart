@@ -127,49 +127,47 @@ void main() {
           {'id': 'bad', 'name': 'Bozuk', 'date': 'not-a-date'},
         ]);
 
-    // F1.4 bu davranışı bilinçli olarak değiştirmeli ve bu testi güncellemeli.
-    test('current behaviour: corrupt item drops whole reminder list', () async {
+    test('corrupt reminder item keeps the valid items', () async {
       SharedPreferences.setMockInitialValues({
         _keyReminders: storedRemindersWithOneCorruptItem(),
       });
 
-      expect(await repository.loadReminders(), isEmpty);
+      final loaded = await repository.loadReminders();
+
+      expect(loaded.map((r) => r.id), ['ok-1', 'ok-2']);
     });
 
-    test('current behaviour: corrupt item drops whole birthday list', () async {
+    test('corrupt birthday item keeps the valid items', () async {
       SharedPreferences.setMockInitialValues({
         _keyBirthdays: storedBirthdaysWithOneCorruptItem(),
       });
 
-      expect(await repository.loadBirthdays(), isEmpty);
+      final loaded = await repository.loadBirthdays();
+
+      expect(loaded.map((b) => b.id), ['ok-1']);
     });
 
-    test(
-      'corrupt reminder item keeps the valid items',
-      () async {
-        SharedPreferences.setMockInitialValues({
-          _keyReminders: storedRemindersWithOneCorruptItem(),
-        });
+    test('non-object list items are skipped', () async {
+      SharedPreferences.setMockInitialValues({
+        _keyReminders: jsonEncode([
+          'string',
+          7,
+          null,
+          buildReminder(id: 'ok').toJson(),
+        ]),
+      });
 
-        final loaded = await repository.loadReminders();
+      expect((await repository.loadReminders()).map((r) => r.id), ['ok']);
+    });
 
-        expect(loaded.map((r) => r.id), ['ok-1', 'ok-2']);
-      },
-      skip: 'Known bug — fixed in F1.4',
-    );
+    test('undecodable or non-list JSON returns []', () async {
+      SharedPreferences.setMockInitialValues({
+        _keyReminders: '[{"id": "a", ',
+        _keyBirthdays: '42',
+      });
 
-    test(
-      'corrupt birthday item keeps the valid items',
-      () async {
-        SharedPreferences.setMockInitialValues({
-          _keyBirthdays: storedBirthdaysWithOneCorruptItem(),
-        });
-
-        final loaded = await repository.loadBirthdays();
-
-        expect(loaded.map((b) => b.id), ['ok-1']);
-      },
-      skip: 'Known bug — fixed in F1.4',
-    );
+      expect(await repository.loadReminders(), isEmpty);
+      expect(await repository.loadBirthdays(), isEmpty);
+    });
   });
 }

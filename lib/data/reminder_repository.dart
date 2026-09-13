@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,16 +13,7 @@ class ReminderRepository {
 
   Future<List<Reminder>> loadReminders() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keyReminders);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      final list = jsonDecode(raw) as List<dynamic>;
-      return list
-          .map((e) => Reminder.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return _loadList(prefs, _keyReminders, Reminder.fromJson);
   }
 
   Future<void> saveReminders(List<Reminder> reminders) async {
@@ -52,16 +43,7 @@ class ReminderRepository {
 
   Future<List<Birthday>> loadBirthdays() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keyBirthdays);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      final list = jsonDecode(raw) as List<dynamic>;
-      return list
-          .map((e) => Birthday.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return _loadList(prefs, _keyBirthdays, Birthday.fromJson);
   }
 
   Future<void> saveBirthdays(List<Birthday> birthdays) async {
@@ -76,5 +58,35 @@ class ReminderRepository {
     await prefs.remove(_keyReminders);
     await prefs.remove(_keySettings);
     await prefs.remove(_keyBirthdays);
+  }
+
+  /// Listeyi kayıt bazında çözer: çözülemeyen öğeler atlanır, geçerli öğeler
+  /// döner. Böylece tek bozuk öğe, sonraki kayıtta tüm listenin silinmesine yol
+  /// açmaz.
+  Future<List<T>> _loadList<T>(
+    SharedPreferences prefs,
+    String key,
+    T Function(Map<String, dynamic> json) fromJson,
+  ) async {
+    final raw = prefs.getString(key);
+    if (raw == null || raw.isEmpty) return [];
+
+    Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      return [];
+    }
+    if (decoded is! List) return [];
+
+    final result = <T>[];
+    for (final item in decoded) {
+      try {
+        result.add(fromJson(Map<String, dynamic>.from(item as Map)));
+      } catch (_) {
+        // Model fromJson'ları TypeError/FormatException fırlatabilir; öğe atlanır.
+      }
+    }
+    return result;
   }
 }
