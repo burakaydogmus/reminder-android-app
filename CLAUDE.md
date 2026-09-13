@@ -40,7 +40,11 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   birthdays, settings); persists via the repository and re-syncs notifications,
   geofences and the home widget after every change.
 - `data/reminder_repository.dart` — `ReminderRepository`: load/save reminders, birthdays
-  and `AppSettings` as JSON in `SharedPreferences`.
+  and `AppSettings` as JSON in `SharedPreferences`. Corrupt data is tolerated per item
+  (lists) / per field (settings); on any load problem the untouched raw string is kept
+  under `<key>_backup` (one per key, latest problematic payload wins, identical content
+  not rewritten, removed only by `clearAll`). `hasRecoveryBackup()` reports it.
+  Never return `[]` for a partially bad list — the next save would wipe valid data.
 - `domain/model/` — `Reminder` (with `copyWith`), `Birthday`, `ReminderCategory`,
   `AppSettings`.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
