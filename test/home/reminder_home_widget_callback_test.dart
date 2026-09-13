@@ -19,9 +19,13 @@ import 'package:timezone/timezone.dart' as tz;
 import '../helpers/factories.dart';
 import '../helpers/fake_notifications_plugin.dart';
 import '../helpers/mocks.dart';
+import '../helpers/test_database.dart';
 
-/// Gerçek depo (mock SharedPreferences) + hatırlatıcı kayıt sayacı.
+/// Gerçek depo (bellek içi Drift + mock SharedPreferences) + hatırlatıcı kayıt
+/// sayacı.
 class _CountingRepository extends ReminderRepository {
+  _CountingRepository() : super(database: openTestDatabase());
+
   int reminderSaves = 0;
 
   @override

@@ -1,166 +1,240 @@
-import 'dart:convert';
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:reminder/data/db/app_database.dart';
+import 'package:reminder/data/db/app_database_host.dart';
+import 'package:reminder/data/db/row_mapping.dart';
+import 'package:reminder/data/legacy_prefs_store.dart';
+import 'package:reminder/data/prefs_migration.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 
-/// Hatırlatıcı, doğum günü ve ayarları `SharedPreferences` içinde JSON olarak
-/// saklar.
+/// Hatırlatıcı, doğum günü ve ayarları Drift (SQLite) veritabanında saklar
+/// (F2.1). Genel arayüz ve anlamı SharedPreferences dönemiyle aynıdır.
 ///
-/// **Bozuk veri politikası (F1.4):**
-/// - Listeler kayıt bazında çözülür; çözülemeyen öğeler atlanır, geçerli
-///   öğeler döner. Böylece sonraki `save*` çağrısı yalnızca bozuk öğeleri
-///   kaybeder, geçerli verinin üzerine `[]` yazılmaz.
-/// - Yükleme sırasında herhangi bir sorun görülürse (JSON çözülemiyor, beklenen
-///   tipte değil veya en az bir öğe/alan bozuk) ham dize **dokunulmadan**
-///   `<anahtar>_backup` anahtarına yazılır ([backupKeyFor]).
-/// - Anahtar başına tek yedek tutulur: en son sorunlu ham veri kazanır. Mevcut
-///   yedek aynı içerikteyse tekrar yazılmaz. Sorunsuz yüklemeler yedeğe
-///   dokunmaz; yedek, [clearAll] çağrılana kadar kalır (F2.1/F2.2 kurtarma için
-///   kullanabilir).
-/// - Ayarlarda bozuk alanlar tek tek varsayılana düşer; diğer alanlar korunur.
+/// **Açılış:** veritabanı ilk çağrıda tembelce açılır ve gerekirse
+/// SharedPreferences'tan tek seferlik geçiş ([PrefsMigration]) çalışır.
+/// Açılış veya geçiş başarısız olursa depo **o nesnenin ömrü boyunca** eski
+/// [LegacyPrefsStore] ile çalışır (eski veri görünür kalır, yazmalar eski
+/// anahtarlara gider); geçiş işareti yazılmadığı için bir sonraki açılışta
+/// yeniden denenir.
+///
+/// **Kaydetme:** `saveX(list)` tek transaction'da listeyi upsert eder ve
+/// listede olmayan satırları `deleted_at` ile yumuşak siler. İçeriği (veya
+/// sırası) değişmeyen satırlara dokunulmaz; değişen, yeni veya geri gelen
+/// satırlarda `updated_at` güncellenir. Yüklemeler silinmiş satırları süzer.
+///
+/// **Bozuk veri (F1.4):** eski JSON anahtarları geçişte toleranslı çözülür ve
+/// sorunlu ham veri `<anahtar>_backup` anahtarına yedeklenir ([backupKeyFor],
+/// [hasRecoveryBackup]). Veritabanında bozuk bir doğum günü satırı atlanır.
 class ReminderRepository {
-  static const _keyReminders = 'reminders_v1';
-  static const _keySettings = 'app_settings_v1';
-  static const _keyBirthdays = 'birthdays_v1';
+  /// [database] verilirse depo onu kullanır ve kapatmaz (sahibi çağırandır).
+  /// Verilmezse isolate'in paylaşılan veritabanı ([AppDatabaseHost]) ilk
+  /// kullanımda alınır ve [close] ile bırakılır.
+  ReminderRepository({
+    AppDatabase? database,
+    LegacyPrefsStore? legacy,
+    PrefsMigration? migration,
+    DateTime Function()? clock,
+  })  : _injectedDatabase = database,
+        _legacy = legacy ?? LegacyPrefsStore(),
+        _clock = clock ?? DateTime.now,
+        _migration = migration;
 
-  static const _backupSuffix = '_backup';
+  final AppDatabase? _injectedDatabase;
+  final LegacyPrefsStore _legacy;
+  final PrefsMigration? _migration;
+  final DateTime Function() _clock;
+
+  Future<_Storage>? _storage;
+  bool _acquiredHostDatabase = false;
 
   /// [key] için ham verinin yedeklendiği `SharedPreferences` anahtarı.
-  static String backupKeyFor(String key) => '$key$_backupSuffix';
-
-  static const _dataKeys = [_keyReminders, _keySettings, _keyBirthdays];
+  static String backupKeyFor(String key) => LegacyPrefsStore.backupKeyFor(key);
 
   Future<List<Reminder>> loadReminders() async {
-    final prefs = await SharedPreferences.getInstance();
-    return _loadList(prefs, _keyReminders, Reminder.fromJson);
+    final storage = await _open();
+    if (storage.database case final db?) {
+      final rows = await (db.select(db.reminders)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .get();
+      return rows.map(reminderFromRow).toList();
+    }
+    return _legacy.loadReminders();
   }
 
   Future<void> saveReminders(List<Reminder> reminders) async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded =
-        jsonEncode(reminders.map((r) => r.toJson()).toList(growable: false));
-    await prefs.setString(_keyReminders, encoded);
+    final storage = await _open();
+    final db = storage.database;
+    if (db == null) return _legacy.saveReminders(reminders);
+
+    final now = toEpochMicros(_clock());
+    await db.transaction(() async {
+      final existing = {
+        for (final row in await db.select(db.reminders).get()) row.id: row,
+      };
+      final kept = <String>{};
+      for (var i = 0; i < reminders.length; i++) {
+        final r = reminders[i];
+        kept.add(r.id);
+        final old = existing[r.id];
+        final unchanged = old != null &&
+            reminderToRow(r, position: i, updatedAt: old.updatedAt) == old;
+        if (unchanged) continue;
+        // toCompanion(false): null değerler de yazılır (deleted_at, note...);
+        // satır nesnesi doğrudan verilirse null sütunlar atlanırdı.
+        await db.into(db.reminders).insertOnConflictUpdate(
+            reminderToRow(r, position: i, updatedAt: now).toCompanion(false));
+      }
+      await (db.update(db.reminders)
+            ..where((t) => t.deletedAt.isNull() & t.id.isNotIn(kept)))
+          .write(RemindersCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    });
   }
 
   Future<AppSettings> loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keySettings);
-    if (raw == null || raw.isEmpty) return const AppSettings();
-
-    Object? decoded;
-    try {
-      decoded = jsonDecode(raw);
-    } catch (_) {
-      await _backupRaw(prefs, _keySettings, raw);
-      return const AppSettings();
+    final storage = await _open();
+    if (storage.database case final db?) {
+      final row = await (db.select(db.settings)
+            ..where((t) => t.id.equals(AppDatabase.settingsRowId)))
+          .getSingleOrNull();
+      return row == null ? const AppSettings() : settingsFromRow(row);
     }
-    if (decoded is! Map) {
-      await _backupRaw(prefs, _keySettings, raw);
-      return const AppSettings();
-    }
-
-    const defaults = AppSettings();
-    var hadProblem = false;
-
-    var notificationsEnabled = defaults.notificationsEnabled;
-    final rawNotifications = decoded['notificationsEnabled'];
-    if (rawNotifications is bool) {
-      notificationsEnabled = rawNotifications;
-    } else if (rawNotifications != null) {
-      hadProblem = true;
-    }
-
-    var themeMode = defaults.themeMode;
-    final rawTheme = decoded['themeMode'];
-    if (rawTheme is String && AppThemeModeIds.values.contains(rawTheme)) {
-      themeMode = rawTheme;
-    } else if (rawTheme != null) {
-      hadProblem = true;
-    }
-
-    if (hadProblem) await _backupRaw(prefs, _keySettings, raw);
-    return AppSettings(
-      notificationsEnabled: notificationsEnabled,
-      themeMode: themeMode,
-    );
+    return _legacy.loadSettings();
   }
 
   Future<void> saveSettings(AppSettings settings) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keySettings, jsonEncode(settings.toJson()));
+    final storage = await _open();
+    final db = storage.database;
+    if (db == null) return _legacy.saveSettings(settings);
+
+    final now = toEpochMicros(_clock());
+    await db.transaction(() async {
+      final old = await (db.select(db.settings)
+            ..where((t) => t.id.equals(AppDatabase.settingsRowId)))
+          .getSingleOrNull();
+      if (old != null &&
+          settingsToRow(settings, updatedAt: old.updatedAt) == old) {
+        return;
+      }
+      await db
+          .into(db.settings)
+          .insertOnConflictUpdate(settingsToRow(settings, updatedAt: now));
+    });
   }
 
   Future<List<Birthday>> loadBirthdays() async {
-    final prefs = await SharedPreferences.getInstance();
-    return _loadList(prefs, _keyBirthdays, Birthday.fromJson);
+    final storage = await _open();
+    if (storage.database case final db?) {
+      final rows = await (db.select(db.birthdays)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .get();
+      final result = <Birthday>[];
+      for (final row in rows) {
+        try {
+          result.add(birthdayFromRow(row));
+        } catch (e) {
+          debugPrint('Skipping unreadable birthday row ${row.id}: $e');
+        }
+      }
+      return result;
+    }
+    return _legacy.loadBirthdays();
   }
 
   Future<void> saveBirthdays(List<Birthday> birthdays) async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded =
-        jsonEncode(birthdays.map((b) => b.toJson()).toList(growable: false));
-    await prefs.setString(_keyBirthdays, encoded);
+    final storage = await _open();
+    final db = storage.database;
+    if (db == null) return _legacy.saveBirthdays(birthdays);
+
+    final now = toEpochMicros(_clock());
+    await db.transaction(() async {
+      final existing = {
+        for (final row in await db.select(db.birthdays).get()) row.id: row,
+      };
+      final kept = <String>{};
+      for (var i = 0; i < birthdays.length; i++) {
+        final b = birthdays[i];
+        kept.add(b.id);
+        final old = existing[b.id];
+        final unchanged = old != null &&
+            birthdayToRow(b, position: i, updatedAt: old.updatedAt) == old;
+        if (unchanged) continue;
+        await db.into(db.birthdays).insertOnConflictUpdate(
+            birthdayToRow(b, position: i, updatedAt: now).toCompanion(false));
+      }
+      await (db.update(db.birthdays)
+            ..where((t) => t.deletedAt.isNull() & t.id.isNotIn(kept)))
+          .write(BirthdaysCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    });
   }
 
   /// Herhangi bir anahtar için kurtarma yedeği varsa `true` (salt okunur).
-  Future<bool> hasRecoveryBackup() async {
-    final prefs = await SharedPreferences.getInstance();
-    return _dataKeys.any((k) => prefs.containsKey(backupKeyFor(k)));
-  }
+  Future<bool> hasRecoveryBackup() => _legacy.hasRecoveryBackup();
 
-  /// Tüm verileri ve kurtarma yedeklerini siler ("Tüm verileri sıfırla").
+  /// Tüm verileri siler ("Tüm verileri sıfırla"): tablolardaki satırlar
+  /// (yumuşak silinmişler dahil) kalıcı silinir; eski SharedPreferences
+  /// anahtarları ve kurtarma yedekleri de kaldırılır. Geçiş işareti korunur,
+  /// böylece silinen veri bir sonraki açılışta eski anahtarlardan geri gelmez.
   Future<void> clearAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    for (final key in _dataKeys) {
-      await prefs.remove(key);
-      await prefs.remove(backupKeyFor(key));
+    final storage = await _open();
+    if (storage.database case final db?) {
+      await db.transaction(() async {
+        await db.delete(db.reminders).go();
+        await db.delete(db.birthdays).go();
+        await db.delete(db.settings).go();
+      });
+    }
+    await _legacy.clearAll();
+  }
+
+  /// Paylaşılan veritabanını bırakır (arka plan callback'lerinin sonunda
+  /// çağrılır). Sonraki bir çağrı veritabanını yeniden açar. Enjekte edilen
+  /// veritabanı kapatılmaz.
+  Future<void> close() async {
+    final pending = _storage;
+    _storage = null;
+    if (pending != null) await pending;
+    if (_acquiredHostDatabase) {
+      _acquiredHostDatabase = false;
+      await AppDatabaseHost.release();
     }
   }
 
-  Future<List<T>> _loadList<T>(
-    SharedPreferences prefs,
-    String key,
-    T Function(Map<String, dynamic> json) fromJson,
-  ) async {
-    final raw = prefs.getString(key);
-    if (raw == null || raw.isEmpty) return [];
+  Future<_Storage> _open() => _storage ??= _openStorage();
 
-    Object? decoded;
+  Future<_Storage> _openStorage() async {
+    AppDatabase? db = _injectedDatabase;
     try {
-      decoded = jsonDecode(raw);
-    } catch (_) {
-      await _backupRaw(prefs, key, raw);
-      return [];
-    }
-    if (decoded is! List) {
-      await _backupRaw(prefs, key, raw);
-      return [];
-    }
-
-    final result = <T>[];
-    var hadProblem = false;
-    for (final item in decoded) {
-      try {
-        result.add(fromJson(Map<String, dynamic>.from(item as Map)));
-      } catch (_) {
-        // Model fromJson'ları TypeError/FormatException fırlatabilir; öğe atlanır.
-        hadProblem = true;
+      if (db == null) {
+        db = AppDatabaseHost.acquire();
+        _acquiredHostDatabase = true;
       }
+      await (_migration ?? PrefsMigration(legacy: _legacy, clock: _clock))
+          .runIfNeeded(db);
+      return _Storage(db);
+    } catch (e, st) {
+      debugPrint(
+        'Drift storage unavailable, using SharedPreferences for this '
+        'session (migration retried on next launch): $e\n$st',
+      );
+      return const _Storage(null);
     }
-    if (hadProblem) await _backupRaw(prefs, key, raw);
-    return result;
   }
+}
 
-  Future<void> _backupRaw(
-    SharedPreferences prefs,
-    String key,
-    String raw,
-  ) async {
-    final backupKey = backupKeyFor(key);
-    if (prefs.getString(backupKey) == raw) return;
-    await prefs.setString(backupKey, raw);
-  }
+/// Açılış sonucu: `database == null` ise oturum SharedPreferences'ta çalışır.
+class _Storage {
+  const _Storage(this.database);
+
+  final AppDatabase? database;
 }
