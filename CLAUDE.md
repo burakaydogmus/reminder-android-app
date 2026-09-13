@@ -6,8 +6,8 @@ Guidance for AI agents and contributors working in this repository.
 
 Flutter reminder app ("Hatırlatıcı"): to-dos/shopping items with optional scheduled
 notifications, location-triggered (geofence) reminders, recurring birthday reminders
-and an Android home screen widget. Local storage only (SharedPreferences JSON today;
-Drift migration planned). Targets **Android + iOS**. UI strings are **Turkish (`tr_TR`)**.
+and an Android home screen widget. Local storage only (Drift/SQLite, see **Data**).
+Targets **Android + iOS**. UI strings are **Turkish (`tr_TR`)**.
 
 The development plan lives in [`ROADMAP.md`](ROADMAP.md) — read it before starting work.
 
@@ -51,11 +51,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   birthdays, settings); persists via the repository and re-syncs notifications,
   geofences and the home widget after every change.
 - `data/reminder_repository.dart` — `ReminderRepository`: load/save reminders, birthdays
-  and `AppSettings` as JSON in `SharedPreferences`. Corrupt data is tolerated per item
-  (lists) / per field (settings); on any load problem the untouched raw string is kept
-  under `<key>_backup` (one per key, latest problematic payload wins, identical content
-  not rewritten, removed only by `clearAll`). `hasRecoveryBackup()` reports it.
-  Never return `[]` for a partially bad list — the next save would wipe valid data.
+  and `AppSettings` in the Drift database (see **Data**). `data/db/` holds the schema
+  (`app_database.dart` + generated `app_database.g.dart`), row mapping and the per-isolate
+  `AppDatabaseHost`; `data/legacy_prefs_store.dart` is the old SharedPreferences JSON
+  store (migration source and fallback); `data/prefs_migration.dart` the one-time import.
 - `domain/model/` — `Reminder` (with `copyWith`), `Birthday`, `ReminderCategory`,
   `AppSettings`. Nullable fields in `copyWith` take `T? Function()?`
   (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
@@ -126,7 +125,12 @@ Formatting is enforced in CI: run `dart format lib test` before committing
 Tests mirror `lib/`:
 
 - `test/domain/` — pure model tests (JSON, date logic, ids, labels).
-- `test/data/` — `ReminderRepository` against `SharedPreferences.setMockInitialValues`.
+- `test/data/` — `ReminderRepository` on an in-memory database
+  (`openTestDatabase()` from `test/helpers/test_database.dart`, `NativeDatabase.memory()`)
+  plus `SharedPreferences.setMockInitialValues` for the legacy keys: round trips, soft
+  delete / `updated_at`, `clearAll`, migration (valid, corrupt + backup, idempotent,
+  failure fallback). No extra setup: `sqlite3` 3.x ships SQLite via build hooks, so
+  `flutter test` works on Windows and the Ubuntu CI runner.
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
 - `test/services/` — geofence rules, `GeofenceService` sync against a fake
   `GeofencePlatform` (no platform channels), background entry handling;
@@ -134,8 +138,8 @@ Tests mirror `lib/`:
   (`test/helpers/fake_notifications_plugin.dart`, via `NotificationService.forTesting`;
   records cancelled/scheduled ids and shown notifications, needs mock
   `SharedPreferences` for fingerprints); `ScheduleSync` ordering and coalescing.
-- `test/home/` — widget callback core with a real repository (mock
-  `SharedPreferences`) and the fake notifications plugin.
+- `test/home/` — widget callback core with a real repository (in-memory database) and
+  the fake notifications plugin.
 - `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
 - `test/ui/` — widget tests on `UiHarness` (`test/ui/ui_harness.dart`: a real
   `ReminderCubit` over the mocks, loaded with given reminders/birthdays, wrapped like
@@ -221,6 +225,66 @@ reload racing an in-flight in-app save can briefly show the pre-save state (stor
 stays correct); background isolates in another process would not reach the port.
 Background writers other than the widget should also call `notifyAppOfWidgetChange`
 or an equivalent signal.
+
+### Data
+
+Storage is **Drift (SQLite)**, file `reminder.sqlite` in the application support
+directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is bundled by
+the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
+unchanged; the cubit, callbacks and UI don't know about the database.
+
+- **Schema v1** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json`): `reminders` and `birthdays` (every model field
+  as a column + `position`, `updated_at`, `deleted_at`), `settings` (single row,
+  `id = 1`), `app_meta` (key/value, e.g. the migration marker). **Model times**
+  (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
+  `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
+  ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
+  fields and `isUtc` as the old `fromJson`. Don't convert them to UTC/epoch — that
+  changes behaviour. Only repository bookkeeping (`updated_at`, `deleted_at`) is UTC
+  epoch microseconds (INTEGER). Offsets are JSON text (`[0,1440]`).
+- **Sync-ready columns** are managed only in the repository, never in domain models:
+  `saveX(list)` runs in one transaction, upserts rows whose content or position changed
+  (`updated_at` = now; unchanged rows are not touched), and soft-deletes rows missing
+  from the list (`deleted_at` = `updated_at` = now). Re-saving a soft-deleted id restores
+  it. Loads filter `deleted_at IS NULL` and order by `position`. Write rows with
+  `row.toCompanion(false)` — a data class passed to `insertOnConflictUpdate` drops null
+  columns, so cleared fields would keep their old value.
+- **`clearAll`** hard-deletes all rows of `reminders`/`birthdays`/`settings` and removes
+  the legacy SharedPreferences keys and `<key>_backup` recovery keys. `app_meta` is kept,
+  so cleared data never comes back from the legacy keys.
+- **One-time migration** (`PrefsMigration`) runs on the first repository call when
+  `app_meta` has no `prefs_migration_v1` marker: `LegacyPrefsStore` reads `reminders_v1`,
+  `birthdays_v1`, `app_settings_v1` with the F1.4 tolerant parsing (corrupt items are
+  skipped, the untouched raw string goes to `<key>_backup`; one backup per key, latest
+  problematic payload wins, `hasRecoveryBackup()` reports it), then rows and marker are
+  written in **one transaction** with `INSERT OR IGNORE` (idempotent, never overwrites).
+  The legacy keys are **not deleted** — safety net for one release; remove them (and
+  `LegacyPrefsStore`'s write path) in a later release.
+- **Fallback:** if opening the database or the migration fails, that repository instance
+  works on `LegacyPrefsStore` for the session (old data visible, writes go to the legacy
+  keys) and, with no marker written, the migration is retried on the next launch.
+- **Isolates / engines:** the app, `geofenceEntryCallback` and
+  `reminderHomeWidgetCallback` run in **separate Flutter engines**. drift's
+  `shareAcrossIsolates` only finds databases inside one engine, so each engine opens its
+  own connection to the same file — drift's documented option for independent
+  isolates — with `PRAGMA journal_mode = WAL` and `busy_timeout = 5000`
+  (`AppDatabase.configureConnection`). `ReminderRepository()` takes the isolate's shared,
+  reference-counted database from `AppDatabaseHost` lazily; background entry points call
+  `repository.close()` in `finally`; the app's repository stays open. Stream queries
+  don't cross engines (the app doesn't use them; the cubit reloads).
+- **Schema changes:** edit the tables, bump `schemaVersion`, add the step in
+  `MigrationStrategy.onUpgrade`, then regenerate and export:
+
+  ```bash
+  dart run build_runner build
+  dart run drift_dev schema dump lib/data/db/app_database.dart drift_schemas/
+  dart format lib test
+  ```
+
+  Generated `*.g.dart` files are committed (CI doesn't run `build_runner`) and formatted.
+  On Windows with a non-ASCII project path, run these in an ASCII-path copy and copy
+  `app_database.g.dart` / the schema JSON back. Tests use `openTestDatabase()`.
 
 ### Notification ids
 
@@ -320,7 +384,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   WorkManager → headless `FlutterEngine`; iOS: CoreLocation relaunch → headless
   engine) and runs `geofenceEntryCallback` (`@pragma('vm:entry-point')`, top level).
   The callback must be self-contained: no cubit, no singleton state from the main
-  isolate; it loads settings/reminders via `ReminderRepository`, re-initializes
+  isolate; it loads settings/reminders via `ReminderRepository` (own database
+  connection, closed at the end — see **Data**), re-initializes
   `NotificationService`, then calls `showGeofenceEntry`. Keep it short (iOS gives
   ~10 s). `GeofenceService.startListening` is a no-op kept for compatibility.
 - SharedPreferences is shared between isolates but each isolate caches it:
