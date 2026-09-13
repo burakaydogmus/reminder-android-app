@@ -8,12 +8,15 @@ import 'package:reminder/domain/model/reminder.dart';
 /// Domain modelleri ↔ Drift satırları. Senkron alanları (`position`,
 /// `updated_at`, `deleted_at`) yalnızca burada ve depoda bilinir.
 
-/// Anlık zamanlar UTC epoch mikrosaniye olarak saklanır.
+/// Depo defter alanları (`updated_at`, `deleted_at`): UTC epoch mikrosaniye.
 int toEpochMicros(DateTime value) => value.microsecondsSinceEpoch;
 
-/// Saklanan anı yerel `DateTime` olarak döndürür.
-DateTime fromEpochMicros(int value) =>
-    DateTime.fromMicrosecondsSinceEpoch(value);
+/// Kullanıcı/model zamanları: JSON dönemiyle birebir aynı metin. Yerel değer
+/// saat dilimi eki olmadan (duvar saati), UTC değer `Z` ile yazılır.
+String toStoredDateTime(DateTime value) => value.toIso8601String();
+
+/// [toStoredDateTime]'ın tersi; eski `fromJson` ile aynı `DateTime.parse`.
+DateTime fromStoredDateTime(String value) => DateTime.parse(value);
 
 ReminderRow reminderToRow(
   Reminder r, {
@@ -26,8 +29,8 @@ ReminderRow reminderToRow(
     title: r.title,
     note: r.note,
     isDone: r.isDone,
-    createdAt: toEpochMicros(r.createdAt),
-    remindAt: r.remindAt == null ? null : toEpochMicros(r.remindAt!),
+    createdAt: toStoredDateTime(r.createdAt),
+    remindAt: r.remindAt == null ? null : toStoredDateTime(r.remindAt!),
     categoryId: r.categoryId,
     customCategoryLabel: r.customCategoryLabel,
     locationTriggerEnabled: r.locationTriggerEnabled,
@@ -47,8 +50,8 @@ Reminder reminderFromRow(ReminderRow row) {
     title: row.title,
     note: row.note,
     isDone: row.isDone,
-    createdAt: fromEpochMicros(row.createdAt),
-    remindAt: row.remindAt == null ? null : fromEpochMicros(row.remindAt!),
+    createdAt: fromStoredDateTime(row.createdAt),
+    remindAt: row.remindAt == null ? null : fromStoredDateTime(row.remindAt!),
     categoryId: row.categoryId,
     customCategoryLabel: row.customCategoryLabel,
     locationTriggerEnabled: row.locationTriggerEnabled,
@@ -69,11 +72,11 @@ BirthdayRow birthdayToRow(
     id: b.id,
     name: b.name,
     note: b.note,
-    date: b.date.toIso8601String(),
+    date: toStoredDateTime(b.date),
     notifyHour: b.notifyHour,
     notifyMinute: b.notifyMinute,
     advanceOffsetsMinutes: jsonEncode(b.advanceOffsetsMinutes),
-    createdAt: toEpochMicros(b.createdAt),
+    createdAt: toStoredDateTime(b.createdAt),
     position: position,
     updatedAt: updatedAt,
     deletedAt: deletedAt,
@@ -90,11 +93,11 @@ Birthday birthdayFromRow(BirthdayRow row) {
     id: row.id,
     name: row.name,
     note: row.note,
-    date: DateTime.parse(row.date),
+    date: fromStoredDateTime(row.date),
     notifyHour: row.notifyHour,
     notifyMinute: row.notifyMinute,
     advanceOffsetsMinutes: offsets,
-    createdAt: fromEpochMicros(row.createdAt),
+    createdAt: fromStoredDateTime(row.createdAt),
   );
 }
 

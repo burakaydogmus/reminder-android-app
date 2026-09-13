@@ -5,10 +5,15 @@ import 'package:sqlite3/common.dart' show CommonDatabase;
 
 part 'app_database.g.dart';
 
-// Zaman damgası sütunları (`*_at`): UTC epoch **mikrosaniye** (INTEGER).
-// `DateTime.microsecondsSinceEpoch` saat diliminden bağımsızdır; okurken
-// `DateTime.fromMicrosecondsSinceEpoch` yerel saate çevirir. Dönüşüm
-// `ReminderRepository` içindedir; domain modelleri değişmez.
+// Zaman sütunları iki türdür (dönüşüm `row_mapping.dart` içinde; domain
+// modelleri değişmez):
+// - Kullanıcı/model zamanları (`created_at`, `remind_at`, `birthdays.date`):
+//   JSON dönemindeki gibi `DateTime.toIso8601String()` metni (TEXT). Yerel
+//   değerde saat dilimi eki yoktur, yani **duvar saati** olarak saklanır: saat
+//   dilimi değişince "18:30" yine 18:30 kalır; `DateTime.parse` aynı alanları
+//   ve aynı `isUtc` değerini döndürür.
+// - Depo defter alanları (`updated_at`, `deleted_at`): UTC epoch
+//   **mikrosaniye** (INTEGER).
 //
 // `position`: kaydedilen listedeki sıra (SharedPreferences JSON'daki liste
 // sırasının karşılığı). `updated_at` / `deleted_at`: senkrona hazır alanlar
@@ -21,8 +26,8 @@ class Reminders extends Table {
   TextColumn get title => text()();
   TextColumn get note => text().nullable()();
   BoolColumn get isDone => boolean()();
-  IntColumn get createdAt => integer()();
-  IntColumn get remindAt => integer().nullable()();
+  TextColumn get createdAt => text()();
+  TextColumn get remindAt => text().nullable()();
   TextColumn get categoryId => text()();
   TextColumn get customCategoryLabel => text().nullable()();
   BoolColumn get locationTriggerEnabled => boolean()();
@@ -54,7 +59,7 @@ class Birthdays extends Table {
 
   /// Önbildirim dakikaları, JSON dizi metni (örn. `[0,1440]`).
   TextColumn get advanceOffsetsMinutes => text()();
-  IntColumn get createdAt => integer()();
+  TextColumn get createdAt => text()();
   IntColumn get position => integer()();
   IntColumn get updatedAt => integer()();
   IntColumn get deletedAt => integer().nullable()();

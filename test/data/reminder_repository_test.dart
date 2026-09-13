@@ -6,6 +6,7 @@ import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/prefs_migration.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
+import 'package:reminder/domain/model/reminder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/factories.dart';
@@ -109,17 +110,43 @@ void main() {
       expect(loaded[1].locationPlaceLabel, 'Sultanahmet');
     });
 
-    test('instants are stored as UTC epoch microseconds', () async {
-      final createdAt = DateTime.utc(2026, 3, 4, 5, 6, 7, 8, 9);
+    test('local wall-clock time round-trips unchanged', () async {
+      final wallClock = DateTime(2026, 9, 13, 18, 30);
       await repository.saveReminders([
-        buildReminder(id: 'a', createdAt: createdAt, remindAt: createdAt),
+        buildReminder(id: 'a', createdAt: wallClock, remindAt: wallClock),
+      ]);
+      await repository.saveBirthdays([
+        buildBirthday(
+            id: 'x', date: DateTime(1990, 5, 10), createdAt: wallClock),
       ]);
 
+      // Eski JSON ile aynı metin: saat dilimi eki yok (duvar saati).
       final row = (await db.select(db.reminders).get()).single;
-      expect(row.createdAt, micros(createdAt));
+      expect(row.remindAt, '2026-09-13T18:30:00.000');
+      expect(row.createdAt, wallClock.toIso8601String());
+
+      final loaded = (await newRepository().loadReminders()).single;
+      expect(loaded.remindAt, wallClock);
+      expect(loaded.remindAt!.isUtc, isFalse);
+      expect(loaded.remindAt!.hour, 18);
+      expect(loaded.remindAt!.minute, 30);
+      expect(loaded.createdAt, wallClock);
+      final birthday = (await newRepository().loadBirthdays()).single;
+      expect(birthday.date, DateTime(1990, 5, 10));
+      expect(birthday.createdAt, wallClock);
+    });
+
+    test('UTC and sub-millisecond values keep isUtc and precision', () async {
+      final utc = DateTime.utc(2026, 3, 4, 5, 6, 7, 8, 9);
+      await repository.saveReminders([
+        buildReminder(id: 'a', createdAt: utc, remindAt: utc),
+      ]);
+
       final loaded = (await repository.loadReminders()).single;
-      expect(loaded.createdAt.isAtSameMomentAs(createdAt), isTrue);
-      expect(loaded.remindAt!.microsecondsSinceEpoch, micros(createdAt));
+      expect(loaded.createdAt, utc);
+      expect(loaded.createdAt.isUtc, isTrue);
+      expect(loaded.remindAt, utc);
+      expect(loaded.remindAt!.microsecond, 9);
     });
 
     test('birthdays', () async {
@@ -428,6 +455,54 @@ void main() {
             ).toJson(),
           ),
         };
+
+    test('JSON times come back identical to the old fromJson', () async {
+      final raw = jsonEncode([
+        {
+          'id': 'local',
+          'title': 'Yerel',
+          'isDone': false,
+          'createdAt': '2026-01-01T12:00:00.000',
+          'remindAt': '2026-09-13T18:30:00.000',
+        },
+        {
+          'id': 'utc',
+          'title': 'UTC',
+          'isDone': false,
+          'createdAt': '2026-01-01T12:00:00.123456Z',
+          'remindAt': '2026-09-13T15:30:00.000Z',
+        },
+        {
+          'id': 'untimed',
+          'title': 'Zamansız',
+          'isDone': false,
+          'createdAt': '2026-02-02T08:15:30.250',
+          'remindAt': null,
+        },
+      ]);
+      SharedPreferences.setMockInitialValues({_keyReminders: raw});
+      final expected = [
+        for (final item in jsonDecode(raw) as List)
+          Reminder.fromJson(Map<String, dynamic>.from(item as Map)),
+      ];
+
+      final migrated = await repository.loadReminders();
+      final reloaded = await newRepository().loadReminders();
+
+      for (final loaded in [migrated, reloaded]) {
+        expect(loaded.map((r) => r.id), expected.map((r) => r.id));
+        for (var i = 0; i < expected.length; i++) {
+          final e = expected[i];
+          final a = loaded[i];
+          expect(a.remindAt, e.remindAt, reason: e.id);
+          expect(a.remindAt?.isUtc, e.remindAt?.isUtc, reason: e.id);
+          expect(a.createdAt, e.createdAt, reason: e.id);
+          expect(a.createdAt.isUtc, e.createdAt.isUtc, reason: e.id);
+          expect(a.toJson(), e.toJson(), reason: e.id);
+        }
+      }
+      expect(migrated.first.remindAt, DateTime(2026, 9, 13, 18, 30));
+    });
 
     test('valid data is imported and legacy keys are kept', () async {
       final legacy = legacyValues();

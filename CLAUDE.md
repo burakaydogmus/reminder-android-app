@@ -183,10 +183,13 @@ unchanged; the cubit, callbacks and UI don't know about the database.
 - **Schema v1** (`lib/data/db/app_database.dart`, exported to
   `drift_schemas/drift_schema_v1.json`): `reminders` and `birthdays` (every model field
   as a column + `position`, `updated_at`, `deleted_at`), `settings` (single row,
-  `id = 1`), `app_meta` (key/value, e.g. the migration marker). Instants (`created_at`,
-  `remind_at`, `updated_at`, `deleted_at`) are **UTC epoch microseconds** (INTEGER);
-  `birthdays.date` is a calendar date kept as `toIso8601String()` text (no time zone,
-  so a time zone change never shifts the birthday); offsets are JSON text (`[0,1440]`).
+  `id = 1`), `app_meta` (key/value, e.g. the migration marker). **Model times**
+  (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
+  `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
+  ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
+  fields and `isUtc` as the old `fromJson`. Don't convert them to UTC/epoch — that
+  changes behaviour. Only repository bookkeeping (`updated_at`, `deleted_at`) is UTC
+  epoch microseconds (INTEGER). Offsets are JSON text (`[0,1440]`).
 - **Sync-ready columns** are managed only in the repository, never in domain models:
   `saveX(list)` runs in one transaction, upserts rows whose content or position changed
   (`updated_at` = now; unchanged rows are not touched), and soft-deletes rows missing

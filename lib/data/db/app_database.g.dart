@@ -35,15 +35,15 @@ class $RemindersTable extends Reminders
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
-  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _remindAtMeta =
       const VerificationMeta('remindAt');
   @override
-  late final GeneratedColumn<int> remindAt = GeneratedColumn<int>(
+  late final GeneratedColumn<String> remindAt = GeneratedColumn<String>(
       'remind_at', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _categoryIdMeta =
       const VerificationMeta('categoryId');
   @override
@@ -249,9 +249,9 @@ class $RemindersTable extends Reminders
       isDone: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_done'])!,
       createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}created_at'])!,
       remindAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}remind_at']),
+          .read(DriftSqlType.string, data['${effectivePrefix}remind_at']),
       categoryId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
       customCategoryLabel: attachedDatabase.typeMapping.read(
@@ -288,8 +288,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
   final String title;
   final String? note;
   final bool isDone;
-  final int createdAt;
-  final int? remindAt;
+  final String createdAt;
+  final String? remindAt;
   final String categoryId;
   final String? customCategoryLabel;
   final bool locationTriggerEnabled;
@@ -326,9 +326,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       map['note'] = Variable<String>(note);
     }
     map['is_done'] = Variable<bool>(isDone);
-    map['created_at'] = Variable<int>(createdAt);
+    map['created_at'] = Variable<String>(createdAt);
     if (!nullToAbsent || remindAt != null) {
-      map['remind_at'] = Variable<int>(remindAt);
+      map['remind_at'] = Variable<String>(remindAt);
     }
     map['category_id'] = Variable<String>(categoryId);
     if (!nullToAbsent || customCategoryLabel != null) {
@@ -394,8 +394,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       title: serializer.fromJson<String>(json['title']),
       note: serializer.fromJson<String?>(json['note']),
       isDone: serializer.fromJson<bool>(json['isDone']),
-      createdAt: serializer.fromJson<int>(json['createdAt']),
-      remindAt: serializer.fromJson<int?>(json['remindAt']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      remindAt: serializer.fromJson<String?>(json['remindAt']),
       categoryId: serializer.fromJson<String>(json['categoryId']),
       customCategoryLabel:
           serializer.fromJson<String?>(json['customCategoryLabel']),
@@ -421,8 +421,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       'title': serializer.toJson<String>(title),
       'note': serializer.toJson<String?>(note),
       'isDone': serializer.toJson<bool>(isDone),
-      'createdAt': serializer.toJson<int>(createdAt),
-      'remindAt': serializer.toJson<int?>(remindAt),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'remindAt': serializer.toJson<String?>(remindAt),
       'categoryId': serializer.toJson<String>(categoryId),
       'customCategoryLabel': serializer.toJson<String?>(customCategoryLabel),
       'locationTriggerEnabled': serializer.toJson<bool>(locationTriggerEnabled),
@@ -441,8 +441,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           String? title,
           Value<String?> note = const Value.absent(),
           bool? isDone,
-          int? createdAt,
-          Value<int?> remindAt = const Value.absent(),
+          String? createdAt,
+          Value<String?> remindAt = const Value.absent(),
           String? categoryId,
           Value<String?> customCategoryLabel = const Value.absent(),
           bool? locationTriggerEnabled,
@@ -582,8 +582,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
   final Value<String> title;
   final Value<String?> note;
   final Value<bool> isDone;
-  final Value<int> createdAt;
-  final Value<int?> remindAt;
+  final Value<String> createdAt;
+  final Value<String?> remindAt;
   final Value<String> categoryId;
   final Value<String?> customCategoryLabel;
   final Value<bool> locationTriggerEnabled;
@@ -619,7 +619,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     required String title,
     this.note = const Value.absent(),
     required bool isDone,
-    required int createdAt,
+    required String createdAt,
     this.remindAt = const Value.absent(),
     required String categoryId,
     this.customCategoryLabel = const Value.absent(),
@@ -646,8 +646,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     Expression<String>? title,
     Expression<String>? note,
     Expression<bool>? isDone,
-    Expression<int>? createdAt,
-    Expression<int>? remindAt,
+    Expression<String>? createdAt,
+    Expression<String>? remindAt,
     Expression<String>? categoryId,
     Expression<String>? customCategoryLabel,
     Expression<bool>? locationTriggerEnabled,
@@ -690,8 +690,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       Value<String>? title,
       Value<String?>? note,
       Value<bool>? isDone,
-      Value<int>? createdAt,
-      Value<int?>? remindAt,
+      Value<String>? createdAt,
+      Value<String?>? remindAt,
       Value<String>? categoryId,
       Value<String?>? customCategoryLabel,
       Value<bool>? locationTriggerEnabled,
@@ -741,10 +741,10 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       map['is_done'] = Variable<bool>(isDone.value);
     }
     if (createdAt.present) {
-      map['created_at'] = Variable<int>(createdAt.value);
+      map['created_at'] = Variable<String>(createdAt.value);
     }
     if (remindAt.present) {
-      map['remind_at'] = Variable<int>(remindAt.value);
+      map['remind_at'] = Variable<String>(remindAt.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
@@ -857,9 +857,9 @@ class $BirthdaysTable extends Birthdays
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
-  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _positionMeta =
       const VerificationMeta('position');
   @override
@@ -994,7 +994,7 @@ class $BirthdaysTable extends Birthdays
           DriftSqlType.string,
           data['${effectivePrefix}advance_offsets_minutes'])!,
       createdAt: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}created_at'])!,
       position: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1024,7 +1024,7 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
 
   /// Önbildirim dakikaları, JSON dizi metni (örn. `[0,1440]`).
   final String advanceOffsetsMinutes;
-  final int createdAt;
+  final String createdAt;
   final int position;
   final int updatedAt;
   final int? deletedAt;
@@ -1052,7 +1052,7 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
     map['notify_hour'] = Variable<int>(notifyHour);
     map['notify_minute'] = Variable<int>(notifyMinute);
     map['advance_offsets_minutes'] = Variable<String>(advanceOffsetsMinutes);
-    map['created_at'] = Variable<int>(createdAt);
+    map['created_at'] = Variable<String>(createdAt);
     map['position'] = Variable<int>(position);
     map['updated_at'] = Variable<int>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -1091,7 +1091,7 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       notifyMinute: serializer.fromJson<int>(json['notifyMinute']),
       advanceOffsetsMinutes:
           serializer.fromJson<String>(json['advanceOffsetsMinutes']),
-      createdAt: serializer.fromJson<int>(json['createdAt']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
       position: serializer.fromJson<int>(json['position']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
@@ -1108,7 +1108,7 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       'notifyHour': serializer.toJson<int>(notifyHour),
       'notifyMinute': serializer.toJson<int>(notifyMinute),
       'advanceOffsetsMinutes': serializer.toJson<String>(advanceOffsetsMinutes),
-      'createdAt': serializer.toJson<int>(createdAt),
+      'createdAt': serializer.toJson<String>(createdAt),
       'position': serializer.toJson<int>(position),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
@@ -1123,7 +1123,7 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
           int? notifyHour,
           int? notifyMinute,
           String? advanceOffsetsMinutes,
-          int? createdAt,
+          String? createdAt,
           int? position,
           int? updatedAt,
           Value<int?> deletedAt = const Value.absent()}) =>
@@ -1218,7 +1218,7 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
   final Value<int> notifyHour;
   final Value<int> notifyMinute;
   final Value<String> advanceOffsetsMinutes;
-  final Value<int> createdAt;
+  final Value<String> createdAt;
   final Value<int> position;
   final Value<int> updatedAt;
   final Value<int?> deletedAt;
@@ -1245,7 +1245,7 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     required int notifyHour,
     required int notifyMinute,
     required String advanceOffsetsMinutes,
-    required int createdAt,
+    required String createdAt,
     required int position,
     required int updatedAt,
     this.deletedAt = const Value.absent(),
@@ -1267,7 +1267,7 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     Expression<int>? notifyHour,
     Expression<int>? notifyMinute,
     Expression<String>? advanceOffsetsMinutes,
-    Expression<int>? createdAt,
+    Expression<String>? createdAt,
     Expression<int>? position,
     Expression<int>? updatedAt,
     Expression<int>? deletedAt,
@@ -1298,7 +1298,7 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
       Value<int>? notifyHour,
       Value<int>? notifyMinute,
       Value<String>? advanceOffsetsMinutes,
-      Value<int>? createdAt,
+      Value<String>? createdAt,
       Value<int>? position,
       Value<int>? updatedAt,
       Value<int?>? deletedAt,
@@ -1346,7 +1346,7 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
           Variable<String>(advanceOffsetsMinutes.value);
     }
     if (createdAt.present) {
-      map['created_at'] = Variable<int>(createdAt.value);
+      map['created_at'] = Variable<String>(createdAt.value);
     }
     if (position.present) {
       map['position'] = Variable<int>(position.value);
@@ -1860,8 +1860,8 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   required String title,
   Value<String?> note,
   required bool isDone,
-  required int createdAt,
-  Value<int?> remindAt,
+  required String createdAt,
+  Value<String?> remindAt,
   required String categoryId,
   Value<String?> customCategoryLabel,
   required bool locationTriggerEnabled,
@@ -1879,8 +1879,8 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<String> title,
   Value<String?> note,
   Value<bool> isDone,
-  Value<int> createdAt,
-  Value<int?> remindAt,
+  Value<String> createdAt,
+  Value<String?> remindAt,
   Value<String> categoryId,
   Value<String?> customCategoryLabel,
   Value<bool> locationTriggerEnabled,
@@ -1915,10 +1915,10 @@ class $$RemindersTableFilterComposer
   ColumnFilters<bool> get isDone => $composableBuilder(
       column: $table.isDone, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get createdAt => $composableBuilder(
+  ColumnFilters<String> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get remindAt => $composableBuilder(
+  ColumnFilters<String> get remindAt => $composableBuilder(
       column: $table.remindAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get categoryId => $composableBuilder(
@@ -1979,10 +1979,10 @@ class $$RemindersTableOrderingComposer
   ColumnOrderings<bool> get isDone => $composableBuilder(
       column: $table.isDone, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get createdAt => $composableBuilder(
+  ColumnOrderings<String> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get remindAt => $composableBuilder(
+  ColumnOrderings<String> get remindAt => $composableBuilder(
       column: $table.remindAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get categoryId => $composableBuilder(
@@ -2043,10 +2043,10 @@ class $$RemindersTableAnnotationComposer
   GeneratedColumn<bool> get isDone =>
       $composableBuilder(column: $table.isDone, builder: (column) => column);
 
-  GeneratedColumn<int> get createdAt =>
+  GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
-  GeneratedColumn<int> get remindAt =>
+  GeneratedColumn<String> get remindAt =>
       $composableBuilder(column: $table.remindAt, builder: (column) => column);
 
   GeneratedColumn<String> get categoryId => $composableBuilder(
@@ -2107,8 +2107,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             Value<String> title = const Value.absent(),
             Value<String?> note = const Value.absent(),
             Value<bool> isDone = const Value.absent(),
-            Value<int> createdAt = const Value.absent(),
-            Value<int?> remindAt = const Value.absent(),
+            Value<String> createdAt = const Value.absent(),
+            Value<String?> remindAt = const Value.absent(),
             Value<String> categoryId = const Value.absent(),
             Value<String?> customCategoryLabel = const Value.absent(),
             Value<bool> locationTriggerEnabled = const Value.absent(),
@@ -2145,8 +2145,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             required String title,
             Value<String?> note = const Value.absent(),
             required bool isDone,
-            required int createdAt,
-            Value<int?> remindAt = const Value.absent(),
+            required String createdAt,
+            Value<String?> remindAt = const Value.absent(),
             required String categoryId,
             Value<String?> customCategoryLabel = const Value.absent(),
             required bool locationTriggerEnabled,
@@ -2209,7 +2209,7 @@ typedef $$BirthdaysTableCreateCompanionBuilder = BirthdaysCompanion Function({
   required int notifyHour,
   required int notifyMinute,
   required String advanceOffsetsMinutes,
-  required int createdAt,
+  required String createdAt,
   required int position,
   required int updatedAt,
   Value<int?> deletedAt,
@@ -2223,7 +2223,7 @@ typedef $$BirthdaysTableUpdateCompanionBuilder = BirthdaysCompanion Function({
   Value<int> notifyHour,
   Value<int> notifyMinute,
   Value<String> advanceOffsetsMinutes,
-  Value<int> createdAt,
+  Value<String> createdAt,
   Value<int> position,
   Value<int> updatedAt,
   Value<int?> deletedAt,
@@ -2261,7 +2261,7 @@ class $$BirthdaysTableFilterComposer
       column: $table.advanceOffsetsMinutes,
       builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get createdAt => $composableBuilder(
+  ColumnFilters<String> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get position => $composableBuilder(
@@ -2306,7 +2306,7 @@ class $$BirthdaysTableOrderingComposer
       column: $table.advanceOffsetsMinutes,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get createdAt => $composableBuilder(
+  ColumnOrderings<String> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get position => $composableBuilder(
@@ -2349,7 +2349,7 @@ class $$BirthdaysTableAnnotationComposer
   GeneratedColumn<String> get advanceOffsetsMinutes => $composableBuilder(
       column: $table.advanceOffsetsMinutes, builder: (column) => column);
 
-  GeneratedColumn<int> get createdAt =>
+  GeneratedColumn<String> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<int> get position =>
@@ -2392,7 +2392,7 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             Value<int> notifyHour = const Value.absent(),
             Value<int> notifyMinute = const Value.absent(),
             Value<String> advanceOffsetsMinutes = const Value.absent(),
-            Value<int> createdAt = const Value.absent(),
+            Value<String> createdAt = const Value.absent(),
             Value<int> position = const Value.absent(),
             Value<int> updatedAt = const Value.absent(),
             Value<int?> deletedAt = const Value.absent(),
@@ -2420,7 +2420,7 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             required int notifyHour,
             required int notifyMinute,
             required String advanceOffsetsMinutes,
-            required int createdAt,
+            required String createdAt,
             required int position,
             required int updatedAt,
             Value<int?> deletedAt = const Value.absent(),

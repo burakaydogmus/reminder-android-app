@@ -62,7 +62,7 @@
           {
             "name": "created_at",
             "getter_name": "createdAt",
-            "moor_type": "int",
+            "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
             "default_dart": null,
@@ -72,7 +72,7 @@
           {
             "name": "remind_at",
             "getter_name": "remindAt",
-            "moor_type": "int",
+            "moor_type": "string",
             "nullable": true,
             "customConstraints": null,
             "default_dart": null,
@@ -273,7 +273,7 @@
           {
             "name": "created_at",
             "getter_name": "createdAt",
-            "moor_type": "int",
+            "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
             "default_dart": null,
@@ -424,7 +424,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"reminders\" (\"id\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"note\" TEXT NULL, \"is_done\" INTEGER NOT NULL CHECK (\"is_done\" IN (0, 1)), \"created_at\" INTEGER NOT NULL, \"remind_at\" INTEGER NULL, \"category_id\" TEXT NOT NULL, \"custom_category_label\" TEXT NULL, \"location_trigger_enabled\" INTEGER NOT NULL CHECK (\"location_trigger_enabled\" IN (0, 1)), \"location_latitude\" REAL NULL, \"location_longitude\" REAL NULL, \"location_radius_meters\" REAL NOT NULL, \"location_place_label\" TEXT NULL, \"position\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, \"deleted_at\" INTEGER NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"reminders\" (\"id\" TEXT NOT NULL, \"title\" TEXT NOT NULL, \"note\" TEXT NULL, \"is_done\" INTEGER NOT NULL CHECK (\"is_done\" IN (0, 1)), \"created_at\" TEXT NOT NULL, \"remind_at\" TEXT NULL, \"category_id\" TEXT NOT NULL, \"custom_category_label\" TEXT NULL, \"location_trigger_enabled\" INTEGER NOT NULL CHECK (\"location_trigger_enabled\" IN (0, 1)), \"location_latitude\" REAL NULL, \"location_longitude\" REAL NULL, \"location_radius_meters\" REAL NOT NULL, \"location_place_label\" TEXT NULL, \"position\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, \"deleted_at\" INTEGER NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -433,7 +433,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"birthdays\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"note\" TEXT NULL, \"date\" TEXT NOT NULL, \"notify_hour\" INTEGER NOT NULL, \"notify_minute\" INTEGER NOT NULL, \"advance_offsets_minutes\" TEXT NOT NULL, \"created_at\" INTEGER NOT NULL, \"position\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, \"deleted_at\" INTEGER NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"birthdays\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"note\" TEXT NULL, \"date\" TEXT NOT NULL, \"notify_hour\" INTEGER NOT NULL, \"notify_minute\" INTEGER NOT NULL, \"advance_offsets_minutes\" TEXT NOT NULL, \"created_at\" TEXT NOT NULL, \"position\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, \"deleted_at\" INTEGER NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },
