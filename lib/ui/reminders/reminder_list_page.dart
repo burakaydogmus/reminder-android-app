@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -33,8 +33,10 @@ class _ReminderListPageState extends State<ReminderListPage> {
     return BlocBuilder<ReminderCubit, ReminderState>(
       builder: (context, state) {
         final all = state.reminders;
-        final active = state.active.where(_matchesFilter).toList(growable: false);
-        final done = state.completed.where(_matchesFilter).toList(growable: false);
+        final active =
+            state.active.where(_matchesFilter).toList(growable: false);
+        final done =
+            state.completed.where(_matchesFilter).toList(growable: false);
         final birthdays = state.upcomingBirthdays;
 
         return SafeArea(
@@ -64,8 +66,7 @@ class _ReminderListPageState extends State<ReminderListPage> {
                     _CategoryFilterStrip(
                       reminders: all,
                       selected: _categoryFilter,
-                      onChanged: (id) =>
-                          setState(() => _categoryFilter = id),
+                      onChanged: (id) => setState(() => _categoryFilter = id),
                     ),
                     if (birthdays.isNotEmpty) ...[
                       const SizedBox(height: 14),
@@ -519,10 +520,13 @@ class _ReminderTile extends StatelessWidget {
     final mutedTimeColor = onSurface.withValues(alpha: 0.38);
 
     final remindAtLocal = reminder.remindAt?.toLocal();
-    final isToday = remindAtLocal != null && _isSameDay(remindAtLocal, DateTime.now());
+    final isToday =
+        remindAtLocal != null && _isSameDay(remindAtLocal, DateTime.now());
     final timeLine = remindAtLocal == null
         ? null
-        : (isToday ? timeFmt.format(remindAtLocal) : dateFmt.format(remindAtLocal));
+        : (isToday
+            ? timeFmt.format(remindAtLocal)
+            : dateFmt.format(remindAtLocal));
 
     final noteText = reminder.note?.trim();
     final catLabel = reminder.categoryDisplayLabel;
@@ -534,9 +538,7 @@ class _ReminderTile extends StatelessWidget {
     if (hasLocation) {
       final placeLabel = reminder.locationPlaceLabel?.trim();
       subtitleParts.add(
-        placeLabel != null && placeLabel.isNotEmpty
-            ? placeLabel
-            : 'Geofence',
+        placeLabel != null && placeLabel.isNotEmpty ? placeLabel : 'Geofence',
       );
     }
 
@@ -602,9 +604,8 @@ class _ReminderTile extends StatelessWidget {
                           decoration: reminder.isDone
                               ? TextDecoration.lineThrough
                               : null,
-                          color: muted || reminder.isDone
-                              ? mutedTitleColor
-                              : null,
+                          color:
+                              muted || reminder.isDone ? mutedTitleColor : null,
                         ),
                       ),
                       const SizedBox(height: 2),

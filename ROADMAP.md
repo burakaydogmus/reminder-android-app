@@ -31,7 +31,7 @@ Diğer tüm fazların temeli.
 
 - [x] **F0.1 CI ve repo kuralları** · `chore/ci-setup`
   GitHub Actions: `flutter analyze`, `flutter test`, Android debug APK, iOS `--no-codesign` build (macOS runner). PR şablonu, `CLAUDE.md` (mimari + kurallar), `flutter_lints` güncellemesi.
-- [ ] **F0.2 Test altyapısı** · `test/baseline` · *bağımlı: F0.1*
+- [x] **F0.2 Test altyapısı** · `test/baseline` · *bağımlı: F0.1*
   Model (`Reminder`, `Birthday` JSON, `nextOccurrence`, `daysUntilNext`) ve cubit unit testleri; `bloc_test`, `mocktail`. Mevcut davranışı kilitler.
 - [ ] **F0.3 Mimari temizlik** · `refactor/di-and-models` · *bağımlı: F0.2*
   `Reminder.copyWith`; tekrarlanan elle kopyalamaların kaldırılması; servisler için arayüz + constructor injection (`GeofenceService.instance` doğrudan çağrılarının kaldırılması); ortak sıralama fonksiyonu.

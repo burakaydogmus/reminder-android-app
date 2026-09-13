@@ -1,4 +1,4 @@
-﻿import 'dart:io' show Platform;
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -206,8 +206,7 @@ class SettingsPage extends StatelessWidget {
     final confirmed = await showConfirmationDialog(
       context,
       title: 'Tüm verileri sıfırla',
-      content:
-          'Tüm hatırlatmalar ve ayarlar silinir. Bu işlem geri alınamaz.',
+      content: 'Tüm hatırlatmalar ve ayarlar silinir. Bu işlem geri alınamaz.',
     );
     if (confirmed && context.mounted) {
       await cubit.clearAllData();
@@ -300,8 +299,9 @@ class _SegmentButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fg =
-        selected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.75);
+    final fg = selected
+        ? Colors.white
+        : theme.colorScheme.onSurface.withValues(alpha: 0.75);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,

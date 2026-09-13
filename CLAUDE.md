@@ -27,8 +27,8 @@ dart run flutter_launcher_icons # regenerate app icons
 Toolchain: Flutter 3.29.2 stable / Dart 3.7 (pinned in CI).
 `GOOGLE_MAPS_KEY` is optional; the map (OpenStreetMap via `flutter_map`) works without it.
 
-Note: the codebase is not fully `dart format`-clean yet, so CI has no format gate.
-Format only the files you touch; do not reformat unrelated files.
+Formatting is enforced in CI: run `dart format lib test` before committing
+(`dart format --output=none --set-exit-if-changed lib test` is the CI check).
 
 ## Architecture (`lib/`)
 
@@ -54,7 +54,25 @@ Format only the files you touch; do not reformat unrelated files.
   `settings/`, `theme/`, `widgets/`.
 - `util/` — dialogs, location permission helpers.
 
-Tests live in `test/`, mirroring `lib/` (e.g. `test/domain/...`).
+## Tests (`test/`)
+
+Tests mirror `lib/`:
+
+- `test/domain/` — pure model tests (JSON, date logic, ids, labels).
+- `test/data/` — `ReminderRepository` against `SharedPreferences.setMockInitialValues`.
+- `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
+- `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
+  use them instead of constructing models by hand.
+
+Conventions:
+
+- **Known bugs** are documented as tests asserting the *correct* behaviour, marked
+  `skip: 'Known bug — fixed in F1.x'` with the roadmap item that fixes them. The PR
+  fixing the bug removes the `skip` (and updates any `current behaviour: ...` test that
+  locks in the buggy behaviour).
+- `ReminderCubit` calls `GeofenceService.instance` directly, which throws
+  `UnsupportedError` on the test host; cubit tests therefore expect that error and
+  assert behaviour before it. Simplify them once services are injected (F0.3).
 
 ## Workflow rules (from ROADMAP.md)
 
