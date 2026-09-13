@@ -19,7 +19,7 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 - **Branch adı:** `<tür>/<kısa-ad>` — `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`
 - **Commit:** [Conventional Commits](https://www.conventionalcommits.org/) — `feat(scope): ...`, `fix(scope): ...`
 - **PR:** Açıklamada madde ID'si (örn. `F1.2`), yapılanlar, test adımları. CI (analyze + test + build) geçmeden merge yok.
-- **Merge:** Squash merge; branch merge sonrası silinir.
+- **Merge:** CI geçtikten sonra repo sahibi merge eder; branch merge sonrası silinir.
 - **Çakışma riski:** `lib/bloc/reminder_cubit.dart`, `lib/services/notification_service.dart` ve veri modeli birçok maddeye dokunur — bu dosyalara dokunan maddeler **sıralı**, diğerleri paralel yürütülür.
 - **iOS doğrulama:** Geliştirme ortamı Windows olduğundan iOS derlemesi CI'daki macOS runner'da yapılır; cihaz testi ayrıca planlanır.
 
@@ -29,7 +29,7 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 
 Diğer tüm fazların temeli.
 
-- [ ] **F0.1 CI ve repo kuralları** · `chore/ci-setup`
+- [x] **F0.1 CI ve repo kuralları** · `chore/ci-setup`
   GitHub Actions: `flutter analyze`, `flutter test`, Android debug APK, iOS `--no-codesign` build (macOS runner). PR şablonu, `CLAUDE.md` (mimari + kurallar), `flutter_lints` güncellemesi.
 - [ ] **F0.2 Test altyapısı** · `test/baseline` · *bağımlı: F0.1*
   Model (`Reminder`, `Birthday` JSON, `nextOccurrence`, `daysUntilNext`) ve cubit unit testleri; `bloc_test`, `mocktail`. Mevcut davranışı kilitler.
