@@ -22,7 +22,8 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 
 - **Branch adı:** `<tür>/<kısa-ad>` — `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`
 - **Commit:** [Conventional Commits](https://www.conventionalcommits.org/) — `feat(scope): ...`, `fix(scope): ...`
-- **PR:** Açıklamada madde ID'si (örn. `F1.2`), yapılanlar, test adımları. CI (analyze + test + build) geçmeden merge yok.
+- **PR:** Açıklamada madde ID'si (örn. `F1.2`), yapılanlar, test adımları. CI geçmeden merge yok.
+- **CI maliyeti (private repo):** `CI` (format + analyze + test) her kod PR'ında çalışır. `Android build` (release/R8) yalnızca `android/**` veya pubspec değişince, `iOS build` (macOS, 10× dakika) yalnızca `ios/**` veya pubspec değişince çalışır; ikisi de Actions sekmesinden elle başlatılabilir. Merge sonrası `master`'da CI çalışmaz. PR başına gereksiz push'tan kaçının (her push CI'ı yeniden başlatır).
 - **Merge:** CI geçtikten sonra repo sahibi merge eder; branch merge sonrası silinir.
 - **Çakışma riski:** `lib/bloc/reminder_cubit.dart`, `lib/services/notification_service.dart` ve veri modeli birçok maddeye dokunur — bu dosyalara dokunan maddeler **sıralı**, diğerleri paralel yürütülür.
 - **iOS doğrulama:** Geliştirme ortamı Windows olduğundan iOS derlemesi CI'daki macOS runner'da yapılır; cihaz testi ayrıca planlanır.
