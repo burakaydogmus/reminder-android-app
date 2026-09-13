@@ -204,12 +204,10 @@ class NotificationService implements NotificationSync {
         );
       }
 
-      final body = _birthdayNotificationBody(b, offset);
-
       await _plugin.zonedSchedule(
         id: b.notificationIdFor(offset),
-        title: _birthdayNotificationTitle(b, offset),
-        body: body,
+        title: birthdayNotificationTitle(b, offset),
+        body: birthdayNotificationBody(offset),
         scheduledDate: scheduled,
         notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -219,23 +217,29 @@ class NotificationService implements NotificationSync {
     }
   }
 
-  String _birthdayNotificationTitle(Birthday b, int offsetMinutes) {
+  /// Doğum günü bildirim başlığı.
+  ///
+  /// Bildirim `DateTimeComponents.dateAndTime` ile her yıl **aynı metinle**
+  /// tekrarlar (uygulama açılmasa da doğum günleri kaçmasın diye). Bu yüzden
+  /// başlık ve gövde yaşa/yıla bağlı bilgi içermez (F1.8); yaş uygulama içinde
+  /// gösterilir.
+  @visibleForTesting
+  static String birthdayNotificationTitle(Birthday b, int offsetMinutes) {
     if (offsetMinutes == 0) return '🎂 ${b.name}';
     return '🎂 Yaklaşıyor: ${b.name}';
   }
 
-  String _birthdayNotificationBody(Birthday b, int offsetMinutes) {
-    if (offsetMinutes == 0) {
-      final age = b.upcomingAge;
-      if (age != null) return '$age. yaşı kutlu olsun!';
-      return 'Bugün doğum günü.';
-    }
-    final hours = offsetMinutes ~/ 60;
-    if (hours < 24) {
-      return '$hours saat sonra ${b.name} doğum günü.';
+  /// Doğum günü bildirim gövdesi; yalnızca offset'e bağlıdır (yaş içermez).
+  @visibleForTesting
+  static String birthdayNotificationBody(int offsetMinutes) {
+    if (offsetMinutes <= 0) return 'Bugün doğum günü.';
+    if (offsetMinutes < 60) return '$offsetMinutes dakika sonra doğum günü.';
+    if (offsetMinutes < 1440) {
+      return '${offsetMinutes ~/ 60} saat sonra doğum günü.';
     }
     final days = offsetMinutes ~/ 1440;
-    return '$days gün sonra ${b.name} doğum günü.';
+    if (days == 1) return 'Yarın doğum günü.';
+    return '$days gün sonra doğum günü.';
   }
 
   Future<void> _scheduleOne(Reminder r, tz.TZDateTime scheduled) async {
