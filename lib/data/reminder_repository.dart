@@ -20,6 +20,7 @@ import 'package:reminder/domain/model/reminder.dart';
 ///   yedek aynı içerikteyse tekrar yazılmaz. Sorunsuz yüklemeler yedeğe
 ///   dokunmaz; yedek, [clearAll] çağrılana kadar kalır (F2.1/F2.2 kurtarma için
 ///   kullanabilir).
+/// - Ayarlarda bozuk alanlar tek tek varsayılana düşer; diğer alanlar korunur.
 class ReminderRepository {
   static const _keyReminders = 'reminders_v1';
   static const _keySettings = 'app_settings_v1';
@@ -48,14 +49,43 @@ class ReminderRepository {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_keySettings);
     if (raw == null || raw.isEmpty) return const AppSettings();
+
+    Object? decoded;
     try {
-      return AppSettings.fromJson(
-        Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      );
+      decoded = jsonDecode(raw);
     } catch (_) {
       await _backupRaw(prefs, _keySettings, raw);
       return const AppSettings();
     }
+    if (decoded is! Map) {
+      await _backupRaw(prefs, _keySettings, raw);
+      return const AppSettings();
+    }
+
+    const defaults = AppSettings();
+    var hadProblem = false;
+
+    var notificationsEnabled = defaults.notificationsEnabled;
+    final rawNotifications = decoded['notificationsEnabled'];
+    if (rawNotifications is bool) {
+      notificationsEnabled = rawNotifications;
+    } else if (rawNotifications != null) {
+      hadProblem = true;
+    }
+
+    var themeMode = defaults.themeMode;
+    final rawTheme = decoded['themeMode'];
+    if (rawTheme is String && AppThemeModeIds.values.contains(rawTheme)) {
+      themeMode = rawTheme;
+    } else if (rawTheme != null) {
+      hadProblem = true;
+    }
+
+    if (hadProblem) await _backupRaw(prefs, _keySettings, raw);
+    return AppSettings(
+      notificationsEnabled: notificationsEnabled,
+      themeMode: themeMode,
+    );
   }
 
   Future<void> saveSettings(AppSettings settings) async {

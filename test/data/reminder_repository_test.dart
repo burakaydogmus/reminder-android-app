@@ -174,6 +174,20 @@ void main() {
       expect(await stored(_backupSettings), '[1, 2]');
     });
 
+    test('one bad field falls back alone, other fields are kept', () async {
+      final raw = jsonEncode({
+        'notificationsEnabled': 'yes', // yanlış tip
+        'themeMode': AppThemeModeIds.dark,
+      });
+      SharedPreferences.setMockInitialValues({_keySettings: raw});
+
+      final settings = await repository.loadSettings();
+
+      expect(settings.notificationsEnabled, isTrue);
+      expect(settings.themeMode, AppThemeModeIds.dark);
+      expect(await stored(_backupSettings), raw);
+    });
+
     test('missing fields use defaults without a backup', () async {
       SharedPreferences.setMockInitialValues({
         _keySettings: jsonEncode({'notificationsEnabled': false}),
