@@ -81,6 +81,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   app is closed). Runs in a separate isolate, so the thin entry point builds the real
   services itself and delegates to `handleReminderHomeWidgetToggle` (injected
   repository + `ScheduleSync`, tested in `test/home/`).
+  After a saved change it calls `notifyAppOfWidgetChange()`
+  (`home/widget_change_signal.dart`, `IsolateNameServer` port) so a running app
+  reloads. See **App state reload** below.
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
@@ -159,6 +162,26 @@ layer cannot drop birthdays. `cancelAll` is only for `clearAllData`. Background
 isolates must load birthdays and settings from the repository before syncing.
 F1.7 may make `syncSchedules` diff-based and serialise concurrent `syncAll` calls
 inside `ScheduleSync` without changing callers.
+
+### App state reload (F1.3)
+
+The home widget writes storage from a background isolate, so the in-memory
+`ReminderCubit` state can be stale and the next in-app save would revert the change.
+`AppStateReloader` (`ui/home/app_lifecycle_reloader.dart`, wraps the app in `app.dart`)
+refreshes the main isolate's `SharedPreferences` cache (`reload()` — the repository
+reads the per-isolate cache) and calls `ReminderCubit.load()`:
+
+- on `resumed` after the app was `hidden` (not on plain `inactive` → `resumed`, e.g.
+  notification shade or permission dialogs), ignored within 1 s of the last load; the
+  startup load counts, so launch does not load twice;
+- when the widget callback's port signal arrives (process alive: foreground,
+  split screen or background); signals are not throttled, concurrent ones coalesce.
+
+Reload only replaces cubit state; editor sheets keep their own controllers. Limits: a
+reload racing an in-flight in-app save can briefly show the pre-save state (storage
+stays correct); background isolates in another process would not reach the port.
+Background writers other than the widget should also call `notifyAppOfWidgetChange`
+or an equivalent signal.
 
 ### Notification ids
 
