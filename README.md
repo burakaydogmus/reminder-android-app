@@ -14,7 +14,7 @@ Flutter ile yazılmış genel amaçlı hatırlatıcı uygulaması: alınacaklar,
 - **Yakındaki marketler** (isteğe bağlı): Market kategorisinde Google Places (Nearby) ile arama — yalnızca HTTP; API anahtarı aşağıdaki gibi `dart-define` ile verilir, anahtar yoksa harita ve manuel pin yine çalışır.
 - **Ana ekran aracı (Android):** `home_widget` ile widget senkronu ve etkileşim.
 - **Veri:** `shared_preferences` (JSON), `uuid` ile kimlikler.
-- **Arayüz:** `animations`, **Comfortaa** fontu, Material 3 teması.
+- **Arayüz:** Material 3 + "Kor" teması (`lib/ui/theme/`), **Google Sans Flex** değişken fontu, `animations`.
 
 ### Google Places (sadece “yakındaki market” araması)
 
