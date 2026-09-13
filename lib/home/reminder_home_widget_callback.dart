@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
+import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
@@ -85,4 +86,5 @@ Future<void> handleReminderHomeWidgetToggle(
     birthdays: birthdays,
     settings: settings,
   );
+  notifyAppOfWidgetChange(); // F1.3: açık uygulama depodan yeniden yüklesin.
 }
