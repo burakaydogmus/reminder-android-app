@@ -276,6 +276,22 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   reference-counted database from `AppDatabaseHost` lazily; background entry points call
   `repository.close()` in `finally`; the app's repository stays open. Stream queries
   don't cross engines (the app doesn't use them; the cubit reloads).
+- **Backup (F2.2)** — `lib/data/backup/`: `BackupFormat` is a versioned JSON document
+  (`format: "hatirlatici-backup"`, `version: 1`, `exportedAt` UTC, `app.version`,
+  `reminders`/`birthdays` as the models' `toJson`, `settings`). New model fields travel
+  automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
+  changes an older reader would misread — a newer file is rejected with "update the
+  app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
+  id → skipped and counted); a non-JSON file, wrong `format`, bad/newer `version` or a
+  non-list `reminders`/`birthdays` throws `BackupFormatException` and **nothing is
+  applied**. `BackupService` exports from and applies to the repository's public API:
+  **merge** = upsert by id (backup wins, local-only items kept, settings unchanged),
+  **replace** = the backup's lists (others soft-deleted) plus its settings when
+  readable; the caller then runs `ReminderCubit.load()` so schedules resync. The three
+  `saveX` calls are separate transactions (a failure mid-way can leave earlier lists
+  applied; re-importing repairs it). Plugins (`share_plus` share sheet,
+  `file_selector` picker, `package_info_plus`) sit behind `BackupIo`; widget tests pass
+  a fake via `SettingsPage(backupIo:, backupService:)`.
 - **Schema changes:** edit the tables, bump `schemaVersion`, add the step in
   `MigrationStrategy.onUpgrade`, then regenerate and export:
 
