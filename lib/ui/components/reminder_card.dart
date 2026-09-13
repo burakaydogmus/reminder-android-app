@@ -1,14 +1,13 @@
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/reminders/reminder_swipe.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -25,8 +24,10 @@ enum ReminderTimeStyle {
 /// Reminder card (§3.3.2, `components.ReminderCard`).
 ///
 /// The leading circle is its own 48 dp toggle target. Tap opens the editor,
-/// long-press opens Düzenle / Sil. Overdue is signalled by text + icon
-/// ("Gecikti"), not by colour alone.
+/// long-press opens Tamamla / Ertele / Düzenle / Sil, and the same actions
+/// are swipes ([ReminderSwipe]) and semantics custom actions (F3.5). Every
+/// action offers "Geri al". Overdue is signalled by text + icon ("Gecikti"),
+/// not by colour alone.
 class ReminderCard extends StatelessWidget {
   const ReminderCard({
     super.key,
@@ -67,7 +68,6 @@ class ReminderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final cubit = context.read<ReminderCubit>();
     final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
     final done = reminder.isDone;
     final overdue = _isOverdue;
@@ -113,89 +113,100 @@ class ReminderCard extends StatelessWidget {
             ? KorFormat.time(at)
             : KorFormat.when(at, now));
 
-    return Semantics(
-      container: true,
-      label: _semanticLabel(),
-      customSemanticsActions: {
-        CustomSemanticsAction(
-          label: done ? 'Tamamlanmadı olarak işaretle' : 'Tamamla',
-        ): () => cubit.toggleDone(reminder.id),
-        const CustomSemanticsAction(label: 'Düzenle'): () =>
-            showReminderEditorSheet(context, existing: reminder),
-        const CustomSemanticsAction(label: 'Sil'): () =>
-            confirmAndDeleteReminder(context, reminder),
-      },
-      child: DecoratedBox(
-        decoration: korCardDecoration(context, flat: done),
-        child: Material(
-          type: MaterialType.transparency,
-          child: Builder(
-            builder: (anchorContext) => InkWell(
-              borderRadius: KorRadius.cardAll,
-              onTap: () => showReminderEditorSheet(context, existing: reminder),
-              onLongPress: () => showReminderMenu(anchorContext, reminder),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 64),
-                child: Padding(
-                  padding: KorSpacing.reminderCardPadding,
-                  child: Row(
-                    children: [
-                      _CompleteToggle(
-                        done: done,
-                        color: category.fg,
-                        onColor: category.onFg,
-                        onTap: () => cubit.toggleDone(reminder.id),
-                      ),
-                      const SizedBox(width: KorSpacing.s3),
-                      Expanded(
-                        child: ExcludeSemantics(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                reminder.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: done ? scheme.onSurfaceVariant : null,
-                                  decoration:
-                                      done ? TextDecoration.lineThrough : null,
-                                ),
-                              ),
-                              const SizedBox(height: KorSpacing.s1),
-                              Text.rich(
-                                meta,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (note != null && note.isNotEmpty)
+    void toggle() => toggleReminderDoneWithUndo(context, reminder);
+    void snooze() => snoozeReminderWithUndo(context, reminder);
+    void delete() => deleteReminderWithUndo(context, reminder);
+
+    return ReminderSwipe(
+      done: done,
+      onComplete: toggle,
+      onSnooze: done ? null : snooze,
+      onDelete: delete,
+      child: Semantics(
+        container: true,
+        label: _semanticLabel(),
+        customSemanticsActions: {
+          CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
+          if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
+          const CustomSemanticsAction(label: 'Düzenle'): () =>
+              showReminderEditorSheet(context, existing: reminder),
+          const CustomSemanticsAction(label: 'Sil'): delete,
+        },
+        child: DecoratedBox(
+          decoration: korCardDecoration(context, flat: done),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Builder(
+              builder: (anchorContext) => InkWell(
+                borderRadius: KorRadius.cardAll,
+                onTap: () =>
+                    showReminderEditorSheet(context, existing: reminder),
+                onLongPress: () => showReminderMenu(anchorContext, reminder),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 64),
+                  child: Padding(
+                    padding: KorSpacing.reminderCardPadding,
+                    child: Row(
+                      children: [
+                        _CompleteToggle(
+                          done: done,
+                          color: category.fg,
+                          onColor: category.onFg,
+                          onTap: toggle,
+                        ),
+                        const SizedBox(width: KorSpacing.s3),
+                        Expanded(
+                          child: ExcludeSemantics(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                                 Text(
-                                  note,
-                                  maxLines: 1,
+                                  reminder.title,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color:
+                                        done ? scheme.onSurfaceVariant : null,
+                                    decoration: done
+                                        ? TextDecoration.lineThrough
+                                        : null,
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (timeText != null) ...[
-                        const SizedBox(width: KorSpacing.s3),
-                        ExcludeSemantics(
-                          child: Text(
-                            timeText,
-                            style: KorTimeText.of(context).copyWith(
-                              color: overdue
-                                  ? scheme.primary
-                                  : scheme.onSurfaceVariant,
+                                const SizedBox(height: KorSpacing.s1),
+                                Text.rich(
+                                  meta,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (note != null && note.isNotEmpty)
+                                  Text(
+                                    note,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
+                        if (timeText != null) ...[
+                          const SizedBox(width: KorSpacing.s3),
+                          ExcludeSemantics(
+                            child: Text(
+                              timeText,
+                              style: KorTimeText.of(context).copyWith(
+                                color: overdue
+                                    ? scheme.primary
+                                    : scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -237,7 +248,7 @@ class _CompleteToggle extends StatelessWidget {
       container: true,
       button: true,
       checked: done,
-      label: done ? 'Tamamlanmadı olarak işaretle' : 'Tamamla',
+      label: done ? 'Geri aç' : 'Tamamla',
       excludeSemantics: true,
       child: InkResponse(
         onTap: onTap,

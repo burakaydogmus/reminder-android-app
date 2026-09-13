@@ -106,11 +106,14 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     grouping, pure). `calendar/` — `CalendarPage` + `buildAgenda` (30-day agenda,
     `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
-    `KorColorKey`/icon mapping), `reminder_actions.dart` (Düzenle/Sil menu, delete
-    confirm). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
+    `KorColorKey`/icon mapping), `reminder_actions.dart` (complete / snooze / delete
+    handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
+    + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
     `PermissionsGroup`), `maps/`.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
+  - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
+    `OnboardingStore` (see **Onboarding** under UI structure).
   - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
     `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
@@ -373,10 +376,27 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (the shell ticks it every minute; pushed routes use `NowScope.carry`). Do not add
   view groupings to `ReminderCubit`.
 - **Components:** reuse `ReminderCard` for any reminder row (48 dp complete toggle as
-  its own target, tap → editor, long-press → Düzenle/Sil, semantics label +
-  custom actions), `BirthdayCard`, `SectionHeader`, `GroupedCard` (fills with a
+  its own target, tap → editor, long-press menu, swipe, semantics label + custom
+  actions), `BirthdayCard`, `SectionHeader`, `GroupedCard` (fills with a
   `Material`, so `ListTile`/`InkWell` children keep their ink), `EmptyState` (one
   title, one sentence, max one action).
+- **Swipe and undo (F3.5):** `ReminderCard` wraps itself in `ReminderSwipe` (plain
+  `GestureDetector`, hidden from semantics): start→end Tamamla / Geri aç
+  (`success`), end→start past 30 % Ertele (`tertiary`, open reminders only), past
+  60 % Sil (`error`); 30 % scales the icon and plays `KorHaptics.swipeThreshold`
+  once; release springs back with `spatialDefault` (tween under Reduce Motion).
+  Every action lives in `reminders/reminder_actions.dart`
+  (`toggleReminderDoneWithUndo`, `snoozeReminderWithUndo`,
+  `deleteReminderWithUndo`) and is reachable three ways: swipe, long-press menu
+  (Tamamla/Geri aç, Ertele, Düzenle, Sil) and semantics custom actions (WCAG 2.5.7)
+  — add new card actions to all three. Actions apply immediately and show
+  `UndoSnackBar` (one at a time, a new one replaces the old; 5 s, 10 s with
+  `MediaQuery.accessibleNavigationOf` and accessibility focus on "Geri al"; pass
+  `persist: false`, a `SnackBar` with an action otherwise never closes). Reminder
+  delete has **no confirm dialog**; undo re-adds the same object with
+  `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
+  sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
+  clock); the Ertele sheet never accepts a past custom time.
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
@@ -389,6 +409,16 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   "Yarın HH:mm mı?" suggestion) and `_save` blocks it inline. Only an existing
   reminder's unchanged overdue time saves (original `remindAt` kept).
   `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
+- **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
+  once. The flag `onboarding_completed_v1` lives in SharedPreferences through
+  `OnboardingStore` (UI-only; never in the repository/database). Users who already
+  have reminders or birthdays skip it (flag set), also when that data arrives while
+  step 1 is still untouched. "Atla", "Uygulamaya geç" and the step-4 suggestions set
+  the flag; suggestions open their editor on top of `HomeShell`. Step 3 asks only
+  for notifications (`PermissionFlows.fixNotifications`); exact alarms and location
+  stay contextual. The capture demo is scripted (no parsing; F4.6). Illustrations
+  are one-shot (`OneShotAnimation`, final frame under Reduce Motion) — never add a
+  repeating animation. Each step scrolls, so 200% text never overflows.
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 

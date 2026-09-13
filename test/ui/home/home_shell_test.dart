@@ -60,6 +60,23 @@ void main() {
         semantics.dispose();
       });
 
+      testWidgets('nav and FAB sit at the bottom of the screen', (
+        tester,
+      ) async {
+        final h = await UiHarness.create();
+        await tester.pumpWidget(
+          h.app(home: const HomeShell(clock: _clock), theme: theme),
+        );
+        await tester.pumpAndSettle();
+        final screen = tester.getSize(find.byType(HomeShell));
+        final nav = tester.getRect(find.byType(KorPillNavigation));
+        final fab = tester.getRect(find.byType(NewItemFab));
+        // Regression: the bottom slot used to fill the screen, centring
+        // the nav vertically and pushing floating snackbars off screen.
+        expect(screen.height - nav.bottom, lessThan(40));
+        expect(screen.height - fab.bottom, lessThan(40));
+      });
+
       testWidgets('gear opens Ayarlar', (tester) async {
         final h = await UiHarness.create();
         await tester.pumpWidget(
