@@ -42,5 +42,8 @@ abstract final class KorSizes {
   static const double navBarHeight = 64;
   static const double captureBarHeight = 52;
   static const double fab = 56;
+
+  /// Android squircle FAB next to the floating nav (`NavBarAndroid.companionFab`).
+  static const double fabLarge = 64;
   static const double timeGutter = 56;
 }

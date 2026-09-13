@@ -5,14 +5,14 @@ import 'extensions/kor_motion_ext.dart';
 import 'tokens/kor_color_scheme.dart';
 import 'tokens/kor_palette.dart';
 import 'tokens/kor_shapes.dart';
+import 'tokens/kor_spacing.dart';
 import 'tokens/kor_typography.dart';
 
-/// Kor [ThemeData] builders.
+/// Kor [ThemeData] builders, wired in `app.dart`
+/// (`theme: KorTheme.light(), darkTheme: KorTheme.dark()`).
 ///
-/// Not used by the app yet: `AppTheme.light/dark` remain active until F4.1
-/// wires `theme: KorTheme.light(), darkTheme: KorTheme.dark()` in `app.dart`.
-/// Only component themes that are safe to define without the new widgets are
-/// set here; F4.1 extends this as screens move over.
+/// Component themes live here so widgets only pick roles and text styles;
+/// no widget sets raw colours or font sizes.
 abstract final class KorTheme {
   static ThemeData light() => _build(
         scheme: KorColorScheme.light,
@@ -26,6 +26,8 @@ abstract final class KorTheme {
         colors: KorColors.dark,
       );
 
+  static const _transparent = Color(0x00000000);
+
   static ThemeData _build({
     required ColorScheme scheme,
     required Color background,
@@ -35,6 +37,7 @@ abstract final class KorTheme {
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
     );
+    const minTouch = Size(KorSizes.minTouch, KorSizes.minTouch);
 
     return ThemeData(
       useMaterial3: true,
@@ -44,8 +47,22 @@ abstract final class KorTheme {
       textTheme: textTheme,
       scaffoldBackgroundColor: background,
       canvasColor: background,
-      dividerTheme: DividerThemeData(color: scheme.outlineVariant),
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant,
+        space: 1,
+        thickness: 1,
+      ),
       extensions: <ThemeExtension<dynamic>>[colors, KorMotion.standard],
+      appBarTheme: AppBarTheme(
+        backgroundColor: background,
+        foregroundColor: scheme.onSurface,
+        surfaceTintColor: _transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: textTheme.titleLarge,
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: scheme.inverseSurface,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
@@ -63,11 +80,12 @@ abstract final class KorTheme {
         secondaryLabelStyle: textTheme.labelLarge?.copyWith(
           color: scheme.onPrimaryContainer,
         ),
-        side: BorderSide.none,
+        side: BorderSide(color: scheme.outlineVariant),
         shape: const RoundedRectangleBorder(borderRadius: KorRadius.smAll),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
+          minimumSize: const WidgetStatePropertyAll(minTouch),
           backgroundColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.selected)
                 ? scheme.primaryContainer
@@ -82,10 +100,108 @@ abstract final class KorTheme {
           textStyle: WidgetStatePropertyAll(textTheme.labelLarge),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(KorSizes.minTouch, 56),
+          shape: const StadiumBorder(),
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: minTouch,
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: minTouch,
+          shape: const StadiumBorder(),
+          side: BorderSide(color: scheme.outline),
+          textStyle: textTheme.labelLarge,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(minimumSize: minTouch),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 2,
+        focusElevation: 2,
+        hoverElevation: 3,
+        highlightElevation: 2,
+        shape: const RoundedRectangleBorder(borderRadius: KorRadius.lgAll),
+        largeSizeConstraints: const BoxConstraints.tightFor(
+          width: KorSizes.fabLarge,
+          height: KorSizes.fabLarge,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: scheme.surfaceContainer,
+        hintStyle: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+        labelStyle: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+        border: const OutlineInputBorder(
+          borderRadius: KorRadius.mdAll,
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: KorRadius.mdAll,
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: KorRadius.mdAll,
+          borderSide: BorderSide(color: scheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: KorRadius.mdAll,
+          borderSide: BorderSide(color: scheme.error, width: 2),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: _transparent,
+        shape: const RoundedRectangleBorder(borderRadius: KorRadius.xlAll),
+        titleTextStyle: textTheme.titleLarge,
+        contentTextStyle: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surfaceContainer,
+        surfaceTintColor: _transparent,
+        shape: const RoundedRectangleBorder(borderRadius: KorRadius.mdAll),
+        textStyle: textTheme.bodyLarge,
+      ),
+      listTileTheme: ListTileThemeData(
+        minTileHeight: 56,
+        iconColor: scheme.onSurfaceVariant,
+        titleTextStyle: textTheme.bodyLarge,
+        subtitleTextStyle: textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: scheme.primary,
+        linearTrackColor: scheme.surfaceContainerHigh,
+        linearMinHeight: 6,
+        borderRadius: KorRadius.fullAll,
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: scheme.primary,
+        inactiveTrackColor: scheme.surfaceContainerHigh,
+        thumbColor: scheme.primary,
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surfaceContainerHigh,
         indicatorColor: scheme.primaryContainer,
-        surfaceTintColor: const Color(0x00000000),
+        surfaceTintColor: _transparent,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(WidgetState.selected)
@@ -103,7 +219,9 @@ abstract final class KorTheme {
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: scheme.surface,
-        surfaceTintColor: const Color(0x00000000),
+        surfaceTintColor: _transparent,
+        showDragHandle: true,
+        dragHandleColor: scheme.outline,
         shape: const RoundedRectangleBorder(borderRadius: KorRadius.sheet),
       ),
     );
