@@ -61,8 +61,8 @@ Diğer tüm fazların temeli.
   Her değişiklikte tüm bildirim ve geofence'lerin silinip yeniden kurulması yerine fark bazlı güncelleme; eşzamanlı `_persistAndSync` çağrılarının sıraya alınması.
 - [x] **F1.8a Küçük hatalar (model + cubit)** · `fix/misc-domain-bugs`
   Liste her değişiklikten sonra `compareReminders` ile sıralanıyor · 29 Şubat doğum günleri artık yıl olmayan yıllarda 28 Şubat'ta · yıllık tekrarlayan doğum günü bildirim metni yaştan bağımsız (yaş uygulama içinde) · `Birthday.copyWith(note: () => null)` · `ReminderCubit`/`ReminderState` için enjekte edilebilir saat.
-- [ ] **F1.8b Editörde geçmiş saat uyarısı** · *bağımlı: F4.1*
-  Editörde geçmiş zaman sessizce "1 dk sonra" oluyor; kullanıcıya uyarı/seçim gösterilmesi (`lib/ui`, F4.1 yeniden yazımından sonra).
+- [x] **F1.8b Editörde geçmiş saat uyarısı** · `fix/editor-past-time` · *bağımlı: F4.1*
+  Geçmiş tarih/saat artık sessizce "1 dk sonra" olmuyor: chip'ler `error` rengine dönüyor, "Bu saat geçti" + "Yarın HH:mm mı?" öneri chip'i gösteriliyor, kayıt engelleniyor. Saati değişmemiş gecikmiş mevcut hatırlatıcı kaydedilebiliyor (orijinal saat korunuyor).
 - [x] **F1.9 Release build** · `chore/release-build`
   `key.properties` yokken release build'in kırılması, R8/ProGuard kuralları, paket adı değişimi `com.fabirt.reminder` → `com.burakaydogmus.reminder` (Android `namespace`/`applicationId`, Kotlin paketleri, widget sınıf adı, App Group, iOS bundle ID).
 

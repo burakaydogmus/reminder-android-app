@@ -7,9 +7,11 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/past_time_hint.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/util/location_permissions.dart';
@@ -22,12 +24,17 @@ abstract final class ReminderEditorKeys {
 
 /// Reminder editor sheet (§3.3.4, reduced to today's data): title first with
 /// autofocus, note, category chips, "Ne zaman" and "Nerede" grouped cards.
+///
+/// [now] is the clock for past-time checks; defaults to the caller's
+/// [NowScope] clock (tests pass a fixed one).
 Future<void> showReminderEditorSheet(
   BuildContext context, {
   Reminder? existing,
   String? initialCategoryId,
   DateTime? initialRemindAt,
+  DateTime Function()? now,
 }) {
+  final clock = now ?? NowScope.clockOf(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -36,6 +43,7 @@ Future<void> showReminderEditorSheet(
       existing: existing,
       initialCategoryId: initialCategoryId,
       initialRemindAt: initialRemindAt,
+      clock: clock,
     ),
   );
 }
@@ -44,11 +52,13 @@ class _ReminderEditorBody extends StatefulWidget {
   final Reminder? existing;
   final String? initialCategoryId;
   final DateTime? initialRemindAt;
+  final DateTime Function() clock;
 
   const _ReminderEditorBody({
     this.existing,
     this.initialCategoryId,
     this.initialRemindAt,
+    this.clock = DateTime.now,
   });
 
   @override
@@ -63,6 +73,14 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   late bool _schedule;
   DateTime? _date;
   TimeOfDay? _time;
+
+  /// Existing reminder's time at minute precision; an unchanged overdue time
+  /// may still be saved (F1.8b).
+  DateTime? _originalRemindAt;
+
+  /// Set when save was blocked by a past time; outlines the section.
+  bool _pastTimeBlocked = false;
+  final _scheduleSectionKey = GlobalKey();
 
   late bool _locationTrigger;
   double? _locLat;
@@ -90,6 +108,10 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       final dt = remindAt.toLocal();
       _date = DateTime(dt.year, dt.month, dt.day);
       _time = TimeOfDay(hour: dt.hour, minute: dt.minute);
+      if (e != null) {
+        _originalRemindAt =
+            DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute);
+      }
     }
     _locationTrigger = e?.locationTriggerEnabled ?? false;
     _locLat = e?.locationLatitude;
@@ -107,31 +129,61 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
+    final now = widget.clock();
     final base = _date ?? now;
     final picked = await showDatePicker(
       context: context,
       initialDate: base,
+      currentDate: now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 2),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null) {
+      setState(() {
+        _date = picked;
+        _pastTimeBlocked = false;
+      });
+    }
   }
 
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _time ?? TimeOfDay.now(),
+      initialTime: _time ?? TimeOfDay.fromDateTime(widget.clock()),
     );
-    if (picked != null) setState(() => _time = picked);
+    if (picked != null) {
+      setState(() {
+        _time = picked;
+        _pastTimeBlocked = false;
+      });
+    }
   }
 
   DateTime? _combinedRemindAt() {
     if (!_schedule) return null;
     final d = _date;
-    final t = _time ?? TimeOfDay.now();
+    final t = _time ?? TimeOfDay.fromDateTime(widget.clock());
     if (d == null) return null;
     return DateTime(d.year, d.month, d.day, t.hour, t.minute);
+  }
+
+  /// The chosen time when it is in the past, otherwise null.
+  DateTime? _pastSelection(DateTime now) {
+    final at = _combinedRemindAt();
+    if (at == null || !PastTime.isPast(at, now)) return null;
+    return at;
+  }
+
+  /// An existing reminder's overdue time left untouched: saving keeps it.
+  bool _isUnchangedOriginal(DateTime at) =>
+      _originalRemindAt != null && at == _originalRemindAt;
+
+  void _applySuggestion(DateTime suggested) {
+    setState(() {
+      _date = DateTime(suggested.year, suggested.month, suggested.day);
+      _time = TimeOfDay(hour: suggested.hour, minute: suggested.minute);
+      _pastTimeBlocked = false;
+    });
   }
 
   Future<void> _openLocationPicker() async {
@@ -188,10 +240,25 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
         );
         return;
       }
-      // Past time still becomes "now + 1 min" until F1.8.
-      final now = DateTime.now();
-      if (remindAt != null && !remindAt.isAfter(now)) {
-        remindAt = now.add(const Duration(minutes: 1));
+      // Past time: never shift silently (F1.8b). Block with the inline
+      // warning, except an existing overdue reminder whose time is unchanged.
+      final past = _pastSelection(widget.clock());
+      if (past != null) {
+        if (_isUnchangedOriginal(past)) {
+          remindAt = widget.existing!.remindAt;
+        } else {
+          setState(() => _pastTimeBlocked = true);
+          final sectionContext = _scheduleSectionKey.currentContext;
+          if (sectionContext != null) {
+            await Scrollable.ensureVisible(
+              sectionContext,
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
+            );
+          }
+          return;
+        }
       }
     } else {
       remindAt = null;
@@ -270,7 +337,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     final scheme = theme.colorScheme;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
-    final now = DateTime.now();
+    final now = widget.clock();
+    final pastSelection = _schedule ? _pastSelection(now) : null;
     final mutedBody = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -364,16 +432,21 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             ],
             const SizedBox(height: KorSpacing.s5),
             GroupedCard(
+              key: _scheduleSectionKey,
               icon: Icons.schedule_rounded,
               title: 'Ne zaman',
+              borderColor: _pastTimeBlocked && pastSelection != null
+                  ? scheme.error
+                  : null,
               headerTrailing: Semantics(
                 label: 'Zamanla ve bildir',
                 child: Switch.adaptive(
                   value: _schedule,
                   onChanged: (v) => setState(() {
                     _schedule = v;
+                    _pastTimeBlocked = false;
                     if (v && _date == null) {
-                      final n = DateTime.now();
+                      final n = widget.clock();
                       _date = DateTime(n.year, n.month, n.day);
                       _time = TimeOfDay.fromDateTime(
                         n.add(const Duration(hours: 1)),
@@ -383,31 +456,66 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                 ),
               ),
               children: [
-                if (_schedule)
+                if (_schedule) ...[
                   Wrap(
                     spacing: KorSpacing.s3,
                     runSpacing: KorSpacing.s3,
                     children: [
                       ActionChip(
-                        avatar: const Icon(Icons.event_rounded),
+                        key: ReminderScheduleKeys.dateChip,
+                        avatar: Icon(
+                          Icons.event_rounded,
+                          color: pastSelection != null ? scheme.error : null,
+                        ),
                         label: Text(dateLabel),
+                        labelStyle: pastSelection != null
+                            ? theme.textTheme.labelLarge?.copyWith(
+                                color: scheme.error,
+                              )
+                            : null,
+                        side: pastSelection != null
+                            ? BorderSide(color: scheme.error)
+                            : null,
                         tooltip: 'Tarih seç',
                         onPressed: _pickDate,
                       ),
                       ActionChip(
-                        avatar: const Icon(Icons.schedule_rounded),
+                        key: ReminderScheduleKeys.timeChip,
+                        avatar: Icon(
+                          Icons.schedule_rounded,
+                          color: pastSelection != null ? scheme.error : null,
+                        ),
                         label: Text(
                           timeLabel,
                           style: const TextStyle(
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
+                        labelStyle: pastSelection != null
+                            ? theme.textTheme.labelLarge?.copyWith(
+                                color: scheme.error,
+                              )
+                            : null,
+                        side: pastSelection != null
+                            ? BorderSide(color: scheme.error)
+                            : null,
                         tooltip: 'Saat seç',
                         onPressed: _pickTime,
                       ),
                     ],
-                  )
-                else
+                  ),
+                  if (pastSelection != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: KorSpacing.s3),
+                      child: PastTimeHint(
+                        suggested: PastTime.suggestion(pastSelection, now),
+                        now: now,
+                        onApply: () => _applySuggestion(
+                          PastTime.suggestion(pastSelection, widget.clock()),
+                        ),
+                      ),
+                    ),
+                ] else
                   Text('Seçtiğin tarih ve saatte bildirim.', style: mutedBody),
               ],
             ),
