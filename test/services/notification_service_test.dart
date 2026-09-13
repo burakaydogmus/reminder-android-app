@@ -154,6 +154,76 @@ void main() {
     });
   });
 
+  group('birthday notification text (F1.8)', () {
+    final zeynep = buildBirthday(
+      id: 'z',
+      name: 'Zeynep Aydın',
+      date: DateTime(1990, 5, 10),
+      advanceOffsetsMinutes: BirthdayAdvanceOffset.presets
+          .map((p) => p.minutes)
+          .toList(growable: false),
+    );
+
+    test('title names the person, with "Yaklaşıyor" before the day', () {
+      expect(
+        NotificationService.birthdayNotificationTitle(zeynep, 0),
+        '🎂 Zeynep Aydın',
+      );
+      expect(
+        NotificationService.birthdayNotificationTitle(zeynep, 1440),
+        '🎂 Yaklaşıyor: Zeynep Aydın',
+      );
+    });
+
+    test('body depends only on the offset', () {
+      const expected = {
+        0: 'Bugün doğum günü.',
+        30: '30 dakika sonra doğum günü.',
+        60: '1 saat sonra doğum günü.',
+        180: '3 saat sonra doğum günü.',
+        1440: 'Yarın doğum günü.',
+        4320: '3 gün sonra doğum günü.',
+        10080: '7 gün sonra doğum günü.',
+      };
+      expected.forEach((offset, body) {
+        expect(
+          NotificationService.birthdayNotificationBody(offset),
+          body,
+          reason: 'offset $offset',
+        );
+      });
+    });
+
+    test('scheduled yearly notifications contain no age', () async {
+      await service.syncSchedules(
+        reminders: const [],
+        birthdays: [zeynep],
+        notificationsEnabled: true,
+      );
+
+      expect(plugin.pending, hasLength(BirthdayAdvanceOffset.presets.length));
+      final age = zeynep.upcomingAge!;
+      for (final offset in zeynep.advanceOffsetsMinutes) {
+        final n = plugin.pending[zeynep.notificationIdFor(offset)]!;
+        expect(
+          n.title,
+          NotificationService.birthdayNotificationTitle(zeynep, offset),
+        );
+        expect(n.body, NotificationService.birthdayNotificationBody(offset));
+        expect(
+          n.matchDateTimeComponents,
+          DateTimeComponents.dateAndTime,
+        );
+        for (final text in [n.title!, n.body!]) {
+          expect(text, isNot(contains('yaş')), reason: 'offset $offset');
+          expect(text, isNot(contains('$age')), reason: 'offset $offset');
+          expect(text, isNot(contains('${age - 1}')), reason: '$offset');
+          expect(text, isNot(contains('${age + 1}')), reason: '$offset');
+        }
+      }
+    });
+  });
+
   test('cancelAll removes reminder and birthday notifications', () async {
     await service.syncSchedules(
       reminders: [future],

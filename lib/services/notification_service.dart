@@ -267,27 +267,23 @@ class NotificationService implements NotificationSync {
       final fireDateTime = next.subtract(Duration(minutes: offset));
       var scheduled = tz.TZDateTime.from(fireDateTime, tz.local);
 
-      // Eğer hesaplanan ilk tetik geçmişte kalmışsa (örn. bugün doğum günü ama
-      // bildirim saati geçti ve offset 0), bir yıl ileri al.
+      // Eğer hesaplanan ilk tetik geçmişte kalmışsa (örn. yarın doğum günü ama
+      // "1 gün önce" saati geçti), bir sonraki yılın doğum gününden hesapla.
+      // `Birthday.nextOccurrence` 29 Şubat → 28 Şubat kuralını uygular.
       final now = tz.TZDateTime.now(tz.local);
       if (!scheduled.isAfter(now)) {
-        scheduled = tz.TZDateTime(
+        final following = b.nextOccurrence(from: next);
+        scheduled = tz.TZDateTime.from(
+          following.subtract(Duration(minutes: offset)),
           tz.local,
-          scheduled.year + 1,
-          scheduled.month,
-          scheduled.day,
-          scheduled.hour,
-          scheduled.minute,
         );
       }
-
-      final body = _birthdayNotificationBody(b, offset);
 
       specs.add(_ScheduleSpec(
         id: b.notificationIdFor(offset),
         channelId: channelId,
-        title: _birthdayNotificationTitle(b, offset),
-        body: body,
+        title: birthdayNotificationTitle(b, offset),
+        body: birthdayNotificationBody(offset),
         scheduledDate: scheduled,
         details: details,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
@@ -297,23 +293,29 @@ class NotificationService implements NotificationSync {
     return specs;
   }
 
-  String _birthdayNotificationTitle(Birthday b, int offsetMinutes) {
+  /// Doğum günü bildirim başlığı.
+  ///
+  /// Bildirim `DateTimeComponents.dateAndTime` ile her yıl **aynı metinle**
+  /// tekrarlar (uygulama açılmasa da doğum günleri kaçmasın diye). Bu yüzden
+  /// başlık ve gövde yaşa/yıla bağlı bilgi içermez (F1.8); yaş uygulama içinde
+  /// gösterilir.
+  @visibleForTesting
+  static String birthdayNotificationTitle(Birthday b, int offsetMinutes) {
     if (offsetMinutes == 0) return '🎂 ${b.name}';
     return '🎂 Yaklaşıyor: ${b.name}';
   }
 
-  String _birthdayNotificationBody(Birthday b, int offsetMinutes) {
-    if (offsetMinutes == 0) {
-      final age = b.upcomingAge;
-      if (age != null) return '$age. yaşı kutlu olsun!';
-      return 'Bugün doğum günü.';
-    }
-    final hours = offsetMinutes ~/ 60;
-    if (hours < 24) {
-      return '$hours saat sonra ${b.name} doğum günü.';
+  /// Doğum günü bildirim gövdesi; yalnızca offset'e bağlıdır (yaş içermez).
+  @visibleForTesting
+  static String birthdayNotificationBody(int offsetMinutes) {
+    if (offsetMinutes <= 0) return 'Bugün doğum günü.';
+    if (offsetMinutes < 60) return '$offsetMinutes dakika sonra doğum günü.';
+    if (offsetMinutes < 1440) {
+      return '${offsetMinutes ~/ 60} saat sonra doğum günü.';
     }
     final days = offsetMinutes ~/ 1440;
-    return '$days gün sonra ${b.name} doğum günü.';
+    if (days == 1) return 'Yarın doğum günü.';
+    return '$days gün sonra doğum günü.';
   }
 
   _ScheduleSpec _reminderSpec(Reminder r, tz.TZDateTime scheduled) {
