@@ -86,7 +86,7 @@ Diğer tüm fazların temeli.
 - [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
 - [x] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
   Kaydırarak tamamla (sağa) / ertele (sola kısa) / sil (sola uzun) + "Geri al" snackbar; her aksiyonun menü ve ekran okuyucu karşılığı.
-- [ ] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
+- [x] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
   Bugün zaman şeridi (Kaçanlar / şerit / Bugün bir ara), Takvim gündemi (Yaklaşan), Listeler › akıllı listeler (Zamansız dahil), Türkçe karakter duyarsız arama.
 
 ## Faz 4 — Arayüz ve deneyim ("Kor")

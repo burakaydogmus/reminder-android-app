@@ -103,8 +103,12 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
     `KorTabBar`, `NewItemFab`).
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
-    grouping, pure). `calendar/` — `CalendarPage` + `buildAgenda` (30-day agenda,
-    `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
+    grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
+    `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
+    `CalendarPage` + `buildAgenda` (30-day agenda, `BirthdayOccurrence`). `lists/` —
+    `ListsPage` (smart-list bento + categories), `SmartList` (pure membership),
+    `SmartListPage`, `ReminderFilterPage`. `search/` — `SearchPage`,
+    `ReminderSearch` (pure ranking/grouping), `RecentSearchStore`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
     `KorColorKey`/icon mapping), `reminder_actions.dart` (complete / snooze / delete
     handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
@@ -430,6 +434,25 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
   sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
   clock); the Ertele sheet never accepts a past custom time.
+- **Bugün, Listeler, Arama (F3.6):** Bugün = Kaçanlar ("Hepsini yarına al": all
+  overdue to tomorrow at the same wall-clock time via `updateReminder`, one undo
+  that restores all; skip recurring reminders once F3.1 adds them) → time ribbon
+  (`TodaySections.timeline`: chronological, ŞİMDİ marker before the first item due
+  after now; 56 px gutter, rail, nodes filled when done, open cards with
+  `ReminderTimeStyle.hidden`, completed rows as `ReminderCompactCard`, toggle
+  "Tamamlananları gizle"; above text scale 1.3 gutter and rail go away and the
+  time is shown in the card) → Bugün bir ara (untimed) → Tamamlananlar (completed
+  untimed). `NowLine` moves on the shell's minute tick without animation, glows
+  once (1.2 s) on first build unless Reduce Motion. `ReminderCompactCard` keeps
+  every `ReminderCard` contract (one semantics node, F3.5 actions, swipe, menu);
+  use it where a row needs custom spans. Listeler: bento of `SmartList`
+  (Gecikmiş / Bugün / Planlı / Zamansız / Doğum günleri / Konumlu, open reminders
+  only). Arama (`TabHeader.actions` → `SearchIconButton`): matching goes through
+  `domain/text_search.dart` only (`TextSearch.fold` is 1:1 per code unit, so match
+  ranges index the original text; İ/I/ı→i, ş→s, ğ→g, ç→c, ö→o, ü→u, â/î/û); every
+  query word must hit title, note, category or place label; rank title word start
+  < title < category/place < note; note-only matches go to "Notlarda". Recent
+  searches: SharedPreferences `search_recent_v1`, max 8, newest first.
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
