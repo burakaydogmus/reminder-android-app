@@ -37,14 +37,9 @@ void stubRepositoryWrites(MockReminderRepository repository) {
 
 void stubNotificationService(MockNotificationService notifications) {
   when(
-    () => notifications.syncFromReminders(
-      any(),
-      notificationsEnabled: any(named: 'notificationsEnabled'),
-    ),
-  ).thenAnswer((_) async {});
-  when(
-    () => notifications.scheduleBirthdays(
-      any(),
+    () => notifications.syncSchedules(
+      reminders: any(named: 'reminders'),
+      birthdays: any(named: 'birthdays'),
       notificationsEnabled: any(named: 'notificationsEnabled'),
     ),
   ).thenAnswer((_) async {});

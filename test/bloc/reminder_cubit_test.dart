@@ -146,14 +146,9 @@ void main() {
       ],
       verify: (_) {
         verify(
-          () => notifications.syncFromReminders(
-            any(that: hasLength(5)),
-            notificationsEnabled: false,
-          ),
-        ).called(1);
-        verify(
-          () => notifications.scheduleBirthdays(
-            [birthday],
+          () => notifications.syncSchedules(
+            reminders: any(named: 'reminders', that: hasLength(5)),
+            birthdays: [birthday],
             notificationsEnabled: false,
           ),
         ).called(1);
@@ -172,8 +167,9 @@ void main() {
       verify(() => repository.saveBirthdays(any())).called(1);
       verify(() => repository.saveSettings(any())).called(1);
       verify(
-        () => notifications.syncFromReminders(
-          any(),
+        () => notifications.syncSchedules(
+          reminders: any(named: 'reminders'),
+          birthdays: any(named: 'birthdays'),
           notificationsEnabled: any(named: 'notificationsEnabled'),
         ),
       ).called(1);
@@ -295,6 +291,25 @@ void main() {
         expect(synced.first.isDone, isTrue);
       },
     );
+
+    final birthday = buildBirthday();
+
+    blocTest<ReminderCubit, ReminderState>(
+      'toggleDone resyncs birthdays together with reminders (F1.2)',
+      build: buildCubit,
+      seed: () => _state(reminders: [a], birthdays: [birthday]),
+      act: (cubit) => cubit.toggleDone('a'),
+      verify: (_) {
+        verify(
+          () => notifications.syncSchedules(
+            reminders: any(named: 'reminders'),
+            birthdays: [birthday],
+            notificationsEnabled: true,
+          ),
+        ).called(1);
+        verifyNever(() => notifications.cancelAll());
+      },
+    );
   });
 
   group('birthday mutations', () {
@@ -312,8 +327,9 @@ void main() {
       verify: (_) {
         verify(() => repository.saveBirthdays([x, y])).called(1);
         verify(
-          () => notifications.scheduleBirthdays(
-            [x, y],
+          () => notifications.syncSchedules(
+            reminders: [],
+            birthdays: [x, y],
             notificationsEnabled: true,
           ),
         ).called(1);
@@ -408,14 +424,9 @@ void main() {
       verify: (_) {
         verify(() => repository.saveSettings(any())).called(1);
         verify(
-          () => notifications.syncFromReminders(
-            any(),
-            notificationsEnabled: false,
-          ),
-        ).called(1);
-        verify(
-          () => notifications.scheduleBirthdays(
-            any(),
+          () => notifications.syncSchedules(
+            reminders: any(named: 'reminders'),
+            birthdays: any(named: 'birthdays'),
             notificationsEnabled: false,
           ),
         ).called(1);
@@ -464,8 +475,9 @@ void main() {
         verifyNoMoreInteractions(homeWidget);
         verifyNever(() => repository.saveReminders(any()));
         verifyNever(
-          () => notifications.syncFromReminders(
-            any(),
+          () => notifications.syncSchedules(
+            reminders: any(named: 'reminders'),
+            birthdays: any(named: 'birthdays'),
             notificationsEnabled: any(named: 'notificationsEnabled'),
           ),
         );
