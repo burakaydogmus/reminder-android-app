@@ -12,9 +12,10 @@ import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
-import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
-import 'package:reminder/util/location_permissions.dart';
+import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/ui/permissions/permission_flows.dart';
+import 'package:reminder/ui/permissions/permission_scope.dart';
 
 /// Keys for tests.
 abstract final class ReminderEditorKeys {
@@ -187,18 +188,10 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   }
 
   Future<void> _openLocationPicker() async {
-    final ok = await ensureGeofenceLocationPermission();
+    // Explains and asks once (F1.6); the map opens either way so a place
+    // can be picked manually without permission.
+    await PermissionFlows.location(context);
     if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Konum hatırlatması için konum izni (ve mümkünse “Her zaman”) gerekli.',
-          ),
-        ),
-      );
-      return;
-    }
 
     final result = await Navigator.of(context).push<LocationPickResult>(
       MaterialPageRoute(
@@ -272,19 +265,18 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
         );
         return;
       }
-      final locOk = await ensureGeofenceLocationPermission();
-      if (!locOk) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Konum izni verilmedi.')),
-          );
-        }
-        return;
-      }
+      // Missing background location does not block saving; the card shows
+      // an inline warning instead (F1.6).
     } else {
       _locLat = null;
       _locLng = null;
       _locLabel = null;
+    }
+
+    // Notification pre-permission the first time something is scheduled.
+    if ((remindAt != null || _locationTrigger) &&
+        cubit.state.settings.notificationsEnabled) {
+      await PermissionFlows.beforeScheduling(context);
     }
 
     final note = _noteCtrl.text.trim();
@@ -538,6 +530,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                         _locLabel = null;
                       }
                     });
+                    if (v) PermissionFlows.location(context);
                   },
                 ),
               ),
@@ -563,11 +556,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                                   style: theme.textTheme.titleMedium,
                                 ),
                                 Text(
-                                  PlatformChrome.isCupertino(context)
-                                      ? 'Bölgeye girince bildirim. “Her zaman” '
-                                          'konum izni gerekir.'
-                                      : 'Bölgeye girince bildirim. Arka planda '
-                                          'konum izni gerekebilir.',
+                                  'Bölgeye girince bildirim.',
                                   style: mutedBody,
                                 ),
                               ],
@@ -583,6 +572,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                   )
                 else
                   Text('Bir yere varınca hatırlat.', style: mutedBody),
+                if (_locationTrigger) const _LocationPermissionWarning(),
                 if (_locationError != null)
                   Padding(
                     padding: const EdgeInsets.only(top: KorSpacing.s2),
@@ -606,6 +596,45 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Inline warning in "Nerede" when background location is missing (F1.6).
+class _LocationPermissionWarning extends StatelessWidget {
+  const _LocationPermissionWarning();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = PermissionScope.of(context).snapshot?.location;
+    if (state == null || state == LocationPermissionState.always) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final text = state == LocationPermissionState.whileInUse
+        ? 'Konum izni yalnızca kullanırken açık. Uygulama kapalıyken '
+            'bildirim gelmeyebilir.'
+        : 'Konum izni yok. Yeri haritadan seçebilirsin ama arka planda '
+            'bildirim gelmeyebilir.';
+    return Padding(
+      padding: const EdgeInsets.only(top: KorSpacing.s3),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: scheme.tertiary),
+          const SizedBox(width: KorSpacing.s3),
+          Expanded(
+            child: Semantics(
+              liveRegion: true,
+              child: Text(text, style: theme.textTheme.bodyMedium),
+            ),
+          ),
+          TextButton(
+            onPressed: () => PermissionFlows.fixLocation(context),
+            child: const Text('Düzelt'),
+          ),
+        ],
       ),
     );
   }

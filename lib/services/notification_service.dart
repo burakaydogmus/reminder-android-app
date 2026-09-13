@@ -45,10 +45,13 @@ class NotificationService implements NotificationSync {
     if (_initialized) return;
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // No prompt on initialize (also runs at launch and in background
+    // isolates); permissions are requested in context (F1.6,
+    // PermissionService).
     const darwin = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     await _plugin.initialize(
@@ -56,22 +59,6 @@ class NotificationService implements NotificationSync {
     );
 
     _initialized = true;
-  }
-
-  Future<bool?> requestPermissionsIfNeeded() async {
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    if (android != null) {
-      await android.requestNotificationsPermission();
-      await android.requestExactAlarmsPermission();
-    }
-
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
-    if (ios != null) {
-      return ios.requestPermissions(alert: true, badge: true, sound: true);
-    }
-    return null;
   }
 
   Future<void> cancelReminder(Reminder reminder) async {

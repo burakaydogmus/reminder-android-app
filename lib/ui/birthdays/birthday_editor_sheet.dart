@@ -7,6 +7,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/permissions/permission_flows.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -108,6 +109,11 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
         ),
       );
       return;
+    }
+
+    // Notification pre-permission the first time something is scheduled.
+    if (cubit.state.settings.notificationsEnabled) {
+      await PermissionFlows.beforeScheduling(context);
     }
 
     final note = _noteCtrl.text.trim();

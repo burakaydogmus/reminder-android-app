@@ -5,7 +5,9 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:reminder/config/maps_config.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/services/places_nearby_service.dart';
+import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 class LocationPickResult {
@@ -64,19 +66,18 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     super.dispose();
   }
 
+  /// Centres on the current position only when location is already granted;
+  /// never asks here (F1.6 — the editor explains and asks first).
   Future<void> _initCenter() async {
     if (widget.initialPoint != null) return;
     try {
-      final ok = await Geolocator.isLocationServiceEnabled();
-      if (!ok) return;
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
+      final state = (await PermissionScope.read(context).refresh()).location;
+      if (state != LocationPermissionState.always &&
+          state != LocationPermissionState.whileInUse) {
         return;
       }
+      final ok = await Geolocator.isLocationServiceEnabled();
+      if (!ok) return;
       final pos = await Geolocator.getCurrentPosition();
       final ll = LatLng(pos.latitude, pos.longitude);
       if (!mounted) return;
@@ -98,15 +99,25 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         }
         return;
       }
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
+      if (!mounted) return;
+      // User-initiated: asking here is in context.
+      final permissions = PermissionScope.read(context);
+      var state = (await permissions.refresh()).location;
+      if (state == LocationPermissionState.notRequested) {
+        state = await permissions.service.requestLocationWhenInUse();
+        await permissions.refresh();
       }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
+      if (state != LocationPermissionState.always &&
+          state != LocationPermissionState.whileInUse) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Konum izni gerekli.')),
+            SnackBar(
+              content: const Text('Konum izni kapalı.'),
+              action: SnackBarAction(
+                label: 'Ayarları aç',
+                onPressed: permissions.service.openAppSettings,
+              ),
+            ),
           );
         }
         return;

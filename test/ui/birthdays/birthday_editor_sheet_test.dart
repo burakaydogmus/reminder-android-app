@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
+import 'package:reminder/ui/permissions/permission_sheet.dart';
 
 import '../../helpers/factories.dart';
 import '../ui_harness.dart';
@@ -58,5 +60,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(h.cubit.state.birthdays.single.name, 'Ayşe Yılmaz');
+  });
+
+  testWidgets('saving a birthday asks for notifications the first time', (
+    tester,
+  ) async {
+    final existing = buildBirthday();
+    final h = await UiHarness.create(birthdays: [existing]);
+    h.permissions.snapshot = PermissionSnapshot.allGranted.copyWith(
+      notifications: NotificationPermissionState.notRequested,
+    );
+    await tester.pumpWidget(h.app(home: _opener(existing: existing)));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(BirthdayEditorKeys.save));
+    await tester.tap(find.byKey(BirthdayEditorKeys.save));
+    await tester.pumpAndSettle();
+    expect(find.byType(PermissionSheet), findsOneWidget);
+
+    await tester.tap(find.byKey(PermissionSheetKeys.dismiss));
+    await tester.pumpAndSettle();
+    expect(h.permissions.calls, isEmpty);
+    expect(find.byKey(BirthdayEditorKeys.save), findsNothing);
   });
 }

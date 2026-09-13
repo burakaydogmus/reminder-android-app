@@ -7,8 +7,10 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
+import '../helpers/fake_permission_service.dart';
 import '../helpers/mocks.dart';
 
 /// Light and dark Kor themes for widget tests.
@@ -62,19 +64,25 @@ class UiHarness {
     return UiHarness._(repository, cubit);
   }
 
+  /// Permission state seen by the UI (all granted unless a test changes it).
+  final FakePermissionService permissions = FakePermissionService();
+
   Widget app({
     required Widget home,
     ThemeData Function() theme = KorTheme.light,
     TargetPlatform platform = TargetPlatform.android,
   }) {
-    return BlocProvider.value(
-      value: cubit,
-      child: MaterialApp(
-        theme: theme().copyWith(platform: platform),
-        locale: const Locale('tr', 'TR'),
-        supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: home,
+    return PermissionScope(
+      service: permissions,
+      child: BlocProvider.value(
+        value: cubit,
+        child: MaterialApp(
+          theme: theme().copyWith(platform: platform),
+          locale: const Locale('tr', 'TR'),
+          supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: home,
+        ),
       ),
     );
   }
