@@ -6,6 +6,7 @@ import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/prefs_migration.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -70,6 +71,60 @@ void main() {
       expect((await repository.loadSettings()).notificationsEnabled, isTrue);
       expect(await repository.hasRecoveryBackup(), isFalse);
       expect(await db.select(db.settings).get(), isEmpty);
+    });
+  });
+
+  group('recurrence (F3.1, schema v2)', () {
+    test('rules round-trip and none is stored as NULL', () async {
+      final rules = [
+        RecurrenceRule.none,
+        RecurrenceRule.daily(interval: 3),
+        RecurrenceRule.weekly([1, 3], interval: 2, until: DateTime(2027, 1, 1)),
+        RecurrenceRule.monthly(dayOfMonth: 31),
+      ];
+      await repository.saveReminders([
+        for (var i = 0; i < rules.length; i++)
+          buildReminder(
+            id: 'r$i',
+            remindAt: DateTime(2026, 9, 13, 18),
+            recurrence: rules[i],
+          ),
+      ]);
+
+      final loaded = await newRepository().loadReminders();
+      expect(loaded.map((r) => r.recurrence).toList(), rules);
+
+      final rows = await db.select(db.reminders).get();
+      expect(rows.firstWhere((r) => r.id == 'r0').recurrence, isNull);
+      expect(
+        jsonDecode(rows.firstWhere((r) => r.id == 'r1').recurrence!),
+        {'frequency': 'daily', 'interval': 3},
+      );
+    });
+
+    test('changing only the rule updates the row', () async {
+      final r = buildReminder(remindAt: DateTime(2026, 9, 13, 18));
+      await repository.saveReminders([r]);
+      now = now.add(const Duration(minutes: 1));
+      await repository
+          .saveReminders([r.copyWith(recurrence: RecurrenceRule.daily())]);
+
+      final row = await db.select(db.reminders).getSingle();
+      expect(row.updatedAt, micros(now));
+      expect(
+        (await repository.loadReminders()).single.recurrence,
+        RecurrenceRule.daily(),
+      );
+    });
+
+    test('an unreadable stored rule loads as no recurrence', () async {
+      await repository.saveReminders([buildReminder(id: 'bad')]);
+      await (db.update(db.reminders)..where((t) => t.id.equals('bad')))
+          .write(const RemindersCompanion(recurrence: Value('{oops')));
+
+      final loaded = await repository.loadReminders();
+      expect(loaded.single.id, 'bad');
+      expect(loaded.single.recurrence, RecurrenceRule.none);
     });
   });
 

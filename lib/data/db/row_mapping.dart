@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 
 /// Domain modelleri ↔ Drift satırları. Senkron alanları (`position`,
@@ -41,7 +42,25 @@ ReminderRow reminderToRow(
     position: position,
     updatedAt: updatedAt,
     deletedAt: deletedAt,
+    recurrence: recurrenceToStored(r.recurrence),
   );
+}
+
+/// Tekrar kuralı: `RecurrenceRule.toJson()` JSON metni, tekrar yoksa `NULL`.
+String? recurrenceToStored(RecurrenceRule rule) {
+  final json = rule.toJson();
+  return json == null ? null : jsonEncode(json);
+}
+
+/// [recurrenceToStored]'ın tersi; `NULL` veya bozuk metin → tekrar yok (satır
+/// atlanmaz, hatırlatıcı tekrarsız yüklenir).
+RecurrenceRule recurrenceFromStored(String? value) {
+  if (value == null) return RecurrenceRule.none;
+  try {
+    return RecurrenceRule.fromJson(jsonDecode(value));
+  } on FormatException {
+    return RecurrenceRule.none;
+  }
 }
 
 Reminder reminderFromRow(ReminderRow row) {
@@ -59,6 +78,7 @@ Reminder reminderFromRow(ReminderRow row) {
     locationLongitude: row.locationLongitude,
     locationRadiusMeters: row.locationRadiusMeters,
     locationPlaceLabel: row.locationPlaceLabel,
+    recurrence: recurrenceFromStored(row.recurrence),
   );
 }
 

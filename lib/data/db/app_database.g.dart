@@ -107,6 +107,12 @@ class $RemindersTable extends Reminders
   late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
       'deleted_at', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _recurrenceMeta =
+      const VerificationMeta('recurrence');
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+      'recurrence', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -124,7 +130,8 @@ class $RemindersTable extends Reminders
         locationPlaceLabel,
         position,
         updatedAt,
-        deletedAt
+        deletedAt,
+        recurrence
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -231,6 +238,12 @@ class $RemindersTable extends Reminders
       context.handle(_deletedAtMeta,
           deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
     }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+          _recurrenceMeta,
+          recurrence.isAcceptableOrUnknown(
+              data['recurrence']!, _recurrenceMeta));
+    }
     return context;
   }
 
@@ -274,6 +287,8 @@ class $RemindersTable extends Reminders
           .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}deleted_at']),
+      recurrence: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}recurrence']),
     );
   }
 
@@ -300,6 +315,10 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
   final int position;
   final int updatedAt;
   final int? deletedAt;
+
+  /// Tekrar kuralı (v2, F3.1): `RecurrenceRule.toJson()` JSON metni;
+  /// `NULL` = tekrar yok (v1 satırları).
+  final String? recurrence;
   const ReminderRow(
       {required this.id,
       required this.title,
@@ -316,7 +335,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       this.locationPlaceLabel,
       required this.position,
       required this.updatedAt,
-      this.deletedAt});
+      this.deletedAt,
+      this.recurrence});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -349,6 +369,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     map['updated_at'] = Variable<int>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    if (!nullToAbsent || recurrence != null) {
+      map['recurrence'] = Variable<String>(recurrence);
     }
     return map;
   }
@@ -383,6 +406,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      recurrence: recurrence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrence),
     );
   }
 
@@ -411,6 +437,7 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       position: serializer.fromJson<int>(json['position']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      recurrence: serializer.fromJson<String?>(json['recurrence']),
     );
   }
   @override
@@ -433,6 +460,7 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       'position': serializer.toJson<int>(position),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
+      'recurrence': serializer.toJson<String?>(recurrence),
     };
   }
 
@@ -452,7 +480,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           Value<String?> locationPlaceLabel = const Value.absent(),
           int? position,
           int? updatedAt,
-          Value<int?> deletedAt = const Value.absent()}) =>
+          Value<int?> deletedAt = const Value.absent(),
+          Value<String?> recurrence = const Value.absent()}) =>
       ReminderRow(
         id: id ?? this.id,
         title: title ?? this.title,
@@ -479,6 +508,7 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
         position: position ?? this.position,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+        recurrence: recurrence.present ? recurrence.value : this.recurrence,
       );
   ReminderRow copyWithCompanion(RemindersCompanion data) {
     return ReminderRow(
@@ -511,6 +541,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       position: data.position.present ? data.position.value : this.position,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      recurrence:
+          data.recurrence.present ? data.recurrence.value : this.recurrence,
     );
   }
 
@@ -532,7 +564,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           ..write('locationPlaceLabel: $locationPlaceLabel, ')
           ..write('position: $position, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('recurrence: $recurrence')
           ..write(')'))
         .toString();
   }
@@ -554,7 +587,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       locationPlaceLabel,
       position,
       updatedAt,
-      deletedAt);
+      deletedAt,
+      recurrence);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -574,7 +608,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           other.locationPlaceLabel == this.locationPlaceLabel &&
           other.position == this.position &&
           other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt);
+          other.deletedAt == this.deletedAt &&
+          other.recurrence == this.recurrence);
 }
 
 class RemindersCompanion extends UpdateCompanion<ReminderRow> {
@@ -594,6 +629,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
   final Value<int> position;
   final Value<int> updatedAt;
   final Value<int?> deletedAt;
+  final Value<String?> recurrence;
   final Value<int> rowid;
   const RemindersCompanion({
     this.id = const Value.absent(),
@@ -612,6 +648,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     this.position = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RemindersCompanion.insert({
@@ -631,6 +668,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     required int position,
     required int updatedAt,
     this.deletedAt = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         title = Value(title),
@@ -658,6 +696,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     Expression<int>? position,
     Expression<int>? updatedAt,
     Expression<int>? deletedAt,
+    Expression<String>? recurrence,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -681,6 +720,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       if (position != null) 'position': position,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (recurrence != null) 'recurrence': recurrence,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -702,6 +742,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       Value<int>? position,
       Value<int>? updatedAt,
       Value<int?>? deletedAt,
+      Value<String?>? recurrence,
       Value<int>? rowid}) {
     return RemindersCompanion(
       id: id ?? this.id,
@@ -721,6 +762,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       position: position ?? this.position,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      recurrence: recurrence ?? this.recurrence,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -779,6 +821,9 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<int>(deletedAt.value);
     }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -804,6 +849,7 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
           ..write('position: $position, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('recurrence: $recurrence, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1872,6 +1918,7 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   required int position,
   required int updatedAt,
   Value<int?> deletedAt,
+  Value<String?> recurrence,
   Value<int> rowid,
 });
 typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
@@ -1891,6 +1938,7 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<int> position,
   Value<int> updatedAt,
   Value<int?> deletedAt,
+  Value<String?> recurrence,
   Value<int> rowid,
 });
 
@@ -1956,6 +2004,9 @@ class $$RemindersTableFilterComposer
 
   ColumnFilters<int> get deletedAt => $composableBuilder(
       column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+      column: $table.recurrence, builder: (column) => ColumnFilters(column));
 }
 
 class $$RemindersTableOrderingComposer
@@ -2020,6 +2071,9 @@ class $$RemindersTableOrderingComposer
 
   ColumnOrderings<int> get deletedAt => $composableBuilder(
       column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+      column: $table.recurrence, builder: (column) => ColumnOrderings(column));
 }
 
 class $$RemindersTableAnnotationComposer
@@ -2078,6 +2132,9 @@ class $$RemindersTableAnnotationComposer
 
   GeneratedColumn<int> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+      column: $table.recurrence, builder: (column) => column);
 }
 
 class $$RemindersTableTableManager extends RootTableManager<
@@ -2119,6 +2176,7 @@ class $$RemindersTableTableManager extends RootTableManager<
             Value<int> position = const Value.absent(),
             Value<int> updatedAt = const Value.absent(),
             Value<int?> deletedAt = const Value.absent(),
+            Value<String?> recurrence = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RemindersCompanion(
@@ -2138,6 +2196,7 @@ class $$RemindersTableTableManager extends RootTableManager<
             position: position,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
+            recurrence: recurrence,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -2157,6 +2216,7 @@ class $$RemindersTableTableManager extends RootTableManager<
             required int position,
             required int updatedAt,
             Value<int?> deletedAt = const Value.absent(),
+            Value<String?> recurrence = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RemindersCompanion.insert(
@@ -2176,6 +2236,7 @@ class $$RemindersTableTableManager extends RootTableManager<
             position: position,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
+            recurrence: recurrence,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
