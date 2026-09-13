@@ -68,3 +68,9 @@ flutter:
 
         - asset: fonts/Comfortaa-Bold.ttf
           weight: 700
+
+    # Kor theme (F4.0b): variable font, axes wght/opsz/ROND, latin+latin-ext.
+    # Not used by the app until F4.1. License: fonts/GoogleSansFlex/OFL.txt
+    - family: GoogleSansFlex
+      fonts:
+        - asset: fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf
