@@ -74,6 +74,28 @@
             </intent-filter>
         </receiver>
 
+        <!-- native_geofence: geofence olaylarını WorkManager + arka plan
+             Flutter engine ile Dart callback'ine iletir (uygulama kapalıyken de).
+             Geofencing PendingIntent'i uygulamanın kendi kimliğiyle gönderilir,
+             bu yüzden receiver dışa açık olmak zorunda değil. -->
+        <receiver
+            android:exported="false"
+            android:name="com.chunkytofustudios.native_geofence.receivers.NativeGeofenceBroadcastReceiver" />
+
+        <!-- native_geofence: Android reboot sonrası geofence'leri silir; kayıtlı
+             bölgeler burada yeniden oluşturulur. Uygulama güncellemesinde de
+             güvenlik için yeniden kaydedilir. -->
+        <receiver
+            android:exported="false"
+            android:name="com.chunkytofustudios.native_geofence.receivers.NativeGeofenceRebootBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

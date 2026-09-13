@@ -52,9 +52,5 @@
 	<string>Konum hatırlatmaları ve haritada konum seçmek için gerekli.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Seçtiğiniz yere yaklaştığınızda hatırlatma göndermek için konum gerekir.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
-	</array>
 </dict>
 </plist>

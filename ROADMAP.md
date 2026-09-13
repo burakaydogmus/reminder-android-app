@@ -44,7 +44,7 @@ Diğer tüm fazların temeli.
 
 *F1.4 dışındaki maddeler F4.0'dan sonra başlar: F4.0 bildirim paketini (18 → 22), iOS minimumunu ve native yapılandırmayı değiştirdiği için bu düzeltmelerin iki kez yazılmasını önler.*
 
-- [ ] **F1.1 Konum hatırlatmaları arka planda çalışmıyor** · `fix/background-geofence` · *bağımsız hat*
+- [x] **F1.1 Konum hatırlatmaları arka planda çalışmıyor** · `fix/background-geofence` · *bağımsız hat*
   `geo_fencing_android` receiver'ı olayı yalnızca canlı Flutter engine'e iletiyor; uygulama kapalıyken bildirim gelmiyor. Reboot sonrası bölgeler yeniden kaydedilmiyor. Paket değişimi (arka plan callback destekli alternatif) veya native receiver'da doğrudan bildirim + boot receiver. iOS'ta region monitoring doğrulaması.
 - [ ] **F1.2 Widget'tan tamamlama doğum günü bildirimlerini siliyor** · `fix/widget-callback-sync`
   Callback yalnızca `syncFromReminders` (→ `cancelAll`) çağırıyor; doğum günleri yeniden kurulmuyor. Tek bir "tüm zamanlamaları senkronla" giriş noktası.
