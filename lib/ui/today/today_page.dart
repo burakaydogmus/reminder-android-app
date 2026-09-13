@@ -14,6 +14,15 @@ import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/ui/today/today_sections.dart';
+import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/ui/permissions/permission_banner.dart';
+import 'package:reminder/ui/permissions/permission_flows.dart';
+import 'package:reminder/ui/permissions/permission_scope.dart';
+
+/// Keys for tests.
+abstract final class TodayPageKeys {
+  static const notificationBanner = Key('today.notificationBanner');
+}
 
 /// Bugün (§3.3.2 without the time ribbon, F3.6): header, birthday banner,
 /// Kaçanlar, Bugün, Zamansız and collapsible Tamamlananlar.
@@ -47,6 +56,22 @@ class _TodayPageState extends State<TodayPage> {
                 SliverToBoxAdapter(
                     child: _Header(sections: sections, now: now)),
               ),
+              if (_needsNotificationBanner(context, state, now))
+                _padded(
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: KorSpacing.s3),
+                      child: PermissionBanner(
+                        key: TodayPageKeys.notificationBanner,
+                        title: 'Bildirimler kapalı',
+                        body: 'Hatırlatmalar zamanında gelmeyecek.',
+                        actionLabel: 'Ayarları aç',
+                        onAction: () =>
+                            PermissionFlows.fixNotifications(context),
+                      ),
+                    ),
+                  ),
+                ),
               for (final o in sections.birthdays)
                 _padded(
                   SliverToBoxAdapter(
@@ -144,6 +169,25 @@ class _TodayPageState extends State<TodayPage> {
         );
       },
     );
+  }
+
+  /// §3.3.2 "İzin reddedildi": notifications are on in the app but the OS
+  /// permission is missing while something is waiting to notify.
+  static bool _needsNotificationBanner(
+    BuildContext context,
+    ReminderState state,
+    DateTime now,
+  ) {
+    final permission = PermissionScope.of(context).snapshot?.notifications;
+    if (permission == null ||
+        permission == NotificationPermissionState.granted ||
+        !state.settings.notificationsEnabled) {
+      return false;
+    }
+    return state.birthdays.isNotEmpty ||
+        state.reminders.any(
+          (r) => !r.isDone && r.remindAt != null && r.remindAt!.isAfter(now),
+        );
   }
 
   static Widget _padded(Widget sliver) => SliverPadding(

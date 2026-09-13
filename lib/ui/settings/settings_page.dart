@@ -6,12 +6,13 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/settings/permissions_group.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/util/dialog.dart';
 
-/// Ayarlar (§3.3.9, without the permission status group — F1.6): grouped
-/// cards for Görünüm, Bildirimler, Ana ekran widget'ı and data reset.
+/// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
+/// ekran widget'ı and data reset.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -43,6 +44,8 @@ class SettingsPage extends StatelessWidget {
                 child: Text('Ayarlar', style: theme.textTheme.headlineLarge),
               ),
               const SizedBox(height: KorSpacing.s6),
+              const PermissionsGroup(),
+              const SizedBox(height: KorSpacing.s5),
               GroupedCard(
                 icon: Icons.palette_outlined,
                 title: 'Görünüm',
@@ -94,8 +97,7 @@ class SettingsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: KorSpacing.s2),
                   Text(
-                    'Konum hatırlatmaları için bildirimler açık olmalı; konum '
-                    'izni (Android’de mümkünse “Her zaman”) gerekir.',
+                    'Konum hatırlatmaları için de bildirimler açık olmalı.',
                     style: muted,
                   ),
                 ],
