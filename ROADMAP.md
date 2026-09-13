@@ -46,7 +46,7 @@ Diğer tüm fazların temeli.
 
 - [x] **F1.1 Konum hatırlatmaları arka planda çalışmıyor** · `fix/background-geofence` · *bağımsız hat*
   `geo_fencing_android` receiver'ı olayı yalnızca canlı Flutter engine'e iletiyor; uygulama kapalıyken bildirim gelmiyor. Reboot sonrası bölgeler yeniden kaydedilmiyor. Paket değişimi (arka plan callback destekli alternatif) veya native receiver'da doğrudan bildirim + boot receiver. iOS'ta region monitoring doğrulaması.
-- [ ] **F1.2 Widget'tan tamamlama doğum günü bildirimlerini siliyor** · `fix/widget-callback-sync`
+- [x] **F1.2 Widget'tan tamamlama doğum günü bildirimlerini siliyor** · `fix/widget-callback-sync`
   Callback yalnızca `syncFromReminders` (→ `cancelAll`) çağırıyor; doğum günleri yeniden kurulmuyor. Tek bir "tüm zamanlamaları senkronla" giriş noktası.
 - [ ] **F1.3 Widget değişikliğini açık uygulama eziyor** · `fix/widget-app-state-sync` · *bağımlı: F1.2*
   Uygulama resume'da / widget etkileşiminde depodan yeniden yükleme.
