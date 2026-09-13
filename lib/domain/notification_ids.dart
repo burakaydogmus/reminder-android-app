@@ -26,8 +26,8 @@ import 'dart:convert';
 /// bildirimler cihazda bu kimliklerle durur. Algoritma veya anahtar biçimi
 /// değişirse `test/domain/notification_ids_test.dart` içindeki sabit
 /// beklenen değerler kırılır; böyle bir değişiklik eski kimlikli
-/// bildirimlerin temizlenmesini (ör. `NotificationService.syncSchedules`
-/// başındaki `cancelAll`) gerektirir.
+/// bildirimlerin temizlenmesini gerektirir (`NotificationService.syncSchedules`
+/// bekleyenlerde olup tanımadığı her id'yi iptal eder).
 abstract final class NotificationIds {
   static const int _fnvOffsetBasis = 0x811C9DC5;
   static const int _fnvPrime = 0x01000193;
