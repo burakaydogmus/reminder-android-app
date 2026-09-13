@@ -90,19 +90,86 @@ void main() {
       );
     });
 
-    test(
-      'Feb 29 birthday in a non-leap year must not become Mar 1',
-      () {
-        final b = buildBirthday(date: DateTime(2000, 2, 29));
+    test('Feb 29 birthday in a non-leap year must not become Mar 1', () {
+      final b = buildBirthday(date: DateTime(2000, 2, 29));
 
-        final next = b.nextOccurrence(from: DateTime(2027, 1, 1));
+      final next = b.nextOccurrence(from: DateTime(2027, 1, 1));
 
-        expect(next.year, 2027);
-        expect(next.month, 2);
-        expect(next.day, 28);
-      },
-      skip: 'Known bug — fixed in F1.8',
-    );
+      expect(next.year, 2027);
+      expect(next.month, 2);
+      expect(next.day, 28);
+    });
+  });
+
+  group('Feb 29 birthdays (F1.8)', () {
+    final leapling = buildBirthday(date: DateTime(2000, 2, 29), notifyHour: 9);
+
+    test('occurrenceInYear is Feb 29 in leap years, Feb 28 otherwise', () {
+      expect(leapling.occurrenceInYear(2028), DateTime(2028, 2, 29, 9));
+      expect(leapling.occurrenceInYear(2027), DateTime(2027, 2, 28, 9));
+      expect(leapling.occurrenceInYear(2100), DateTime(2100, 2, 28, 9));
+      expect(leapling.occurrenceInYear(2000), DateTime(2000, 2, 29, 9));
+    });
+
+    test('non-Feb 29 dates are unaffected', () {
+      final b = buildBirthday(date: DateTime(2001, 2, 28));
+      expect(b.occurrenceInYear(2028), DateTime(2028, 2, 28, 9));
+      expect(b.occurrenceInYear(2027), DateTime(2027, 2, 28, 9));
+    });
+
+    test('leap year: next occurrence is Feb 29', () {
+      final from = DateTime(2028, 1, 15);
+      expect(leapling.nextOccurrence(from: from), DateTime(2028, 2, 29, 9));
+      expect(leapling.daysUntilNext(from: from), 45);
+      expect(leapling.upcomingAgeFrom(from: from), 28);
+    });
+
+    test('leap year: Feb 28 is the day before', () {
+      final from = DateTime(2028, 2, 28, 12);
+      expect(leapling.nextOccurrence(from: from), DateTime(2028, 2, 29, 9));
+      expect(leapling.daysUntilNext(from: from), 1);
+    });
+
+    test('non-leap year: Feb 28 before notify time is today', () {
+      final from = DateTime(2027, 2, 28, 8);
+      expect(leapling.nextOccurrence(from: from), DateTime(2027, 2, 28, 9));
+      expect(leapling.daysUntilNext(from: from), 0);
+      expect(leapling.upcomingAgeFrom(from: from), 27);
+    });
+
+    test('non-leap year: Feb 28 after notify time jumps to next Feb 29', () {
+      final from = DateTime(2027, 2, 28, 10);
+      expect(leapling.nextOccurrence(from: from), DateTime(2028, 2, 29, 9));
+      expect(leapling.daysUntilNext(from: from), 366);
+      expect(leapling.upcomingAgeFrom(from: from), 28);
+    });
+
+    test('non-leap year: Mar 1 is past, next is the leap-year Feb 29', () {
+      final from = DateTime(2027, 3, 1, 8);
+      expect(leapling.nextOccurrence(from: from), DateTime(2028, 2, 29, 9));
+      expect(leapling.daysUntilNext(from: from), 365);
+    });
+
+    test('leap year: after Feb 29 the next one is Feb 28 of next year', () {
+      final from = DateTime(2028, 3, 1);
+      expect(leapling.nextOccurrence(from: from), DateTime(2029, 2, 28, 9));
+      expect(leapling.daysUntilNext(from: from), 364);
+      expect(leapling.upcomingAgeFrom(from: from), 29);
+    });
+  });
+
+  group('Birthday.upcomingAgeFrom', () {
+    test('is the age turned at the next occurrence', () {
+      final b = buildBirthday(date: DateTime(1990, 5, 10));
+      expect(b.upcomingAgeFrom(from: DateTime(2026, 5, 1)), 36);
+      expect(b.upcomingAgeFrom(from: DateTime(2026, 5, 11)), 37);
+    });
+
+    test('is null when the next occurrence is not after the birth year', () {
+      final b = buildBirthday(date: DateTime(2026, 8, 1));
+      expect(b.upcomingAgeFrom(from: DateTime(2026, 1, 1)), isNull);
+      expect(b.upcomingAgeFrom(from: DateTime(2026, 9, 1)), 1);
+    });
   });
 
   group('Birthday.daysUntilNext', () {

@@ -192,17 +192,15 @@ class NotificationService implements NotificationSync {
       final fireDateTime = next.subtract(Duration(minutes: offset));
       var scheduled = tz.TZDateTime.from(fireDateTime, tz.local);
 
-      // Eğer hesaplanan ilk tetik geçmişte kalmışsa (örn. bugün doğum günü ama
-      // bildirim saati geçti ve offset 0), bir yıl ileri al.
+      // Eğer hesaplanan ilk tetik geçmişte kalmışsa (örn. yarın doğum günü ama
+      // "1 gün önce" saati geçti), bir sonraki yılın doğum gününden hesapla.
+      // `Birthday.nextOccurrence` 29 Şubat → 28 Şubat kuralını uygular.
       final now = tz.TZDateTime.now(tz.local);
       if (!scheduled.isAfter(now)) {
-        scheduled = tz.TZDateTime(
+        final following = b.nextOccurrence(from: next);
+        scheduled = tz.TZDateTime.from(
+          following.subtract(Duration(minutes: offset)),
           tz.local,
-          scheduled.year + 1,
-          scheduled.month,
-          scheduled.day,
-          scheduled.hour,
-          scheduled.minute,
         );
       }
 
