@@ -8,7 +8,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_payload.dart';
@@ -201,6 +203,34 @@ void main() {
       ).captured.single as List<Reminder>;
       expect(geo.firstWhere((r) => r.id == 'first').isDone, isTrue);
       verify(() => homeWidget.sync(any())).called(1);
+    });
+
+    test('Tamamla on a recurring reminder advances it (F3.1)', () async {
+      final now = DateTime(2026, 9, 13, 12);
+      final weekly = buildReminder(
+        id: 'weekly',
+        remindAt: DateTime(2026, 9, 12, 16),
+        recurrence: RecurrenceRule.weekly([DateTime.saturday]),
+      );
+      await repository
+          .saveReminders([first, second, finished, untimed, overdue, weekly]);
+      repository.reminderSaves = 0;
+
+      expect(
+        await handle(
+          NotificationActionIds.complete,
+          payload: 'reminder:weekly',
+          now: now,
+        ),
+        isTrue,
+      );
+
+      final r = await stored('weekly');
+      expect(r.isDone, isFalse);
+      expect(r.remindAt, completeReminder(weekly, now).remindAt);
+      expect(r.remindAt, DateTime(2026, 9, 19, 16));
+      expect(r.recurrence, weekly.recurrence);
+      expect(repository.reminderSaves, 1);
     });
 
     for (final (actionId, expected) in [

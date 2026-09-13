@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 
 import '../helpers/factories.dart';
@@ -327,6 +328,115 @@ void main() {
         verifyServicesSynced(['a'], notificationsEnabled: true);
       },
     );
+
+    group('toggleDone on recurring reminders (F3.1)', () {
+      /// Sunday 13 September 2026, 12:00.
+      final now = DateTime(2026, 9, 13, 12);
+      ReminderCubit clockCubit() => ReminderCubit(
+            repository,
+            notifications,
+            geofence: geofence,
+            homeWidget: homeWidget,
+            now: () => now,
+          );
+
+      List<Reminder> savedReminders() =>
+          verify(() => repository.saveReminders(captureAny())).captured.single
+              as List<Reminder>;
+
+      blocTest<ReminderCubit, ReminderState>(
+        'early completion advances to the next occurrence, not done',
+        build: clockCubit,
+        seed: () => _state(reminders: [
+          buildReminder(
+            id: 'daily',
+            remindAt: DateTime(2026, 9, 13, 18),
+            recurrence: RecurrenceRule.daily(),
+          ),
+        ]),
+        act: (cubit) async {
+          final updated = await cubit.toggleDone('daily');
+          expect(updated!.isDone, isFalse);
+          expect(updated.remindAt, DateTime(2026, 9, 14, 18));
+        },
+        expect: () => [
+          isA<ReminderState>()
+              .having((s) => s.completed, 'completed', isEmpty)
+              .having(
+                (s) => s.active.single.remindAt,
+                'remindAt',
+                DateTime(2026, 9, 14, 18),
+              ),
+        ],
+        verify: (_) {
+          final saved = savedReminders().single;
+          expect(saved.isDone, isFalse);
+          expect(saved.remindAt, DateTime(2026, 9, 14, 18));
+          expect(saved.recurrence, RecurrenceRule.daily());
+          verifyServicesSynced(['daily'], notificationsEnabled: true);
+        },
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'an overdue weekly reminder skips missed occurrences',
+        build: clockCubit,
+        seed: () => _state(reminders: [
+          buildReminder(
+            id: 'weekly',
+            remindAt: DateTime(2026, 8, 22, 16),
+            recurrence: RecurrenceRule.weekly([DateTime.saturday]),
+          ),
+        ]),
+        act: (cubit) => cubit.toggleDone('weekly'),
+        verify: (cubit) {
+          final r = cubit.state.reminders.single;
+          expect(r.isDone, isFalse);
+          expect(r.remindAt, DateTime(2026, 9, 19, 16));
+        },
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'moves the reminder in the sorted list by its next occurrence',
+        build: clockCubit,
+        seed: () => _state(reminders: [
+          buildReminder(
+            id: 'rec',
+            remindAt: DateTime(2026, 9, 13, 9),
+            recurrence: RecurrenceRule.daily(),
+          ),
+          buildReminder(id: 'later', remindAt: DateTime(2026, 9, 13, 20)),
+        ]),
+        act: (cubit) => cubit.toggleDone('rec'),
+        expect: () => [
+          _hasReminderIds(['later', 'rec'])
+        ],
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'a done recurring reminder is reopened unchanged',
+        build: clockCubit,
+        seed: () => _state(reminders: [
+          buildReminder(
+            id: 'ended',
+            isDone: true,
+            remindAt: DateTime(2026, 9, 1, 9),
+            recurrence: RecurrenceRule.daily(until: DateTime(2026, 9, 1)),
+          ),
+        ]),
+        act: (cubit) => cubit.toggleDone('ended'),
+        verify: (cubit) {
+          final r = cubit.state.reminders.single;
+          expect(r.isDone, isFalse);
+          expect(r.remindAt, DateTime(2026, 9, 1, 9));
+        },
+      );
+
+      test('an unknown id returns null', () async {
+        final cubit = clockCubit();
+        expect(await cubit.toggleDone('missing'), isNull);
+        await cubit.close();
+      });
+    });
 
     blocTest<ReminderCubit, ReminderState>(
       'toggleDone flips isDone and keeps every other field',
