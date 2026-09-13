@@ -91,6 +91,90 @@ void main() {
       expect(s.active.map((r) => r.id), ['a', 'c']);
       expect(s.completed.map((r) => r.id), ['b']);
     });
+
+    group('upcomingBirthdays uses the injected clock (F1.8)', () {
+      final march =
+          buildBirthday(id: 'm', name: 'Mart', date: DateTime(1990, 3, 1));
+      final june =
+          buildBirthday(id: 'j', name: 'Haziran', date: DateTime(1990, 6, 1));
+      final leap =
+          buildBirthday(id: 'l', name: 'Şubat', date: DateTime(2000, 2, 29));
+
+      test('orders by next occurrence relative to clock', () {
+        final spring = ReminderState(
+          reminders: const [],
+          birthdays: [june, march, leap],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 2, 1),
+        );
+        expect(spring.upcomingBirthdays.map((b) => b.id), ['l', 'm', 'j']);
+
+        final summer = ReminderState(
+          reminders: const [],
+          birthdays: [june, march, leap],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 4, 1),
+        );
+        expect(summer.upcomingBirthdays.map((b) => b.id), ['j', 'l', 'm']);
+      });
+
+      test('breaks same-day ties by name', () {
+        final s = ReminderState(
+          reminders: const [],
+          birthdays: [
+            buildBirthday(id: '2', name: 'Zeki'),
+            buildBirthday(id: '1', name: 'Ali'),
+          ],
+          settings: const AppSettings(),
+          clock: () => DateTime(2026, 1, 1),
+        );
+        expect(s.upcomingBirthdays.map((b) => b.name), ['Ali', 'Zeki']);
+      });
+
+      test('copyWith keeps the clock', () {
+        final s = ReminderState(
+          reminders: const [],
+          birthdays: [june, march],
+          settings: const AppSettings(),
+          clock: () => DateTime(2027, 4, 1),
+        ).copyWith(reminders: const []);
+        expect(s.upcomingBirthdays.map((b) => b.id), ['j', 'm']);
+      });
+
+      blocTest<ReminderCubit, ReminderState>(
+        'cubit passes its clock to loaded and mutated states',
+        setUp: () {
+          when(() => repository.loadReminders()).thenAnswer((_) async => []);
+          when(() => repository.loadBirthdays())
+              .thenAnswer((_) async => [march, june]);
+          when(() => repository.loadSettings())
+              .thenAnswer((_) async => const AppSettings());
+        },
+        build: () => ReminderCubit(
+          repository,
+          notifications,
+          geofence: geofence,
+          homeWidget: homeWidget,
+          now: () => DateTime(2027, 4, 1),
+        ),
+        act: (cubit) async {
+          await cubit.load();
+          await cubit.addBirthday(leap);
+        },
+        expect: () => [
+          isA<ReminderState>().having(
+            (s) => s.upcomingBirthdays.map((b) => b.id).toList(),
+            'upcoming',
+            ['j', 'm'],
+          ),
+          isA<ReminderState>().having(
+            (s) => s.upcomingBirthdays.map((b) => b.id).toList(),
+            'upcoming',
+            ['j', 'l', 'm'],
+          ),
+        ],
+      );
+    });
   });
 
   group('load', () {
@@ -268,6 +352,9 @@ void main() {
       expect: () => [
         isA<ReminderState>().having((s) => s.reminders, 'reminders', [
           isA<Reminder>()
+              .having((r) => r.id, 'id', 'b')
+              .having((r) => r.isDone, 'isDone', isFalse),
+          isA<Reminder>()
               .having((r) => r.isDone, 'isDone', isTrue)
               .having((r) => r.title, 'title', 'Tam')
               .having((r) => r.note, 'note', 'not')
@@ -279,18 +366,102 @@ void main() {
               .having((r) => r.locationLongitude, 'lng', 29)
               .having((r) => r.locationRadiusMeters, 'radius', 250)
               .having((r) => r.locationPlaceLabel, 'place', 'Yer'),
-          isA<Reminder>()
-              .having((r) => r.id, 'id', 'b')
-              .having((r) => r.isDone, 'isDone', isFalse),
         ]),
       ],
       verify: (_) {
         verifyPersistedAll();
         final synced =
-            verifyServicesSynced(['full', 'b'], notificationsEnabled: true);
-        expect(synced.first.isDone, isTrue);
+            verifyServicesSynced(['b', 'full'], notificationsEnabled: true);
+        expect(synced.last.isDone, isTrue);
       },
     );
+
+    group('keeps compareReminders order (F1.8)', () {
+      final early = buildReminder(id: 'early', remindAt: DateTime(2026, 3, 1));
+      final late = buildReminder(id: 'late', remindAt: DateTime(2026, 9, 1));
+      final untimed = buildReminder(id: 'untimed');
+      final done = buildReminder(
+        id: 'done',
+        isDone: true,
+        remindAt: DateTime(2026, 1, 1),
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'addReminder inserts a timed reminder at its date position',
+        build: buildCubit,
+        seed: () => _state(reminders: [early, late, untimed, done]),
+        act: (cubit) => cubit.addReminder(
+          buildReminder(id: 'mid', remindAt: DateTime(2026, 6, 1)),
+        ),
+        expect: () => [
+          _hasReminderIds(['early', 'mid', 'late', 'untimed', 'done']),
+        ],
+        verify: (_) {
+          final saved = verify(() => repository.saveReminders(captureAny()))
+              .captured
+              .single as List<Reminder>;
+          expect(
+            saved.map((r) => r.id),
+            ['early', 'mid', 'late', 'untimed', 'done'],
+          );
+          verifyServicesSynced(
+            ['early', 'mid', 'late', 'untimed', 'done'],
+            notificationsEnabled: true,
+          );
+        },
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'addReminder puts a newer untimed reminder before older untimed ones',
+        build: buildCubit,
+        seed: () => _state(reminders: [early, untimed, done]),
+        act: (cubit) => cubit.addReminder(
+          buildReminder(id: 'newest', createdAt: DateTime(2026, 5, 1)),
+        ),
+        expect: () => [
+          _hasReminderIds(['early', 'newest', 'untimed', 'done']),
+        ],
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'updateReminder moves a reminder whose date changed',
+        build: buildCubit,
+        seed: () => _state(reminders: [early, late, untimed]),
+        act: (cubit) => cubit.updateReminder(
+          early.copyWith(
+            remindAt: () => null,
+            createdAt: DateTime(2025, 1, 1),
+          ),
+        ),
+        expect: () => [
+          _hasReminderIds(['late', 'untimed', 'early']),
+        ],
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'toggleDone moves a completed reminder after active ones and back',
+        build: buildCubit,
+        seed: () => _state(reminders: [early, late, untimed, done]),
+        act: (cubit) async {
+          await cubit.toggleDone('early');
+          await cubit.toggleDone('done');
+        },
+        expect: () => [
+          _hasReminderIds(['late', 'untimed', 'done', 'early']),
+          _hasReminderIds(['done', 'late', 'untimed', 'early']),
+        ],
+      );
+
+      blocTest<ReminderCubit, ReminderState>(
+        'deleteReminder keeps the remaining order',
+        build: buildCubit,
+        seed: () => _state(reminders: [early, late, untimed, done]),
+        act: (cubit) => cubit.deleteReminder('late'),
+        expect: () => [
+          _hasReminderIds(['early', 'untimed', 'done']),
+        ],
+      );
+    });
 
     final birthday = buildBirthday();
 

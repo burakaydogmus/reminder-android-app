@@ -1,4 +1,4 @@
-﻿import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
@@ -14,10 +14,15 @@ class ReminderState {
   final List<Birthday> birthdays;
   final AppSettings settings;
 
+  /// Tarihe bağlı getter'ların (ör. [upcomingBirthdays]) kullandığı saat.
+  /// Testlerde sabit bir zaman verilebilir; varsayılan `DateTime.now`.
+  final DateTime Function() clock;
+
   const ReminderState({
     required this.reminders,
     required this.birthdays,
     required this.settings,
+    this.clock = DateTime.now,
   });
 
   List<Reminder> get active =>
@@ -26,11 +31,19 @@ class ReminderState {
   List<Reminder> get completed =>
       reminders.where((r) => r.isDone).toList(growable: false);
 
-  /// Bir sonraki doğum gününe göre artan sıralı liste.
+  /// Bir sonraki doğum gününe göre artan sıralı liste (eşitlikte isim).
   List<Birthday> get upcomingBirthdays {
-    final list = [...birthdays];
-    list.sort((a, b) => a.daysUntilNext().compareTo(b.daysUntilNext()));
-    return List.unmodifiable(list);
+    final now = clock();
+    final entries = [
+      for (final b in birthdays)
+        (birthday: b, next: b.nextOccurrence(from: now)),
+    ];
+    entries.sort((a, b) {
+      final byDate = a.next.compareTo(b.next);
+      if (byDate != 0) return byDate;
+      return a.birthday.name.compareTo(b.birthday.name);
+    });
+    return List.unmodifiable(entries.map((e) => e.birthday));
   }
 
   ReminderState copyWith({
@@ -42,6 +55,7 @@ class ReminderState {
       reminders: reminders ?? this.reminders,
       birthdays: birthdays ?? this.birthdays,
       settings: settings ?? this.settings,
+      clock: clock,
     );
   }
 }
@@ -52,18 +66,24 @@ class ReminderCubit extends Cubit<ReminderState> {
     this._notifications, {
     required GeofenceSync geofence,
     required HomeWidgetSync homeWidget,
+    DateTime Function() now = DateTime.now,
   })  : _geofence = geofence,
         _homeWidget = homeWidget,
+        _now = now,
         _schedules = ScheduleSync(
           notifications: _notifications,
           geofence: geofence,
           homeWidget: homeWidget,
         ),
-        super(const ReminderState(
-          reminders: [],
-          birthdays: [],
-          settings: AppSettings(),
+        super(ReminderState(
+          reminders: const [],
+          birthdays: const [],
+          settings: const AppSettings(),
+          clock: now,
         ));
+
+  /// Saat kaynağı (testlerde sabitlenir); yayınlanan her duruma aktarılır.
+  final DateTime Function() _now;
 
   final ReminderRepository _repository;
   final NotificationService _notifications;
@@ -74,15 +94,20 @@ class ReminderCubit extends Cubit<ReminderState> {
   /// kullanır.
   final ScheduleSync _schedules;
 
+  /// Durumdaki hatırlatıcı listesi her zaman [compareReminders] sırasındadır;
+  /// listeyi değiştiren her yol bu yardımcıdan geçer.
+  static List<Reminder> _sorted(Iterable<Reminder> reminders) =>
+      List<Reminder>.of(reminders)..sort(compareReminders);
+
   Future<void> load() async {
-    final reminders = await _repository.loadReminders();
+    final reminders = _sorted(await _repository.loadReminders());
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
-    reminders.sort(compareReminders);
     emit(ReminderState(
       reminders: reminders,
       birthdays: birthdays,
       settings: settings,
+      clock: _now,
     ));
     await _schedules.syncAll(
       reminders: reminders,
@@ -104,15 +129,14 @@ class ReminderCubit extends Cubit<ReminderState> {
   }
 
   Future<void> addReminder(Reminder reminder) async {
-    final next = [...state.reminders, reminder];
+    final next = _sorted([...state.reminders, reminder]);
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
 
   Future<void> updateReminder(Reminder updated) async {
-    final next = state.reminders
-        .map((r) => r.id == updated.id ? updated : r)
-        .toList(growable: false);
+    final next =
+        _sorted(state.reminders.map((r) => r.id == updated.id ? updated : r));
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
@@ -125,7 +149,7 @@ class ReminderCubit extends Cubit<ReminderState> {
         break;
       }
     }
-    final next = state.reminders.where((r) => r.id != id).toList();
+    final next = _sorted(state.reminders.where((r) => r.id != id));
     emit(state.copyWith(reminders: next));
     if (removed != null) {
       await _notifications.cancelReminder(removed);
@@ -134,10 +158,10 @@ class ReminderCubit extends Cubit<ReminderState> {
   }
 
   Future<void> toggleDone(String id) async {
-    final next = state.reminders.map((r) {
+    final next = _sorted(state.reminders.map((r) {
       if (r.id != id) return r;
       return r.copyWith(isDone: !r.isDone);
-    }).toList();
+    }));
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
   }
@@ -194,10 +218,11 @@ class ReminderCubit extends Cubit<ReminderState> {
       notificationsEnabled: false,
     );
     await _repository.clearAll();
-    emit(const ReminderState(
-      reminders: [],
-      birthdays: [],
-      settings: AppSettings(),
+    emit(ReminderState(
+      reminders: const [],
+      birthdays: const [],
+      settings: const AppSettings(),
+      clock: _now,
     ));
     await _homeWidget.sync(const []);
   }
