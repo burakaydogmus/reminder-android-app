@@ -52,7 +52,7 @@ Diğer tüm fazların temeli.
   Uygulama resume'da / widget etkileşiminde depodan yeniden yükleme.
 - [x] **F1.4 Bozuk kayıtta tüm verinin silinmesi** · `fix/repository-data-loss`
   Parse hatasında `[]` dönüp sonraki kayıtta her şeyin üzerine yazılması. Kayıt bazlı hata toleransı + ham verinin yedeklenmesi.
-- [ ] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
+- [x] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
 - [ ] **F1.6 İzin akışı** · `fix/permission-flow`
   Açılışta tüm izinleri (exact alarm dahil) istemek yerine ihtiyaç anında, açıklamalı istek. `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` Play politikası kararı. İzin reddedilmişse ayarlarda uyarı.
@@ -96,7 +96,7 @@ Diğer tüm fazların temeli.
   **Önce doğrula:** araştırmadaki güncel sürüm iddiaları (Flutter 3.47, `material_ui`/`cupertino_ui` paketleri, iOS 15 minimumu, UIScene, `flutter_local_notifications` 22, `home_widget` 0.9.4) resmi kaynaklardan teyit edilir; tutmayan kısım o günkü kararlı sürüme göre uyarlanır. Kapsam: Flutter yükseltmesi + CI pin'i, `material_ui`/`cupertino_ui` geçişi, bağımlılık yükseltmeleri (F0.1'deki Android sürüm sabitlemelerinin gözden geçirilmesi dahil), native yapılandırma, `flutter_map` uyumu. **Görsel değişiklik yok.**
 - [x] **F4.0b Kor tema token'ları + font** · `feat/kor-theme-tokens` · *bağımlı: F0.3*
   `lib/ui/theme/tokens/` (palet, `ColorScheme`, tipografi, şekil, boşluk, yükselti), `ThemeExtension`'lar (`KorColors`, `KorMotion`), `KorTheme.light/dark` (henüz bağlı değil), Google Sans Flex alt kümesi (latin + latin-ext; wght/opsz/ROND), kontrast testi. **Görsel değişiklik yok.**
-- [ ] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0a, F4.0b*
+- [x] **F4.1 Kor temel görünüm** · `feat/material3` · *bağımlı: F4.0a, F4.0b*
   `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
 - [ ] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
@@ -162,3 +162,4 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
 
 - **F4.5 erişilebilirlik** tek seferlik bir adım değil: F4.1'den itibaren her PR'ın kabul kriteri, sonda kapanış denetimi.
 - **F4.1 ile Faz 1 paralelliği:** F1.6 (izin arayüzü) ve F1.8 (editörde geçmiş saat) `lib/ui` dosyalarına da dokunur; hangisi önce merge edilirse diğeri rebase eder.
+- **F1.6 artık F4.1'den sonra yürütülür:** izin durumu arayüzü yeni Ayarlar gruplu kartlarına (İzinler) ve yeni editörün "Nerede" kartına yerleşir; F4.1 bu bölümleri bilerek boş bıraktı.
