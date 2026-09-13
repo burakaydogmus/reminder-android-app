@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:isolate';
+import 'dart:ui' show IsolateNameServer;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:reminder/data/reminder_repository.dart';
@@ -5,6 +9,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
+import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/schedule_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -176,6 +181,57 @@ void main() {
         () => geofence.syncWithReminders(any(), notificationsEnabled: false),
       ).called(1);
       expect(widgetIds(), ['first', 'second', 'finished']);
+    });
+  });
+  group('widget change signal (F1.3)', () {
+    late ReceivePort port;
+    late List<Object?> messages;
+    late StreamSubscription<Object?> sub;
+
+    setUp(() {
+      port = ReceivePort();
+      messages = [];
+      sub = port.listen(messages.add);
+      IsolateNameServer.removePortNameMapping(widgetChangePortName);
+      IsolateNameServer.registerPortWithName(
+        port.sendPort,
+        widgetChangePortName,
+      );
+    });
+
+    tearDown(() async {
+      IsolateNameServer.removePortNameMapping(widgetChangePortName);
+      await sub.cancel();
+      port.close();
+    });
+
+    Future<void> drain() => Future<void>.delayed(
+          const Duration(milliseconds: 50),
+        );
+
+    test('a saved change notifies the running app', () async {
+      await toggle('first');
+      await drain();
+      expect(messages, hasLength(1));
+    });
+
+    test('no change sends no signal', () async {
+      await toggle('finished');
+      await drain();
+      expect(messages, isEmpty);
+    });
+
+    test('without a running app the signal is dropped', () async {
+      IsolateNameServer.removePortNameMapping(widgetChangePortName);
+      await toggle('first');
+      await drain();
+      expect(messages, isEmpty);
+      expect(
+        (await repository.loadReminders())
+            .firstWhere((r) => r.id == 'first')
+            .isDone,
+        isTrue,
+      );
     });
   });
 }

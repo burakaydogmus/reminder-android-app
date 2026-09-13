@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
@@ -24,10 +26,20 @@ abstract interface class NotificationSync {
 /// zamanlama türü eklenirse buraya eklenir; çağıranlar tek tek servis
 /// çağırmaz.
 ///
-/// F1.7 notu: eşzamanlı çağrıların sıraya alınması (serialisation) bu sınıfta
-/// yapılabilir; tüm senkronlar zaten buradan geçer.
+/// **Sıralama ve birleştirme (F1.7):** [syncAll] çağrıları hiçbir zaman iç içe
+/// geçmez; aynı anda tek senkron çalışır. Biri çalışırken gelen çağrılar
+/// kuyruğa alınır ve birleştirilir: her çağrı saklanan durumun **tam** bir
+/// anlık görüntüsünü taşıdığı için yalnızca en son bekleyen istek çalıştırılır;
+/// arada kalan istekler atlanır. Kuyruktaki tüm çağıranların `Future`'ı bu son
+/// senkron bittiğinde (onun hatasıyla birlikte) tamamlanır. Böylece hızlı art
+/// arda düzenlemeler iptal/kurulum adımlarını karıştıramaz.
+///
+/// Sınır: sıralama örnek başınadır. Widget arka plan callback'i ayrı bir
+/// isolate'te kendi örneğini kurar; isolate'ler arası yarışlar bu sınıfın
+/// kapsamı dışındadır (fark bazlı senkron bir sonraki çağrıda durumu yine
+/// düzeltir).
 class ScheduleSync {
-  const ScheduleSync({
+  ScheduleSync({
     required NotificationSync notifications,
     required GeofenceSync geofence,
     required HomeWidgetSync homeWidget,
@@ -39,25 +51,67 @@ class ScheduleSync {
   final GeofenceSync _geofence;
   final HomeWidgetSync _homeWidget;
 
+  bool _running = false;
+  _SyncRequest? _queued;
+  Completer<void>? _queuedDone;
+
   /// Sırasıyla bildirimleri, geofence'leri ve widget'ı günceller.
+  ///
+  /// Başka bir senkron çalışıyorsa bekler; bu arada daha yeni bir çağrı
+  /// gelirse bu çağrının durumu yerine onunki kurulur (bkz. sınıf notu).
   Future<void> syncAll({
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
     required AppSettings settings,
-  }) async {
+  }) {
+    final request = _SyncRequest(reminders, birthdays, settings);
+    if (_running) {
+      _queued = request;
+      return (_queuedDone ??= Completer<void>()).future;
+    }
+    return _run(request);
+  }
+
+  /// [request]'i çalıştırır, bitince (hata olsa da) kuyruktaki son isteği
+  /// başlatır. `_running` ilk `await`'ten önce, eşzamanlı olarak ayarlanır.
+  Future<void> _run(_SyncRequest request) async {
+    _running = true;
+    try {
+      await _syncNow(request);
+    } finally {
+      _running = false;
+      final next = _queued;
+      final done = _queuedDone;
+      _queued = null;
+      _queuedDone = null;
+      if (next != null && done != null) done.complete(_run(next));
+    }
+  }
+
+  Future<void> _syncNow(_SyncRequest request) async {
+    final enabled = request.settings.notificationsEnabled;
     await _notifications.syncSchedules(
-      reminders: reminders,
-      birthdays: birthdays,
-      notificationsEnabled: settings.notificationsEnabled,
+      reminders: request.reminders,
+      birthdays: request.birthdays,
+      notificationsEnabled: enabled,
     );
     await _geofence.syncWithReminders(
-      reminders,
-      notificationsEnabled: settings.notificationsEnabled,
+      request.reminders,
+      notificationsEnabled: enabled,
     );
-    await _homeWidget.sync(reminders);
+    await _homeWidget.sync(request.reminders);
   }
 
   /// Zamanlamalara dokunmadan yalnızca widget'ı yeniler (veri değişmediğinde).
   Future<void> refreshHomeWidget(List<Reminder> reminders) =>
       _homeWidget.sync(reminders);
+}
+
+/// [ScheduleSync.syncAll] argümanlarının anlık görüntüsü.
+class _SyncRequest {
+  const _SyncRequest(this.reminders, this.birthdays, this.settings);
+
+  final List<Reminder> reminders;
+  final List<Birthday> birthdays;
+  final AppSettings settings;
 }
