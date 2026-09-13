@@ -140,7 +140,7 @@ void main() {
             .toList();
 
         for (final n in ids) {
-          expect(n, inInclusiveRange(0, 0x7FFFFFFF), reason: id);
+          expect(n, inInclusiveRange(1, 0x7FFFFFFF), reason: id);
         }
         expect(ids.toSet().length, ids.length, reason: id);
       }
@@ -149,6 +149,13 @@ void main() {
     test('is stable for the same birthday and offset', () {
       final b = buildBirthday();
       expect(b.notificationIdFor(1440), b.notificationIdFor(1440));
+    });
+
+    test('matches the hard-coded deterministic id (F1.5)', () {
+      final b = buildBirthday(id: 'c7d1e9a0-1111-4222-8333-444455556666');
+      expect(b.notificationIdFor(0), 2097222621);
+      expect(b.notificationIdFor(1440), 497286126);
+      expect(b.copyWith(name: 'Başka').notificationIdFor(0), 2097222621);
     });
   });
 

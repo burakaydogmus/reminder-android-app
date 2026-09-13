@@ -52,7 +52,7 @@ Diğer tüm fazların temeli.
   Uygulama resume'da / widget etkileşiminde depodan yeniden yükleme.
 - [x] **F1.4 Bozuk kayıtta tüm verinin silinmesi** · `fix/repository-data-loss`
   Parse hatasında `[]` dönüp sonraki kayıtta her şeyin üzerine yazılması. Kayıt bazlı hata toleransı + ham verinin yedeklenmesi.
-- [ ] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
+- [x] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
 - [ ] **F1.6 İzin akışı** · `fix/permission-flow`
   Açılışta tüm izinleri (exact alarm dahil) istemek yerine ihtiyaç anında, açıklamalı istek. `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` Play politikası kararı. İzin reddedilmişse ayarlarda uyarı.
