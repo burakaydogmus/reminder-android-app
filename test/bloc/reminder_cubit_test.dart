@@ -343,8 +343,12 @@ void main() {
         'updateReminder moves a reminder whose date changed',
         build: buildCubit,
         seed: () => _state(reminders: [early, late, untimed]),
-        act: (cubit) =>
-            cubit.updateReminder(early.copyWith(remindAt: () => null)),
+        act: (cubit) => cubit.updateReminder(
+          early.copyWith(
+            remindAt: () => null,
+            createdAt: DateTime(2025, 1, 1),
+          ),
+        ),
         expect: () => [
           _hasReminderIds(['late', 'untimed', 'early']),
         ],
