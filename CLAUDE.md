@@ -141,6 +141,19 @@ isolates must load birthdays and settings from the repository before syncing.
 F1.7 may make `syncSchedules` diff-based and serialise concurrent `syncAll` calls
 inside `ScheduleSync` without changing callers.
 
+### Notification ids
+
+`Reminder.notificationId`, `Reminder.geoNotificationId` and
+`Birthday.notificationIdFor(offset)` come from `lib/domain/notification_ids.dart`
+(`NotificationIds`): 32-bit FNV-1a over the UTF-8 bytes of a namespaced key
+(`reminder:<id>`, `geo:<id>`, `birthday:<id>:<offsetMinutes>`), masked to 31 bits,
+0 mapped to 1. Never use `String.hashCode` for anything persisted or shared between
+isolates — it is not stable across Dart versions/runs (F1.5). The ids are a persisted
+contract (hard-coded in `test/domain/notification_ids_test.dart`); changing the
+algorithm or key format requires clearing old-id notifications. The F1.5 migration
+relies on `syncSchedules` starting with `cancelAll()` on every app load; a diff-based
+F1.7 sync must keep an equivalent cleanup for ids it does not recognise.
+
 ## Workflow rules (from ROADMAP.md)
 
 - **Branch name:** `<type>/<short-name>` — `feat/`, `fix/`, `chore/`, `refactor/`,
