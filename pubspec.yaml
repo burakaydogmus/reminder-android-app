@@ -37,6 +37,12 @@ dependencies:
   drift_flutter: ^0.3.1
   sqlite3: ^3.6.0
   path_provider: ^2.1.6
+  # Backup (F2.2): system share sheet for the export file, document picker
+  # for import (flutter.dev; no manifest/Info.plist entries), app version in
+  # the backup header.
+  share_plus: ^13.3.0
+  file_selector: ^1.1.0
+  package_info_plus: ^10.2.1
 
 dev_dependencies:
   flutter_test:
