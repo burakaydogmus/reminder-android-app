@@ -22,7 +22,8 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 
 - **Branch adı:** `<tür>/<kısa-ad>` — `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`
 - **Commit:** [Conventional Commits](https://www.conventionalcommits.org/) — `feat(scope): ...`, `fix(scope): ...`
-- **PR:** Açıklamada madde ID'si (örn. `F1.2`), yapılanlar, test adımları. CI (analyze + test + build) geçmeden merge yok.
+- **PR:** Açıklamada madde ID'si (örn. `F1.2`), yapılanlar, test adımları. CI geçmeden merge yok.
+- **CI maliyeti (private repo):** `CI` (format + analyze + test) her kod PR'ında çalışır. `Android build` (release/R8) yalnızca `android/**` veya pubspec değişince, `iOS build` (macOS, 10× dakika) yalnızca `ios/**` veya pubspec değişince çalışır; ikisi de Actions sekmesinden elle başlatılabilir. Merge sonrası `master`'da CI çalışmaz. PR başına gereksiz push'tan kaçının (her push CI'ı yeniden başlatır).
 - **Merge:** CI geçtikten sonra repo sahibi merge eder; branch merge sonrası silinir.
 - **Çakışma riski:** `lib/bloc/reminder_cubit.dart`, `lib/services/notification_service.dart` ve veri modeli birçok maddeye dokunur — bu dosyalara dokunan maddeler **sıralı**, diğerleri paralel yürütülür.
 - **iOS doğrulama:** Geliştirme ortamı Windows olduğundan iOS derlemesi CI'daki macOS runner'da yapılır; cihaz testi ayrıca planlanır.
@@ -56,12 +57,12 @@ Diğer tüm fazların temeli.
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
 - [x] **F1.6 İzin akışı** · `fix/permission-flow`
   Açılışta tüm izinleri (exact alarm dahil) istemek yerine ihtiyaç anında, açıklamalı istek. `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` Play politikası kararı. İzin reddedilmişse ayarlarda uyarı.
-- [ ] **F1.7 Senkronizasyon verimliliği ve yarış durumu** · `fix/sync-diffing` · *bağımlı: F1.2*
+- [x] **F1.7 Senkronizasyon verimliliği ve yarış durumu** · `fix/sync-diffing` · *bağımlı: F1.2*
   Her değişiklikte tüm bildirim ve geofence'lerin silinip yeniden kurulması yerine fark bazlı güncelleme; eşzamanlı `_persistAndSync` çağrılarının sıraya alınması.
 - [x] **F1.8a Küçük hatalar (model + cubit)** · `fix/misc-domain-bugs`
   Liste her değişiklikten sonra `compareReminders` ile sıralanıyor · 29 Şubat doğum günleri artık yıl olmayan yıllarda 28 Şubat'ta · yıllık tekrarlayan doğum günü bildirim metni yaştan bağımsız (yaş uygulama içinde) · `Birthday.copyWith(note: () => null)` · `ReminderCubit`/`ReminderState` için enjekte edilebilir saat.
-- [ ] **F1.8b Editörde geçmiş saat uyarısı** · *bağımlı: F4.1*
-  Editörde geçmiş zaman sessizce "1 dk sonra" oluyor; kullanıcıya uyarı/seçim gösterilmesi (`lib/ui`, F4.1 yeniden yazımından sonra).
+- [x] **F1.8b Editörde geçmiş saat uyarısı** · `fix/editor-past-time` · *bağımlı: F4.1*
+  Geçmiş tarih/saat artık sessizce "1 dk sonra" olmuyor: chip'ler `error` rengine dönüyor, "Bu saat geçti" + "Yarın HH:mm mı?" öneri chip'i gösteriliyor, kayıt engelleniyor. Saati değişmemiş gecikmiş mevcut hatırlatıcı kaydedilebiliyor (orijinal saat korunuyor).
 - [x] **F1.9 Release build** · `chore/release-build`
   `key.properties` yokken release build'in kırılması, R8/ProGuard kuralları, paket adı değişimi `com.fabirt.reminder` → `com.burakaydogmus.reminder` (Android `namespace`/`applicationId`, Kotlin paketleri, widget sınıf adı, App Group, iOS bundle ID).
 

@@ -1,0 +1,56 @@
+name: Android build
+
+# Release APK (R8 + resource shrinking) also proves the app compiles, so no
+# separate debug build. Runs only when Android config or dependencies change;
+# start it manually (Actions tab → Android build → Run workflow) to get an APK.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+
+jobs:
+  build-android-release:
+    name: Build Android (release APK, R8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # No key.properties on CI: Gradle signs with the debug key. The APK is
+      # for device testing only and must not be published.
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-debugsigned-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7

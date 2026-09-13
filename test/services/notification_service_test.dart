@@ -1,7 +1,10 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/services/notification_fingerprint_store.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -31,6 +34,7 @@ void main() {
   });
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     plugin = FakeNotificationsPlugin();
     service = NotificationService.forTesting(plugin);
   });
@@ -108,11 +112,11 @@ void main() {
     });
 
     // F1.5 geçişi: eski `String.hashCode` kimlikleriyle zamanlanmış
-    // bildirimler yeni kimliklerle `cancel` edilemez. Güncellemeden sonraki
-    // ilk senkron (her uygulama açılışında `ScheduleSync.syncAll`) önce
-    // `cancelAll` çağırdığı için bunlar da temizlenir.
-    test('cancels everything, including unknown old-scheme ids, first',
-        () async {
+    // bildirimler yeni kimliklerle hesaplanamaz. Her senkron (her uygulama
+    // açılışında `ScheduleSync.syncAll`) bekleyenlerde olup istenmeyen her
+    // id'yi tek tek iptal ettiği için bunlar da temizlenir (F1.7: cancelAll
+    // olmadan).
+    test('cancels unknown old-scheme pending ids without cancelAll', () async {
       final legacy = FakePendingNotification(
         id: 424242,
         title: 'old-scheme',
@@ -128,7 +132,8 @@ void main() {
         notificationsEnabled: true,
       );
 
-      expect(plugin.cancelAllCalls, 1);
+      expect(plugin.cancelAllCalls, 0);
+      expect(plugin.cancelledIds, [legacy.id]);
       expect(plugin.pending.containsKey(legacy.id), isFalse);
       expect(
         plugin.pending.keys.toSet(),
@@ -229,5 +234,198 @@ void main() {
     await service.cancelAll();
 
     expect(plugin.pending, isEmpty);
+    expect(await const NotificationFingerprintStore().load(), isNull);
+  });
+
+  group('diff-based sync (F1.7)', () {
+    final other = buildReminder(id: 'other', remindAt: tomorrow);
+    final friend = buildBirthday(id: 'b2', advanceOffsetsMinutes: [0]);
+    final allBirthdayIds = {..._birthdayIds(birthday), ..._birthdayIds(friend)};
+
+    Future<void> sync(
+      List<Reminder> reminders, {
+      List<Birthday>? birthdays,
+      bool enabled = true,
+    }) =>
+        service.syncSchedules(
+          reminders: reminders,
+          birthdays: birthdays ?? [birthday, friend],
+          notificationsEnabled: enabled,
+        );
+
+    /// İlk senkron: her şey kurulu, sayaçlar sıfır.
+    Future<void> baseline() async {
+      await sync([future, other]);
+      plugin.resetCounters();
+    }
+
+    test('an unchanged state writes nothing', () async {
+      await baseline();
+
+      await sync([future, other]);
+
+      expect(plugin.writeCalls, 0);
+    });
+
+    test('editing one reminder reschedules only that id', () async {
+      await baseline();
+
+      await sync([future.copyWith(title: 'Süt al'), other]);
+
+      expect(plugin.scheduledIds, [future.notificationId]);
+      expect(plugin.cancelledIds, isEmpty);
+      expect(plugin.cancelAllCalls, 0);
+      expect(plugin.pending[future.notificationId]!.title, 'Süt al');
+    });
+
+    test('completing or deleting one reminder cancels only that id', () async {
+      await baseline();
+
+      await sync([future.copyWith(isDone: true), other]);
+      expect(plugin.cancelledIds, [future.notificationId]);
+
+      await sync([future.copyWith(isDone: true)]);
+      expect(
+          plugin.cancelledIds, [future.notificationId, other.notificationId]);
+      expect(plugin.scheduleCalls, 0);
+      expect(plugin.cancelAllCalls, 0);
+      expect(plugin.pending.keys.toSet(), allBirthdayIds);
+    });
+
+    test('a time edit reschedules at the new time', () async {
+      await baseline();
+      final later = tomorrow.add(const Duration(hours: 2));
+
+      await sync([future.copyWith(remindAt: () => later), other]);
+
+      expect(plugin.scheduledIds, [future.notificationId]);
+      expect(
+        plugin.pending[future.notificationId]!.scheduledDate,
+        tz.TZDateTime.from(later, tz.local),
+      );
+    });
+
+    test('birthdays are untouched when only reminders change', () async {
+      await baseline();
+
+      await sync([future.copyWith(title: 'Yeni'), buildReminder(id: 'new')]);
+      await sync([
+        future.copyWith(title: 'Yeni'),
+        buildReminder(id: 'timed', remindAt: tomorrow),
+      ]);
+
+      final touched = {...plugin.scheduledIds, ...plugin.cancelledIds};
+      expect(touched.intersection(allBirthdayIds), isEmpty);
+      expect(plugin.pending.keys.toSet(), containsAll(allBirthdayIds));
+    });
+
+    test('a birthday change touches only that birthday', () async {
+      await baseline();
+
+      await sync(
+        [future, other],
+        birthdays: [birthday, friend.copyWith(name: 'Mehmet')],
+      );
+
+      expect(plugin.scheduledIds, [friend.notificationIdFor(0)]);
+      expect(plugin.cancelledIds, isEmpty);
+    });
+
+    test('a shown geofence notification survives syncs', () async {
+      final geo = buildReminder(
+        id: 'geo',
+        remindAt: tomorrow,
+        locationTriggerEnabled: true,
+        locationLatitude: 41,
+        locationLongitude: 29,
+      );
+      await sync([geo, other]);
+      await service.showGeofenceEntry(geo);
+      expect(plugin.shown, {geo.geoNotificationId});
+
+      await sync([geo.copyWith(title: 'Değişti'), other]);
+      await sync([geo.copyWith(isDone: true)]);
+      await sync(const [], enabled: false);
+
+      expect(plugin.shown, {geo.geoNotificationId});
+      expect(plugin.cancelAllCalls, 0);
+      expect(plugin.cancelledIds, isNot(contains(geo.geoNotificationId)));
+    });
+
+    test('never cancels a geo id even if it shows up as pending', () async {
+      final geo = buildReminder(id: 'geo', remindAt: tomorrow);
+      plugin.pending[geo.geoNotificationId] = FakePendingNotification(
+        id: geo.geoNotificationId,
+        title: 'geo',
+        scheduledDate: tz.TZDateTime.now(tz.local),
+      );
+
+      await sync([geo]);
+
+      expect(plugin.cancelledIds, isNot(contains(geo.geoNotificationId)));
+    });
+
+    test('a pending entry missing from the plugin is rescheduled', () async {
+      await baseline();
+      plugin.pending.remove(other.notificationId);
+
+      await sync([future, other]);
+
+      expect(plugin.scheduledIds, [other.notificationId]);
+    });
+
+    for (final (label, raw) in [
+      ('corrupt', '{not json'),
+      ('missing', null),
+    ]) {
+      test('$label fingerprint store: reschedules all desired, no cancelAll',
+          () async {
+        await baseline();
+        final prefs = await SharedPreferences.getInstance();
+        if (raw == null) {
+          await prefs.remove(NotificationFingerprintStore.storageKey);
+        } else {
+          await prefs.setString(NotificationFingerprintStore.storageKey, raw);
+        }
+
+        await sync([future, other]);
+
+        expect(
+          plugin.scheduledIds.toSet(),
+          {future.notificationId, other.notificationId, ...allBirthdayIds},
+        );
+        expect(plugin.cancelledIds, isEmpty);
+        expect(plugin.cancelAllCalls, 0);
+        expect(await const NotificationFingerprintStore().load(), isNotNull);
+
+        plugin.resetCounters();
+        await sync([future, other]);
+        expect(plugin.writeCalls, 0, reason: 'store repaired');
+      });
+    }
+
+    test('disabled: cancels pending one by one and clears fingerprints',
+        () async {
+      await baseline();
+
+      await sync([future, other], enabled: false);
+
+      expect(plugin.pending, isEmpty);
+      expect(plugin.cancelAllCalls, 0);
+      expect(plugin.scheduleCalls, 0);
+      expect(
+        plugin.cancelledIds.toSet(),
+        {future.notificationId, other.notificationId, ...allBirthdayIds},
+      );
+      expect(await const NotificationFingerprintStore().load(), isNull);
+
+      plugin.resetCounters();
+      await sync([future, other]);
+      expect(plugin.pending.keys.toSet(), {
+        future.notificationId,
+        other.notificationId,
+        ...allBirthdayIds,
+      });
+    });
   });
 }

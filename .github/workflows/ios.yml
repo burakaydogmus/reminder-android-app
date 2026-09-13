@@ -1,0 +1,41 @@
+name: iOS build
+
+# macOS runners bill 10x on private repos (~35 billed minutes per run).
+# Runs only when iOS config or dependencies change; start it manually from the
+# Actions tab when a Dart-only change needs an iOS check.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+
+jobs:
+  build-ios:
+    name: Build iOS (no codesign)
+    # Pinned so a future macos-latest move (Xcode 27) does not change the build.
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS
+        run: flutter build ios --no-codesign --debug
