@@ -1,4 +1,4 @@
-﻿import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:reminder/domain/model/birthday.dart';
@@ -25,7 +25,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: darwin),
+      settings: const InitializationSettings(android: android, iOS: darwin),
     );
 
     _initialized = true;
@@ -48,13 +48,13 @@ class NotificationService {
   }
 
   Future<void> cancelReminder(Reminder reminder) async {
-    await _plugin.cancel(reminder.notificationId);
-    await _plugin.cancel(reminder.geoNotificationId);
+    await _plugin.cancel(id: reminder.notificationId);
+    await _plugin.cancel(id: reminder.geoNotificationId);
   }
 
   Future<void> cancelBirthday(Birthday birthday) async {
     for (final preset in BirthdayAdvanceOffset.presets) {
-      await _plugin.cancel(birthday.notificationIdFor(preset.minutes));
+      await _plugin.cancel(id: birthday.notificationIdFor(preset.minutes));
     }
   }
 
@@ -91,10 +91,10 @@ class NotificationService {
             : 'Kayıtlı konuma girdiniz';
 
     await _plugin.show(
-      r.geoNotificationId,
-      r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
-      body,
-      details,
+      id: r.geoNotificationId,
+      title: r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
+      body: body,
+      notificationDetails: details,
       payload: r.id,
     );
   }
@@ -183,14 +183,12 @@ class NotificationService {
       final body = _birthdayNotificationBody(b, offset);
 
       await _plugin.zonedSchedule(
-        b.notificationIdFor(offset),
-        _birthdayNotificationTitle(b, offset),
-        body,
-        scheduled,
-        details,
+        id: b.notificationIdFor(offset),
+        title: _birthdayNotificationTitle(b, offset),
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
         payload: 'birthday:${b.id}',
       );
@@ -243,14 +241,12 @@ class NotificationService {
         : 'Hatırlatma zamanı';
 
     await _plugin.zonedSchedule(
-      r.notificationId,
-      r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
-      body,
-      scheduled,
-      details,
+      id: r.notificationId,
+      title: r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
+      body: body,
+      scheduledDate: scheduled,
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }
