@@ -46,12 +46,13 @@ abstract final class TurkishText {
 
   /// Upper-cases the first letter when only non-alphanumerics (spaces,
   /// emoji, punctuation) precede it: `istanbul` → `İstanbul`,
-  /// `🛒 ekmek` → `🛒 Ekmek`, `2 ekmek` stays.
+  /// `🛒 ekmek` → `🛒 Ekmek`; `2 ekmek` and `#iş` stay.
   static String capitalizeFirst(String input) {
     final runes = input.runes.toList();
     for (var i = 0; i < runes.length; i++) {
       final ch = String.fromCharCode(runes[i]);
-      if (_digit.hasMatch(ch)) return input;
+      // Digits and tag markers (`#iş`, `@ev`) keep the text as typed.
+      if (_digit.hasMatch(ch) || ch == '#' || ch == '@') return input;
       if (_letter.hasMatch(ch)) {
         final upper = toUpper(ch);
         if (upper == ch) return input;

@@ -60,6 +60,7 @@ void main() {
       expect(TurkishText.capitalizeFirst('🛒 ekmek'), '🛒 Ekmek');
       expect(TurkishText.capitalizeFirst('"iade" et'), '"İade" et');
       expect(TurkishText.capitalizeFirst('2 ekmek'), '2 ekmek');
+      expect(TurkishText.capitalizeFirst('#iş ekmek'), '#iş ekmek');
       expect(TurkishText.capitalizeFirst(''), '');
       expect(TurkishText.capitalizeFirst('Zaten'), 'Zaten');
     });
