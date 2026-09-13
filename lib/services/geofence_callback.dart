@@ -21,10 +21,12 @@ Future<void> geofenceEntryCallback(GeofenceCallbackParams params) async {
   DartPluginRegistrant.ensureInitialized();
   if (params.event != GeofenceEvent.enter) return;
 
+  // Ayrı engine: veritabanı bağlantısı bu çağrıya özeldir, sonunda kapatılır.
+  final repository = ReminderRepository();
   try {
     await handleGeofenceEntry(
       params.geofences.map((g) => g.id),
-      repository: ReminderRepository(),
+      repository: repository,
       store: GeofenceStateStore(),
       showNotification: (r) async {
         await NotificationService.instance.initialize();
@@ -34,6 +36,8 @@ Future<void> geofenceEntryCallback(GeofenceCallbackParams params) async {
     );
   } catch (e, st) {
     debugPrint('Geofence callback failed: $e\n$st');
+  } finally {
+    await repository.close();
   }
 }
 
