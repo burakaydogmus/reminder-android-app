@@ -81,6 +81,7 @@ Tests mirror `lib/`:
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
 - `test/services/` — geofence rules, `GeofenceService` sync against a fake
   `GeofencePlatform` (no platform channels), background entry handling.
+- `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
 
@@ -122,6 +123,26 @@ wired in `app.dart`, mocked in `test/helpers/mocks.dart`.
 `lib/bloc/reminder_cubit.dart`, `lib/services/notification_service.dart` and the models
 in `lib/domain/model/` are touched by many roadmap items. Items that modify them must
 land **sequentially**; keep changes there minimal and rebase often.
+
+## Theme tokens
+
+The "Kor" design system (`docs/design/kor-design-proposal.md` §3.1, §5.3) lives in
+`lib/ui/theme/`. **Not wired yet:** the app still uses `AppTheme` (M2, Comfortaa)
+until F4.1 sets `theme: KorTheme.light(), darkTheme: KorTheme.dark()`.
+
+- `tokens/` — `kor_palette.dart` (raw hex, `KorColorKey` category keys),
+  `kor_color_scheme.dart` (all M3 roles by hand), `kor_typography.dart` (Google Sans
+  Flex, `FontVariation` wght/opsz/ROND, tabular time styles), `kor_shapes.dart`
+  (`KorRadius`, `CookieShapeBorder`), `kor_spacing.dart`, `kor_elevation.dart`.
+- `extensions/` — `KorColors` (`context.korColors`: success, glass, now line,
+  `category(key)`) and `KorMotion` (`context.korMotion`: 6 springs, Reduce Motion
+  resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`.
+- Font: `fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf` (OFL, subset latin + latin-ext).
+- Rules for new UI: colours from `Theme.of(context).colorScheme` / `context.korColors`,
+  text from `textTheme`, sizes from the token files. **No raw `Color(0x…)`, `Colors.*`
+  or hard-coded `fontSize` in new widgets.** Categories store a `KorColorKey`, never a hex.
+- New colour tokens must pass `test/ui/theme/contrast_test.dart` (text ≥ 4.5, UI ≥ 3.0);
+  a failing design value is skipped with its measured ratio, not silently changed.
 
 ## Geofencing
 
