@@ -1,4 +1,4 @@
-package com.fabirt.reminder
+package com.burakaydogmus.reminder
 
 import android.os.Bundle
 import androidx.core.view.WindowCompat

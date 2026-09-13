@@ -13,7 +13,7 @@ import 'package:reminder/util/local_timezone.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isAndroid) {
-    await HomeWidget.setAppGroupId('group.com.fabirt.reminder');
+    await HomeWidget.setAppGroupId('group.com.burakaydogmus.reminder');
     await HomeWidget.registerInteractivityCallback(reminderHomeWidgetCallback);
   }
   await initializeDateFormatting('tr_TR');

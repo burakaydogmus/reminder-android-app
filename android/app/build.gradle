@@ -30,7 +30,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.fabirt.reminder"
+    namespace "com.burakaydogmus.reminder"
     compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -45,7 +45,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.fabirt.reminder"
+        applicationId "com.burakaydogmus.reminder"
         minSdk 26
         targetSdk flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
