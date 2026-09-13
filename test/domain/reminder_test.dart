@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
@@ -31,6 +33,34 @@ void main() {
       expect(restored.recurrence, RecurrenceRule.none);
       expect(restored.isRecurring, isFalse);
       expect(buildReminder().toJson()['recurrence'], isNull);
+    });
+
+    test('an old backup/prefs reminder without recurrence round-trips', () {
+      // Shape written before F3.1 (SharedPreferences and F2.2 backups).
+      const legacy = {
+        'id': 'old',
+        'title': 'Eski',
+        'note': null,
+        'isDone': false,
+        'createdAt': '2026-01-01T12:00:00.000',
+        'remindAt': '2026-09-20T09:00:00.000',
+        'categoryId': 'other',
+        'customCategoryLabel': null,
+        'locationTriggerEnabled': false,
+        'locationLatitude': null,
+        'locationLongitude': null,
+        'locationRadiusMeters': 150.0,
+        'locationPlaceLabel': null,
+      };
+      final loaded = Reminder.fromJson(legacy);
+      expect(loaded.recurrence, RecurrenceRule.none);
+
+      final encoded = jsonEncode(loaded.toJson());
+      final again = Reminder.fromJson(
+        jsonDecode(encoded) as Map<String, dynamic>,
+      );
+      expect(again.recurrence, RecurrenceRule.none);
+      expect(again.toJson(), {...legacy, 'recurrence': null});
     });
 
     test('copyWith keeps or replaces the rule', () {
