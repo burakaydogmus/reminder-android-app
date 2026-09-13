@@ -8,6 +8,8 @@ import 'package:reminder/app.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
+import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/util/local_timezone.dart';
 
 Future<void> main() async {
@@ -19,8 +21,14 @@ Future<void> main() async {
   await initializeDateFormatting('tr_TR');
   await configureLocalTimezone();
   await NotificationService.instance.initialize();
-  await NotificationService.instance.requestPermissionsIfNeeded();
+  // No permission prompts at launch (F1.6): notification, exact alarm and
+  // location permissions are asked in context via PermissionFlows.
   await GeofenceService.instance.initialize();
   GeofenceService.instance.startListening(NotificationService.instance);
-  runApp(const App());
+  runApp(
+    PermissionScope(
+      service: PlatformPermissionService.platform(),
+      child: const App(),
+    ),
+  );
 }
