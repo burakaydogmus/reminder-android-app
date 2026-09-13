@@ -268,18 +268,21 @@ class _Scanner {
   // Rule groups not implemented yet return null.
 
   _Unit? recurrenceRule(int i) => null;
-  _Unit? relativeRule(int i) => null;
-  _Unit? dateRule(int i) => null;
   _Unit? timeRule(int i) => null;
 
   // -------------------------------------------------------------- result
 
   CaptureParseResult buildResult() {
     final title = _buildTitle();
+    final when = resolve();
     return CaptureParseResult(
       input: input,
       title: title.isEmpty ? input.trim() : TurkishText.capitalizeFirst(title),
       tokens: List.unmodifiable(_tokens),
+      dateTime: when.dateTime,
+      hasExplicitTime: when.timed,
+      isPast: when.past,
+      recurrence: when.recurrence,
       categoryKey: _categoryKey,
       categoryId: _categoryId,
       priority: _priority,

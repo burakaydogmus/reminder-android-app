@@ -1,5 +1,3 @@
-import 'package:flutter_test/flutter_test.dart';
-
 import 'capture_case.dart';
 
 /// Tag examples: `#kategori`, `!` priority, `@yer`.
@@ -112,7 +110,3 @@ const tagCases = <CaptureCase>[
       place: 'ev',
       tokens: ['category:#sağlık', 'priority:!!', 'place:@ev']),
 ];
-
-void main() {
-  group('tags', () => runCases(tagCases));
-}

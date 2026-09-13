@@ -23,13 +23,14 @@
 ///   CLAUDE.md › Quick-capture parser).
 library;
 
-import '../model/reminder_category.dart';
 import 'capture_parse_result.dart';
 import 'turkish_text.dart';
 
 export 'capture_parse_result.dart';
 
 part 'rules/capture_scanner.dart';
+part 'rules/date_rules.dart';
+part 'rules/resolution.dart';
 part 'rules/tag_rules.dart';
 
 abstract final class CaptureParser {

@@ -5,6 +5,8 @@
 /// (priority).
 library;
 
+import '../model/reminder_category.dart';
+
 /// What a recognized piece of the input means.
 enum CaptureTokenKind { date, time, recurrence, category, priority, place }
 
@@ -126,13 +128,14 @@ class CaptureParserConfig {
   /// their own map.
   final Map<String, List<String>> categoryAliases;
 
+  /// Turkish labels of `ReminderCategoryIds` (plus the ids themselves).
   static const Map<String, List<String>> defaultCategoryAliases = {
-    'market': ['market', 'alışveriş'],
-    'home': ['ev', 'ev işleri', 'home'],
-    'work': ['iş', 'work'],
-    'health': ['sağlık', 'health'],
-    'errands': ['günlük', 'errands'],
-    'other': ['diğer', 'other'],
+    ReminderCategoryIds.market: ['market', 'alışveriş'],
+    ReminderCategoryIds.home: ['ev', 'ev işleri', 'home'],
+    ReminderCategoryIds.work: ['iş', 'work'],
+    ReminderCategoryIds.health: ['sağlık', 'health'],
+    ReminderCategoryIds.errands: ['günlük', 'errands'],
+    ReminderCategoryIds.other: ['diğer', 'other'],
   };
 }
 
