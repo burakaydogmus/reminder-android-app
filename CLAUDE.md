@@ -79,6 +79,8 @@ Tests mirror `lib/`:
 - `test/domain/` — pure model tests (JSON, date logic, ids, labels).
 - `test/data/` — `ReminderRepository` against `SharedPreferences.setMockInitialValues`.
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
+- `test/services/` — geofence rules, `GeofenceService` sync against a fake
+  `GeofencePlatform` (no platform channels), background entry handling.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
 
