@@ -50,7 +50,7 @@ Diğer tüm fazların temeli.
   Callback yalnızca `syncFromReminders` (→ `cancelAll`) çağırıyor; doğum günleri yeniden kurulmuyor. Tek bir "tüm zamanlamaları senkronla" giriş noktası.
 - [ ] **F1.3 Widget değişikliğini açık uygulama eziyor** · `fix/widget-app-state-sync` · *bağımlı: F1.2*
   Uygulama resume'da / widget etkileşiminde depodan yeniden yükleme.
-- [ ] **F1.4 Bozuk kayıtta tüm verinin silinmesi** · `fix/repository-data-loss`
+- [x] **F1.4 Bozuk kayıtta tüm verinin silinmesi** · `fix/repository-data-loss`
   Parse hatasında `[]` dönüp sonraki kayıtta her şeyin üzerine yazılması. Kayıt bazlı hata toleransı + ham verinin yedeklenmesi.
 - [ ] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
