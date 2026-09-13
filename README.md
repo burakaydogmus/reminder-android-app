@@ -34,7 +34,8 @@ Anahtar, `lib/config/maps_config.dart` içinde `String.fromEnvironment('GOOGLE_M
 
 - Flutter `>= 3.24`
 - Dart `>= 3.5` (`< 4.0`)
-- **Android:** `compileSdk 35`, `minSdk 26` (`namespace` / `applicationId`: `com.fabirt.reminder`)
+- **Android:** `compileSdk 35`, `minSdk 26` (`namespace` / `applicationId`: `com.burakaydogmus.reminder`)
+- **iOS:** bundle ID `com.burakaydogmus.reminder` (widget App Group için planlanan: `group.com.burakaydogmus.reminder`)
 - **iOS:** Geofence ve konum akışı için cihaz / izin beklentileri platform dokümantasyonuna göre ayarlanmalıdır.
 
 ## Çalıştırma
@@ -48,7 +49,18 @@ Web ve masaüstü hedefleri projede mevcut olabilir; asıl hedef ve özellik set
 
 ### Release imzalama (Android)
 
-Release derlemesi `android/app/build.gradle` içinde `key.properties` ve keystore yolları kullanacak şekilde ayarlanabilir. `key.properties` ve `.jks` / keystore dosyaları repoda tutulmamalı; `.gitignore` buna göre doldurulmuştur.
+`android/key.properties` varsa release derlemesi onunla imzalanır:
+
+```properties
+storePassword=...
+keyPassword=...
+keyAlias=...
+storeFile=/mutlak/yol/upload-keystore.jks
+```
+
+Dosya yoksa (CI, yeni klon) release derlemesi **debug anahtarıyla** imzalanır ve Gradle bir uyarı yazar; bu APK yayınlanmamalıdır. `key.properties` ve `.jks` / keystore dosyaları repoda tutulmaz (`.gitignore`).
+
+Release derlemesinde R8 (`minifyEnabled`) ve kaynak küçültme (`shrinkResources`) açıktır; eklentiler için keep kuralları `android/app/proguard-rules.pro`, çalışma anında adla bulunan kaynaklar `android/app/src/main/res/raw/keep.xml` içindedir. CI her PR'da `flutter build apk --release` çalıştırır.
 
 ### Uygulama simgesi
 
