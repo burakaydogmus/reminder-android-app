@@ -70,7 +70,7 @@ Diğer tüm fazların temeli.
 
 - [x] **F2.1 Drift'e geçiş** · `feat/drift-storage` · *bağımlı: Faz 1 (F1.4, F1.5)*
   Tablolar: reminders, birthdays, settings. Senkrona hazır alanlar: `updatedAt`, `deletedAt`. `SharedPreferences` JSON'dan tek seferlik migration + migration testleri. Repository arayüzü korunur.
-- [ ] **F2.2 Yedekleme** · `feat/export-import` · *bağımlı: F2.1*
+- [x] **F2.2 Yedekleme** · `feat/export-import` · *bağımlı: F2.1*
   JSON dışa/içe aktarma (paylaşım menüsü); sürümlü format.
 
 ## Faz 3 — Çekirdek özellikler
