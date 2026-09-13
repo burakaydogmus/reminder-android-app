@@ -241,6 +241,12 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `KorFormat.spokenTime` for screen readers), `KorFormat.upperTr` instead of
   `toUpperCase()`, no fixed heights for text (use `minHeight`), honour
   `MediaQuery.disableAnimationsOf`.
+- **Editor past times (F1.8b):** never shift a chosen time silently. The "Ne zaman"
+  section flags a past date/time (`PastTime` / `PastTimeHint` in
+  `reminders/past_time_hint.dart`: error-coloured chips, icon + "Bu saat geçti",
+  "Yarın HH:mm mı?" suggestion) and `_save` blocks it inline. Only an existing
+  reminder's unchanged overdue time saves (original `remindAt` kept).
+  `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 
