@@ -55,10 +55,19 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   not rewritten, removed only by `clearAll`). `hasRecoveryBackup()` reports it.
   Never return `[]` for a partially bad list — the next save would wipe valid data.
 - `domain/model/` — `Reminder` (with `copyWith`), `Birthday`, `ReminderCategory`,
-  `AppSettings`.
+  `AppSettings`. Nullable fields in `copyWith` take `T? Function()?`
+  (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
+  **Feb 28 in non-leap years** (`occurrenceInYear`, used by `nextOccurrence`,
+  `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
   (active before done; timed by `remindAt` asc; timed before untimed; untimed by
-  `createdAt` desc), used by the cubit and the home widget sync.
+  `createdAt` desc), used by the cubit and the home widget sync. `ReminderCubit`
+  re-sorts after **every** list change, so `state.reminders` is always in this order.
+- Clock: `ReminderCubit(..., now: ...)` (default `DateTime.now`) is passed to every
+  `ReminderState` as `clock`; date-dependent getters (`upcomingBirthdays`) use it.
+- Birthday notifications repeat yearly with `DateTimeComponents.dateAndTime` and the
+  **same text**, so titles/bodies must not contain the age or anything year-specific
+  (`NotificationService.birthdayNotificationTitle/Body`); the age is shown in the app.
 - `services/`
   - `sync_interfaces.dart` — `GeofenceSync` and `HomeWidgetSync` interfaces.
   - `schedule_sync.dart` — `NotificationSync` interface and `ScheduleSync.syncAll`,
