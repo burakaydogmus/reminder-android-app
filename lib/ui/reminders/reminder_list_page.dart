@@ -356,7 +356,7 @@ class _CategoryFilterStrip extends StatelessWidget {
             _CategoryChip(
               label: ReminderCategoryIds.defaultLabel(id),
               icon: CategoryVisuals.iconFor(id),
-              color: CategoryVisuals.colorFor(id),
+              color: CategoryVisuals.colorsOf(context, id).fg,
               count: _countFor(id),
               selected: selected == id,
               onTap: () => onChanged(selected == id ? null : id),
@@ -513,7 +513,8 @@ class _ReminderTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cubit = context.read<ReminderCubit>();
-    final categoryColor = CategoryVisuals.colorFor(reminder.categoryId);
+    final categoryColor =
+        CategoryVisuals.colorsOf(context, reminder.categoryId).fg;
     final onSurface = theme.colorScheme.onSurface;
     final mutedTitleColor = onSurface.withValues(alpha: 0.45);
     final mutedSubtleColor = onSurface.withValues(alpha: 0.6);
@@ -584,8 +585,6 @@ class _ReminderTile extends StatelessWidget {
                   child: CategoryIconBadge(
                     categoryId: reminder.categoryId,
                     size: 44,
-                    muted: muted || reminder.isDone,
-                    showCheck: reminder.isDone,
                   ),
                 ),
                 const SizedBox(width: 12),

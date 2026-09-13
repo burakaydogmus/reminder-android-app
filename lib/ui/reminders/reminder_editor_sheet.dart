@@ -300,7 +300,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                 itemBuilder: (context, i) {
                   final id = ReminderCategoryIds.orderedIds[i];
                   final selected = _categoryId == id;
-                  final color = CategoryVisuals.colorFor(id);
+                  final color = CategoryVisuals.colorsOf(context, id).fg;
                   return GestureDetector(
                     onTap: () => setState(() => _categoryId = id),
                     behavior: HitTestBehavior.opaque,

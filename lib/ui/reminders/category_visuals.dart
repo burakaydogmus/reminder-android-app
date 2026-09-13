@@ -1,90 +1,96 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
+import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
-/// Kategori kimliklerine ikon ve renk eşler. UI katmanına özgü olduğu için
-/// `domain/model` altındaki [ReminderCategoryIds] yerine burada tutulur.
-abstract class CategoryVisuals {
-  static IconData iconFor(String id) {
-    switch (id) {
-      case ReminderCategoryIds.market:
-        return Icons.shopping_cart_rounded;
-      case ReminderCategoryIds.home:
-        return Icons.home_rounded;
-      case ReminderCategoryIds.work:
-        return Icons.work_outline_rounded;
-      case ReminderCategoryIds.health:
-        return Icons.favorite_rounded;
-      case ReminderCategoryIds.errands:
-        return Icons.wb_sunny_rounded;
-      case ReminderCategoryIds.other:
-      default:
-        return Icons.label_rounded;
-    }
-  }
+/// The single mapping from built-in category ids to Kor colour keys and icons.
+///
+/// UI-only, so it lives here instead of `domain/model`. Colours are resolved
+/// through `KorColors` for the current brightness; never store a hex.
+abstract final class CategoryVisuals {
+  static const Map<String, KorColorKey> _colorKeys = {
+    ReminderCategoryIds.market: KorColorKey.market,
+    ReminderCategoryIds.home: KorColorKey.ev,
+    ReminderCategoryIds.work: KorColorKey.is_,
+    ReminderCategoryIds.health: KorColorKey.saglik,
+    ReminderCategoryIds.errands: KorColorKey.gunluk,
+    ReminderCategoryIds.other: KorColorKey.diger,
+  };
 
-  static Color colorFor(String id) {
-    switch (id) {
-      case ReminderCategoryIds.market:
-        return const Color(0xFF43A047);
-      case ReminderCategoryIds.home:
-        return const Color(0xFFE53935);
-      case ReminderCategoryIds.work:
-        return const Color(0xFF1E88E5);
-      case ReminderCategoryIds.health:
-        return const Color(0xFFEC407A);
-      case ReminderCategoryIds.errands:
-        return const Color(0xFFFB8C00);
-      case ReminderCategoryIds.other:
-      default:
-        return const Color(0xFF8762FF);
-    }
-  }
+  static const Map<String, IconData> _icons = {
+    ReminderCategoryIds.market: Icons.shopping_basket_rounded,
+    ReminderCategoryIds.home: Icons.home_rounded,
+    ReminderCategoryIds.work: Icons.work_rounded,
+    ReminderCategoryIds.health: Icons.favorite_rounded,
+    ReminderCategoryIds.errands: Icons.wb_sunny_rounded,
+    ReminderCategoryIds.other: Icons.label_rounded,
+  };
+
+  /// Colour key for a category id; unknown ids fall back to "Diğer".
+  static KorColorKey colorKeyFor(String id) =>
+      _colorKeys[id] ?? KorColorKey.diger;
+
+  static IconData iconFor(String id) => _icons[id] ?? Icons.label_rounded;
+
+  /// Resolved fg/container/onFg colours of [id] in the current theme.
+  static CategoryColors colorsOf(BuildContext context, String id) =>
+      context.korColors.category(colorKeyFor(id));
+
+  /// Birthday accent (not a reminder category).
+  static const KorColorKey birthdayColorKey = KorColorKey.dogumGunu;
+  static const IconData birthdayIcon = Icons.cake_rounded;
+
+  static CategoryColors birthdayColorsOf(BuildContext context) =>
+      context.korColors.category(birthdayColorKey);
 }
 
-/// Yuvarlak, renkli kategori ikonu rozeti. Liste ve seçim ekranlarında
-/// kullanılır. [size] dış kapsayıcının kenar uzunluğudur.
+/// Round tonal category icon badge (decorative; not a tap target).
 class CategoryIconBadge extends StatelessWidget {
   final String categoryId;
   final double size;
-  final bool muted;
-  final bool showCheck;
 
   const CategoryIconBadge({
     super.key,
     required this.categoryId,
-    this.size = 44,
-    this.muted = false,
-    this.showCheck = false,
+    this.size = 40,
   });
 
   @override
   Widget build(BuildContext context) {
-    final base = CategoryVisuals.colorFor(categoryId);
-    final icon = CategoryVisuals.iconFor(categoryId);
-    final bg = base.withValues(alpha: muted ? 0.10 : 0.16);
-    final fg = muted ? base.withValues(alpha: 0.55) : base;
+    final colors = CategoryVisuals.colorsOf(context, categoryId);
+    return IconBadge(
+      icon: CategoryVisuals.iconFor(categoryId),
+      foreground: colors.fg,
+      background: colors.container,
+      size: size,
+    );
+  }
+}
 
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: bg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              showCheck ? Icons.check_rounded : icon,
-              size: size * 0.55,
-              color: fg,
-            ),
-          ),
-        ],
+/// Circle with a centred icon; used for category and list badges.
+class IconBadge extends StatelessWidget {
+  final IconData icon;
+  final Color foreground;
+  final Color background;
+  final double size;
+
+  const IconBadge({
+    super.key,
+    required this.icon,
+    required this.foreground,
+    required this.background,
+    this.size = 40,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+        child: Icon(icon, size: size * 0.55, color: foreground),
       ),
     );
   }
