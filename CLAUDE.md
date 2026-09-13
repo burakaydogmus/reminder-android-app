@@ -116,6 +116,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `PermissionsGroup`), `maps/`.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
+  - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
+    `OnboardingStore` (see **Onboarding** under UI structure).
   - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
     `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
@@ -278,6 +280,22 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   reference-counted database from `AppDatabaseHost` lazily; background entry points call
   `repository.close()` in `finally`; the app's repository stays open. Stream queries
   don't cross engines (the app doesn't use them; the cubit reloads).
+- **Backup (F2.2)** — `lib/data/backup/`: `BackupFormat` is a versioned JSON document
+  (`format: "hatirlatici-backup"`, `version: 1`, `exportedAt` UTC, `app.version`,
+  `reminders`/`birthdays` as the models' `toJson`, `settings`). New model fields travel
+  automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
+  changes an older reader would misread — a newer file is rejected with "update the
+  app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
+  id → skipped and counted); a non-JSON file, wrong `format`, bad/newer `version` or a
+  non-list `reminders`/`birthdays` throws `BackupFormatException` and **nothing is
+  applied**. `BackupService` exports from and applies to the repository's public API:
+  **merge** = upsert by id (backup wins, local-only items kept, settings unchanged),
+  **replace** = the backup's lists (others soft-deleted) plus its settings when
+  readable; the caller then runs `ReminderCubit.load()` so schedules resync. The three
+  `saveX` calls are separate transactions (a failure mid-way can leave earlier lists
+  applied; re-importing repairs it). Plugins (`share_plus` share sheet,
+  `file_selector` picker, `package_info_plus`) sit behind `BackupIo`; widget tests pass
+  a fake via `SettingsPage(backupIo:, backupService:)`.
 - **Schema changes:** edit the tables, bump `schemaVersion`, add the step in
   `MigrationStrategy.onUpgrade`, then regenerate and export:
 
@@ -303,6 +321,39 @@ contract (hard-coded in `test/domain/notification_ids_test.dart`); changing the
 algorithm or key format requires clearing old-id notifications. The F1.5 migration
 relies on every `syncSchedules` (run on each app load) cancelling all pending ids it
 does not recognise; keep that cleanup if the sync changes again.
+
+### Notification actions (F3.2)
+
+- **Payload** (`services/notification_payload.dart`): timed and geofence reminder
+  notifications carry `reminder:<id>`, birthdays `birthday:<id>`; `NotificationPayload.parse`
+  also accepts a bare id (geofence notifications shown before F3.2).
+- **Actions:** reminder and geofence notifications only (birthdays: tap only). Android
+  `androidReminderActions` — Tamamla · 10 dk · 1 saat (`showsUserInterface: false`,
+  `cancelNotification: true`, needs `ActionBroadcastReceiver` in the manifest). iOS
+  category `reminder_actions` (`darwinNotificationCategories`, registered in
+  `NotificationService.initialize` with the F1.6 no-prompt flags; details set
+  `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
+  ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2).
+- **Handling** (`services/notification_actions.dart`): non-foreground actions always run
+  in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
+  `@pragma('vm:entry-point')`), even while the app is open. It reloads the
+  SharedPreferences cache, builds real services, closes its repository in `finally` and
+  delegates to `handleNotificationAction(response, repository:, schedules:, now:)`:
+  complete → `isDone`; snooze → `remindAt` from `snoozedRemindAt`, which reuses the
+  Ertele sheet's `SnoozeOptions.from(now)` (10 dk, 1 saat, Yarın sabah 09:00), also for
+  untimed/overdue reminders; then save →
+  `ScheduleSync.syncAll` (birthdays + settings from the repository) →
+  `notifyAppOfWidgetChange()`. Unknown action, non-reminder payload, missing or done
+  reminder → no-op. Keep "Tamamla" in that one function (F3.1's recurrence helper plugs
+  in there). `NotificationService.initialize` always passes both handlers, also in
+  background isolates.
+- **Tap:** `onNotificationResponse` (main isolate) and, for cold starts, `main.dart`
+  (`NotificationTapRouter.instance.openFromLaunch(NotificationService.instance.appLaunchDetails)`)
+  queue the target in `NotificationTapRouter`. `HomeShell` listens (and checks once
+  after its first frame): a reminder payload opens `showReminderEditorSheet` once the
+  reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
+  a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
 
 ## Workflow rules (from ROADMAP.md)
 
@@ -414,6 +465,16 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   "Yarın HH:mm mı?" suggestion) and `_save` blocks it inline. Only an existing
   reminder's unchanged overdue time saves (original `remindAt` kept).
   `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
+- **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
+  once. The flag `onboarding_completed_v1` lives in SharedPreferences through
+  `OnboardingStore` (UI-only; never in the repository/database). Users who already
+  have reminders or birthdays skip it (flag set), also when that data arrives while
+  step 1 is still untouched. "Atla", "Uygulamaya geç" and the step-4 suggestions set
+  the flag; suggestions open their editor on top of `HomeShell`. Step 3 asks only
+  for notifications (`PermissionFlows.fixNotifications`); exact alarms and location
+  stay contextual. The capture demo is scripted (no parsing; F4.6). Illustrations
+  are one-shot (`OneShotAnimation`, final frame under Reduce Motion) — never add a
+  repeating animation. Each step scrolls, so 200% text never overflows.
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 

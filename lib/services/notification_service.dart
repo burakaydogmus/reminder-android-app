@@ -7,7 +7,9 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/notification_ids.dart';
+import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_fingerprint_store.dart';
+import 'package:reminder/services/notification_payload.dart';
 import 'package:reminder/services/schedule_sync.dart';
 
 /// `flutter_local_notifications` üzerinden zamanlı hatırlatıcı ve yıllık doğum
@@ -19,6 +21,10 @@ import 'package:reminder/services/schedule_sync.dart';
 /// hatırlatıcıları kurup doğum günlerini silen bir yol yoktur. Uygulama
 /// genelinde bu metot doğrudan değil, [ScheduleSync.syncAll] üzerinden
 /// çağrılır.
+///
+/// **Aksiyonlar (F3.2):** hatırlatıcı ve konum bildirimleri Tamamla/Ertele
+/// aksiyonları taşır (Android düğmeleri, iOS kategorisi); doğum günleri
+/// taşımaz. Yanıtlar `notification_actions.dart` içinde işlenir.
 class NotificationService implements NotificationSync {
   NotificationService._(this._plugin, this._fingerprints);
 
@@ -41,6 +47,9 @@ class NotificationService implements NotificationSync {
 
   bool _initialized = false;
 
+  /// Plugin'i başlatır, iOS aksiyon kategorilerini ve yanıt işleyicilerini
+  /// kaydeder. Arka plan isolate'lerinde de aynı işleyiciler verilir ki
+  /// kayıtlı arka plan giriş noktası hiçbir yoldan eksik kalmasın.
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -48,17 +57,27 @@ class NotificationService implements NotificationSync {
     // No prompt on initialize (also runs at launch and in background
     // isolates); permissions are requested in context (F1.6,
     // PermissionService).
-    const darwin = DarwinInitializationSettings(
+    final darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
+      notificationCategories: darwinNotificationCategories,
     );
 
     await _plugin.initialize(
-      settings: const InitializationSettings(android: android, iOS: darwin),
+      settings: InitializationSettings(android: android, iOS: darwin),
+      onDidReceiveNotificationResponse: onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse:
+          notificationActionBackgroundHandler,
     );
 
     _initialized = true;
+  }
+
+  /// Uygulamayı bir bildirim başlattıysa ayrıntıları (soğuk açılış, F3.2).
+  Future<NotificationAppLaunchDetails?> appLaunchDetails() async {
+    if (!_initialized) await initialize();
+    return _plugin.getNotificationAppLaunchDetails();
   }
 
   Future<void> cancelReminder(Reminder reminder) async {
@@ -87,12 +106,14 @@ class NotificationService implements NotificationSync {
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
+      actions: androidReminderActions,
     );
 
     const darwin = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      categoryIdentifier: reminderNotificationCategoryId,
     );
 
     const details = NotificationDetails(android: android, iOS: darwin);
@@ -109,7 +130,7 @@ class NotificationService implements NotificationSync {
       title: r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
       body: body,
       notificationDetails: details,
-      payload: r.id,
+      payload: ReminderPayload(r.id).encode(),
     );
   }
 
@@ -225,12 +246,17 @@ class NotificationService implements NotificationSync {
 
   static const _androidScheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
 
+  /// Parmak izine giren kurulum biçimi sürümü (testler için görünür).
+  @visibleForTesting
+  static const scheduleFingerprintVersion = _ScheduleSpec._version;
+
   List<_ScheduleSpec> _birthdaySpecs(Birthday b) {
     const channelId = 'reminders_birthdays_v1';
     const channelName = 'Doğum günü hatırlatmaları';
     const channelDescription =
         'Yıllık olarak tekrarlayan doğum günü bildirimleri';
 
+    // Doğum günleri aksiyon taşımaz; dokunmak Doğum günleri listesini açar.
     const android = AndroidNotificationDetails(
       channelId,
       channelName,
@@ -274,7 +300,7 @@ class NotificationService implements NotificationSync {
         scheduledDate: scheduled,
         details: details,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
-        payload: 'birthday:${b.id}',
+        payload: BirthdayPayload(b.id).encode(),
       ));
     }
     return specs;
@@ -317,12 +343,14 @@ class NotificationService implements NotificationSync {
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
       playSound: true,
+      actions: androidReminderActions,
     );
 
     const darwin = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      categoryIdentifier: reminderNotificationCategoryId,
     );
 
     const details = NotificationDetails(android: android, iOS: darwin);
@@ -338,6 +366,7 @@ class NotificationService implements NotificationSync {
       body: body,
       scheduledDate: scheduled,
       details: details,
+      payload: ReminderPayload(r.id).encode(),
     );
   }
 }
@@ -355,9 +384,12 @@ class _ScheduleSpec {
     this.payload,
   });
 
-  /// Kurulum biçimi (kanal ayarları, zamanlama modu vb.) değişirse artırın;
-  /// tüm bildirimler bir kez yeniden kurulur.
-  static const _version = 1;
+  /// Kurulum biçimi (kanal ayarları, zamanlama modu, aksiyonlar/kategori vb.)
+  /// değişirse artırın; tüm bildirimler bir kez yeniden kurulur.
+  ///
+  /// - v2 (F3.2): hatırlatıcılara Tamamla/Ertele aksiyonları ve iOS kategorisi
+  ///   eklendi; eski bildirimler aksiyonlarla yeniden kurulur.
+  static const _version = 2;
 
   final int id;
   final String channelId;

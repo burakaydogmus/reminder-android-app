@@ -3,18 +3,54 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/data/backup/backup_io.dart';
+import 'package:reminder/data/backup/backup_service.dart';
+import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/settings/backup_actions.dart';
 import 'package:reminder/ui/settings/permissions_group.dart';
+import 'package:reminder/ui/settings/reset_data_dialog.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
-import 'package:reminder/util/dialog.dart';
+
+/// Keys for tests.
+abstract final class SettingsPageKeys {
+  static const backupExport = Key('settings.backupExport');
+  static const backupImport = Key('settings.backupImport');
+}
 
 /// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
-/// ekran widget'ı and data reset.
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+/// ekran widget'ı, Yedekleme and data reset.
+class SettingsPage extends StatefulWidget {
+  /// [backupIo] and [backupService] are injectable for tests; by default the
+  /// platform share sheet/picker and a repository on the app's shared
+  /// database are used.
+  const SettingsPage({super.key, this.backupIo, this.backupService});
+
+  final BackupIo? backupIo;
+  final BackupService? backupService;
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  /// Created only when no [SettingsPage.backupService] is given; opens the
+  /// isolate's shared database lazily and releases it in [dispose].
+  ReminderRepository? _ownedRepository;
+  late final BackupActions _backup = BackupActions(
+    io: widget.backupIo ?? const PlatformBackupIo(),
+    service: widget.backupService ??
+        BackupService(_ownedRepository = ReminderRepository()),
+  );
+
+  @override
+  void dispose() {
+    _ownedRepository?.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +161,40 @@ class SettingsPage extends StatelessWidget {
               ],
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
+                icon: Icons.settings_backup_restore_rounded,
+                title: 'Yedekle ve geri yükle',
+                children: [
+                  Text(
+                    'Hatırlatıcılarını, doğum günlerini ve ayarlarını bir '
+                    'dosyaya yedekle; yeni bir cihazda veya yeniden '
+                    'kurulumdan sonra geri yükle.',
+                    style: muted,
+                  ),
+                  const SizedBox(height: KorSpacing.s4),
+                  Wrap(
+                    spacing: KorSpacing.s3,
+                    runSpacing: KorSpacing.s3,
+                    children: [
+                      Builder(
+                        builder: (buttonContext) => FilledButton.tonalIcon(
+                          key: SettingsPageKeys.backupExport,
+                          onPressed: () => _backup.export(buttonContext),
+                          icon: const Icon(Icons.ios_share_rounded),
+                          label: const Text('Yedekle'),
+                        ),
+                      ),
+                      OutlinedButton.icon(
+                        key: SettingsPageKeys.backupImport,
+                        onPressed: () => _backup.import(context, cubit),
+                        icon: const Icon(Icons.restore_rounded),
+                        label: const Text('Geri yükle'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: KorSpacing.s5),
+              GroupedCard(
                 padding: const EdgeInsets.symmetric(vertical: KorSpacing.s2),
                 children: [
                   Semantics(
@@ -175,17 +245,23 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
+  /// Confirmation with "Önce yedekle": after a backup (shared or sheet
+  /// closed) the dialog comes back so the user can still reset.
   Future<void> _clearDataStore(
     BuildContext context,
     ReminderCubit cubit,
   ) async {
-    final confirmed = await showConfirmationDialog(
-      context,
-      title: 'Tüm verileri sıfırla',
-      content: 'Tüm hatırlatmalar ve ayarlar silinir. Bu işlem geri alınamaz.',
-    );
-    if (confirmed && context.mounted) {
-      await cubit.clearAllData();
+    while (true) {
+      if (!context.mounted) return;
+      final choice = await showResetDataDialog(context);
+      if (choice == ResetDataChoice.cancel) return;
+      if (choice == ResetDataChoice.reset) {
+        await cubit.clearAllData();
+        return;
+      }
+      if (!context.mounted) return;
+      final backedUp = await _backup.export(context);
+      if (!backedUp) return;
     }
   }
 }
