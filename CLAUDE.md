@@ -61,7 +61,11 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `createdAt` desc), used by the cubit and the home widget sync.
 - `services/`
   - `sync_interfaces.dart` — `GeofenceSync` and `HomeWidgetSync` interfaces.
-  - `notification_service.dart` — `flutter_local_notifications` scheduling (singleton).
+  - `schedule_sync.dart` — `NotificationSync` interface and `ScheduleSync.syncAll`,
+    the **single entry point** that brings notifications, geofences and the home
+    widget in line with stored state. See **Schedule sync** below.
+  - `notification_service.dart` — `flutter_local_notifications` scheduling (singleton);
+    implements `NotificationSync`.
   - `geofence_service.dart` — diff-based region registration (`native_geofence`);
     implements `GeofenceSync`. See **Geofencing** below.
   - `geofence_callback.dart` — `geofenceEntryCallback`, the background entry point
@@ -74,8 +78,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     (`syncRemindersToHomeWidget`); `PlatformHomeWidgetSync` implements `HomeWidgetSync`.
 - `home/reminder_home_widget_callback.dart` — background entry point
   (`@pragma('vm:entry-point')`) for widget interactions (toggle a reminder while the
-  app is closed). Runs in a separate isolate, so it uses the real services directly
-  instead of going through the cubit.
+  app is closed). Runs in a separate isolate, so the thin entry point builds the real
+  services itself and delegates to `handleReminderHomeWidgetToggle` (injected
+  repository + `ScheduleSync`, tested in `test/home/`).
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
 - `ui/` — screens and widgets: `home/`, `reminders/`, `birthdays/`, `maps/`,
   `settings/`, `theme/`, `widgets/`.
@@ -91,7 +96,12 @@ Tests mirror `lib/`:
 - `test/data/` — `ReminderRepository` against `SharedPreferences.setMockInitialValues`.
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
 - `test/services/` — geofence rules, `GeofenceService` sync against a fake
-  `GeofencePlatform` (no platform channels), background entry handling.
+  `GeofencePlatform` (no platform channels), background entry handling;
+  `NotificationService` against `FakeNotificationsPlugin`
+  (`test/helpers/fake_notifications_plugin.dart`, via `NotificationService.forTesting`);
+  `ScheduleSync` ordering.
+- `test/home/` — widget callback core with a real repository (mock
+  `SharedPreferences`) and the fake notifications plugin.
 - `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
@@ -115,6 +125,21 @@ all side-effecting services through its constructor. `app.dart` wires the real o
 `const PlatformHomeWidgetSync()`). New services the cubit needs should follow the same
 pattern: a small interface in `services/`, the real implementation `implements` it,
 wired in `app.dart`, mocked in `test/helpers/mocks.dart`.
+
+### Schedule sync
+
+Every "bring schedules in line with stored state" goes through
+`ScheduleSync.syncAll(reminders:, birthdays:, settings:)` — from `ReminderCubit.load`,
+`ReminderCubit._persistAndSync` and the home widget callback. Never call the
+notification/geofence/widget services one by one for a full sync; a caller that
+forgot birthdays once deleted all birthday notifications (F1.2).
+
+`NotificationService.syncSchedules` cancels everything and reschedules reminders
+**and** birthdays together (there is no reminder-only sync), so the notification
+layer cannot drop birthdays. `cancelAll` is only for `clearAllData`. Background
+isolates must load birthdays and settings from the repository before syncing.
+F1.7 may make `syncSchedules` diff-based and serialise concurrent `syncAll` calls
+inside `ScheduleSync` without changing callers.
 
 ## Workflow rules (from ROADMAP.md)
 
