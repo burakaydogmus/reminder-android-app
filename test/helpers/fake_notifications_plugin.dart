@@ -8,12 +8,14 @@ class FakePendingNotification {
     required this.id,
     required this.title,
     required this.scheduledDate,
+    this.body,
     this.payload,
     this.matchDateTimeComponents,
   });
 
   final int id;
   final String? title;
+  final String? body;
   final tz.TZDateTime scheduledDate;
   final String? payload;
   final DateTimeComponents? matchDateTimeComponents;
@@ -72,6 +74,7 @@ class FakeNotificationsPlugin extends Fake
     pending[id] = FakePendingNotification(
       id: id,
       title: title,
+      body: body,
       scheduledDate: scheduledDate,
       payload: payload,
       matchDateTimeComponents: matchDateTimeComponents,
