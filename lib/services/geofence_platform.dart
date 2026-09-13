@@ -42,7 +42,7 @@ class NativeGeofencePlatform implements GeofencePlatform {
   }
 
   @override
-  Future<void> initialize() => _manager.initialize();
+  Future<void> initialize() async => _manager.initialize();
 
   @override
   Future<void> reCreateRegistered() async {
