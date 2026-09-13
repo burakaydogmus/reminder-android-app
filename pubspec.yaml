@@ -43,7 +43,9 @@ dependencies:
   share_plus: ^13.3.0
   file_selector: ^1.1.0
   package_info_plus: ^10.2.1
-  liquid_glass_widgets: 1.5.0
+  # iOS glass chrome (F5.4): tab bar and search button only; solid fallback
+  # under Reduce Transparency / Increase Contrast / low power. MIT, no deps.
+  liquid_glass_widgets: ^1.5.0
 
 dev_dependencies:
   flutter_test:
