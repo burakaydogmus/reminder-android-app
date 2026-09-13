@@ -54,7 +54,7 @@ Diğer tüm fazların temeli.
   Parse hatasında `[]` dönüp sonraki kayıtta her şeyin üzerine yazılması. Kayıt bazlı hata toleransı + ham verinin yedeklenmesi.
 - [x] **F1.5 Kararlı bildirim ID'leri** · `fix/stable-notification-ids` · *bağımlı: F0.3*
   `String.hashCode` yerine deterministik hash (FNV-1a) veya saklanan ID; çakışma testi.
-- [ ] **F1.6 İzin akışı** · `fix/permission-flow`
+- [x] **F1.6 İzin akışı** · `fix/permission-flow`
   Açılışta tüm izinleri (exact alarm dahil) istemek yerine ihtiyaç anında, açıklamalı istek. `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` Play politikası kararı. İzin reddedilmişse ayarlarda uyarı.
 - [ ] **F1.7 Senkronizasyon verimliliği ve yarış durumu** · `fix/sync-diffing` · *bağımlı: F1.2*
   Her değişiklikte tüm bildirim ve geofence'lerin silinip yeniden kurulması yerine fark bazlı güncelleme; eşzamanlı `_persistAndSync` çağrılarının sıraya alınması.

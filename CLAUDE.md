@@ -42,7 +42,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
 ## Architecture (`lib/`)
 
 - `main.dart` — bootstraps timezone, date formatting, notifications, geofences,
-  home widget callback registration (Android), then `runApp(App())`.
+  home widget callback registration (Android), then
+  `runApp(PermissionScope(service: PlatformPermissionService.platform(), child: App()))`.
+  It requests **no permissions** (see **Permissions** below).
 - `app.dart` — `MaterialApp`, theme, localization; **composition root**: creates
   `ReminderCubit` with the real services (see Dependency injection below).
 - `bloc/reminder_cubit.dart` — `ReminderCubit`: single source of app state (reminders,
@@ -82,6 +84,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   - `geofence_logic.dart` — pure rules: region selection/limits, sync plan, notify
     decision (cooldown, initial-trigger grace). `geofence_platform.dart` wraps the
     plugin; `geofence_state_store.dart` persists registrations and last-notified times.
+  - `permission_service.dart` — `PermissionService` (check/request/open settings for
+    notifications, exact alarms, location) with pure decision helpers;
+    `PlatformPermissionService` over flutter_local_notifications + permission_handler.
   - `places_nearby_service.dart` — Google Places Nearby over HTTP.
   - `reminder_home_widget_sync.dart` — pushes data to the `home_widget`
     (`syncRemindersToHomeWidget`); `PlatformHomeWidgetSync` implements `HomeWidgetSync`.
@@ -100,13 +105,16 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
     `KorColorKey`/icon mapping), `reminder_actions.dart` (Düzenle/Sil menu, delete
-    confirm). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/`, `maps/`.
+    confirm). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
+    `PermissionsGroup`), `maps/`.
+  - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
+    `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
   - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
     `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
   - `theme/` — Kor tokens (below); `theme/adaptive/platform_chrome.dart` is the single
     Android/iOS chrome decision. `widgets/` — `ConfirmationDialog`.
-- `util/` — dialogs, location permission helpers, `local_timezone.dart`
+- `util/` — dialogs, `local_timezone.dart`
   (`configureLocalTimezone`: device zone via `flutter_timezone`, `Etc/UTC` fallback;
   used by `main()` and the home widget callback).
 
@@ -285,6 +293,30 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   permission.
 - Do **not** add a foreground service for geofencing (Google Play disallows it from
   28 Oct 2026); `NativeGeofenceBackgroundManager.promoteToForeground` is unused.
+
+## Permissions (F1.6)
+
+- **Never request permissions at startup** (nor in `initState` of a page, nor in
+  `NotificationService.initialize` — iOS Darwin init flags stay `false`).
+- Ask in context through `PermissionFlows` (`lib/ui/permissions/`):
+  `beforeScheduling` on the first save of a timed/location reminder or a birthday
+  (notification pre-permission sheet, then the Android exact-alarm sheet);
+  `location` when "Nerede" is turned on or the picker opens (2 steps: while in use,
+  then "Her zaman" with [Ayarları aç]/[Sonra]); `fix*` for Settings/banner actions.
+- Each explanation sheet is shown once (`shouldShowPrompt`/`markPromptShown`); after
+  the system prompt was requested once and denied, fixes open system settings instead
+  of re-asking. Flags live in SharedPreferences (`permissions.*`).
+- Missing permission never blocks saving or the map; it is shown instead: Settings →
+  İzinler (live, re-checked on resume by `PermissionController`), Bugün
+  `tertiaryContainer` banner, inline warning in the editor's "Nerede" card.
+- UI reads `PermissionScope.of(context).snapshot`; widget tests get a
+  `FakePermissionService` (`test/helpers/fake_permission_service.dart`) through
+  `UiHarness.permissions` (default: all granted).
+- iOS: `ios/Podfile` sets `PERMISSION_LOCATION=1` for permission_handler (all its
+  permissions are compiled out by default); notification permission goes through
+  flutter_local_notifications.
+- Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
+  policy decision is F6.2, an inexact fallback when exact alarms are denied follows F1.7.
 
 ## Platform notes
 
