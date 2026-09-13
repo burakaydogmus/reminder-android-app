@@ -1,10 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 
 import '../helpers/factories.dart';
 
 void main() {
+  group('Reminder recurrence (F3.1)', () {
+    test('round-trips the rule', () {
+      final rule = RecurrenceRule.weekly([1, 3], interval: 2);
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 14, 8),
+        recurrence: rule,
+      );
+      final json = r.toJson();
+      expect(json['recurrence'], {
+        'frequency': 'weekly',
+        'interval': 2,
+        'weekdays': [1, 3],
+      });
+      final restored = Reminder.fromJson(json);
+      expect(restored.recurrence, rule);
+      expect(restored.isRecurring, isTrue);
+    });
+
+    test('legacy JSON without the key loads as no recurrence', () {
+      final json = buildReminder(remindAt: DateTime(2026, 9, 14, 8)).toJson()
+        ..remove('recurrence');
+      final restored = Reminder.fromJson(json);
+      expect(restored.recurrence, RecurrenceRule.none);
+      expect(restored.isRecurring, isFalse);
+      expect(buildReminder().toJson()['recurrence'], isNull);
+    });
+
+    test('copyWith keeps or replaces the rule', () {
+      final r = buildReminder(recurrence: RecurrenceRule.daily());
+      expect(r.copyWith(title: 'x').recurrence, RecurrenceRule.daily());
+      expect(
+        r.copyWith(recurrence: RecurrenceRule.none).recurrence,
+        RecurrenceRule.none,
+      );
+    });
+  });
+
   group('Reminder JSON', () {
     test('round-trip preserves all fields', () {
       final original = buildReminder(
@@ -211,6 +249,7 @@ void main() {
         locationLongitude: () => 2,
         locationRadiusMeters: 400,
         locationPlaceLabel: () => 'Başka yer',
+        recurrence: RecurrenceRule.daily(interval: 2),
       );
 
       expect(copy.toJson(), {
@@ -227,6 +266,7 @@ void main() {
         'locationLongitude': 2.0,
         'locationRadiusMeters': 400.0,
         'locationPlaceLabel': 'Başka yer',
+        'recurrence': {'frequency': 'daily', 'interval': 2},
       });
     });
 
