@@ -106,8 +106,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     grouping, pure). `calendar/` — `CalendarPage` + `buildAgenda` (30-day agenda,
     `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
-    `KorColorKey`/icon mapping), `reminder_actions.dart` (Düzenle/Sil menu, delete
-    confirm). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
+    `KorColorKey`/icon mapping), `reminder_actions.dart` (complete / snooze / delete
+    handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
+    + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
     `PermissionsGroup`), `maps/`.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
@@ -357,10 +358,27 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (the shell ticks it every minute; pushed routes use `NowScope.carry`). Do not add
   view groupings to `ReminderCubit`.
 - **Components:** reuse `ReminderCard` for any reminder row (48 dp complete toggle as
-  its own target, tap → editor, long-press → Düzenle/Sil, semantics label +
-  custom actions), `BirthdayCard`, `SectionHeader`, `GroupedCard` (fills with a
+  its own target, tap → editor, long-press menu, swipe, semantics label + custom
+  actions), `BirthdayCard`, `SectionHeader`, `GroupedCard` (fills with a
   `Material`, so `ListTile`/`InkWell` children keep their ink), `EmptyState` (one
   title, one sentence, max one action).
+- **Swipe and undo (F3.5):** `ReminderCard` wraps itself in `ReminderSwipe` (plain
+  `GestureDetector`, hidden from semantics): start→end Tamamla / Geri aç
+  (`success`), end→start past 30 % Ertele (`tertiary`, open reminders only), past
+  60 % Sil (`error`); 30 % scales the icon and plays `KorHaptics.swipeThreshold`
+  once; release springs back with `spatialDefault` (tween under Reduce Motion).
+  Every action lives in `reminders/reminder_actions.dart`
+  (`toggleReminderDoneWithUndo`, `snoozeReminderWithUndo`,
+  `deleteReminderWithUndo`) and is reachable three ways: swipe, long-press menu
+  (Tamamla/Geri aç, Ertele, Düzenle, Sil) and semantics custom actions (WCAG 2.5.7)
+  — add new card actions to all three. Actions apply immediately and show
+  `UndoSnackBar` (one at a time, a new one replaces the old; 5 s, 10 s with
+  `MediaQuery.accessibleNavigationOf` and accessibility focus on "Geri al"; pass
+  `persist: false`, a `SnackBar` with an action otherwise never closes). Reminder
+  delete has **no confirm dialog**; undo re-adds the same object with
+  `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
+  sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
+  clock); the Ertele sheet never accepts a past custom time.
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
