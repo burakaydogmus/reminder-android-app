@@ -73,8 +73,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`.
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
-  "Tamamla" rule (cubit `toggleDone`, home widget toggle; notification actions must
-  use it too). Recurring reminders are never marked done: `remindAt` advances to the
+  "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
+  action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
   next occurrence after `max(now, remindAt)` (early completion skips this occurrence,
   overdue ones skip missed occurrences); a finished series and one-off reminders get
   `isDone = true`.
@@ -369,19 +369,20 @@ does not recognise; keep that cleanup if the sync changes again.
   `NotificationService.initialize` with the F1.6 no-prompt flags; details set
   `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
   ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
-  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2).
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint).
 - **Handling** (`services/notification_actions.dart`): non-foreground actions always run
   in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
   `@pragma('vm:entry-point')`), even while the app is open. It reloads the
   SharedPreferences cache, builds real services, closes its repository in `finally` and
   delegates to `handleNotificationAction(response, repository:, schedules:, now:)`:
-  complete → `isDone`; snooze → `remindAt` from `snoozedRemindAt`, which reuses the
+  complete → `completeReminder` (done, or the next occurrence for recurring reminders);
+  snooze → `remindAt` from `snoozedRemindAt`, which reuses the
   Ertele sheet's `SnoozeOptions.from(now)` (10 dk, 1 saat, Yarın sabah 09:00), also for
   untimed/overdue reminders; then save →
   `ScheduleSync.syncAll` (birthdays + settings from the repository) →
   `notifyAppOfWidgetChange()`. Unknown action, non-reminder payload, missing or done
-  reminder → no-op. Keep "Tamamla" in that one function (F3.1's recurrence helper plugs
-  in there). `NotificationService.initialize` always passes both handlers, also in
+  reminder → no-op. Keep "Tamamla" in that one function, delegating to the shared
+  `completeReminder` (F3.1). `NotificationService.initialize` always passes both handlers, also in
   background isolates.
 - **Tap:** `onNotificationResponse` (main isolate) and, for cold starts, `main.dart`
   (`NotificationTapRouter.instance.openFromLaunch(NotificationService.instance.appLaunchDetails)`)
