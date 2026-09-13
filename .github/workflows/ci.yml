@@ -1,10 +1,18 @@
 name: CI
 
+# Private repo: every Actions minute counts (macOS runners bill 10x).
+# - Runs on pull requests only; merges to master are not rebuilt.
+# - Dart checks run for every code change; native builds live in
+#   android.yml / ios.yml and only run when native config or dependencies change.
+# - Any workflow can be started manually from the Actions tab.
 on:
   pull_request:
     branches: [master]
-  push:
-    branches: [master]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -38,85 +46,3 @@ jobs:
 
       - name: Test
         run: flutter test
-
-  build-android:
-    name: Build Android (debug APK)
-    runs-on: ubuntu-latest
-    needs: analyze-test
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build debug APK
-        run: flutter build apk --debug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7
-
-  build-android-release:
-    name: Build Android (release APK, R8)
-    runs-on: ubuntu-latest
-    needs: analyze-test
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      # No key.properties on CI: Gradle signs with the debug key, so this only
-      # checks that R8 / resource shrinking succeed. Artifact is not publishable.
-      - name: Build release APK
-        run: flutter build apk --release
-
-  build-ios:
-    name: Build iOS (no codesign)
-    # Pinned so a future macos-latest move (Xcode 27) does not change the build.
-    runs-on: macos-26
-    needs: analyze-test
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build iOS
-        run: flutter build ios --no-codesign --debug
