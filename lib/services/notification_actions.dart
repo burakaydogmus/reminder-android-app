@@ -98,20 +98,25 @@ Future<void> notificationActionBackgroundHandler(
   DartPluginRegistrant.ensureInitialized();
   if (!isReminderAction(response)) return;
 
+  // Ayrı engine: veritabanı bağlantısı bu çağrıya özeldir, sonunda kapatılır.
+  final repository = ReminderRepository();
   try {
     // Aksiyon engine'i süreç boyunca yaşar ve sonraki aksiyonlarda yeniden
-    // kullanılır; önbellek uygulamanın yazdıklarını görmeyebilir.
+    // kullanılır; SharedPreferences önbelleği (eski depo yedeği) bayat
+    // olabilir.
     await (await SharedPreferences.getInstance()).reload();
     await initializeDateFormatting('tr_TR');
     await configureLocalTimezone();
     await handleNotificationAction(
       response,
-      repository: ReminderRepository(),
+      repository: repository,
       schedules: buildNotificationActionSchedules(),
       now: DateTime.now(),
     );
   } catch (e, st) {
     debugPrint('Notification action failed: $e\n$st');
+  } finally {
+    await repository.close();
   }
 }
 
@@ -135,16 +140,20 @@ ScheduleSync? _foregroundSchedules;
 
 Future<void> _handleActionInForeground(NotificationResponse response) async {
   if (!isReminderAction(response)) return;
+  // Paylaşılan, referans sayımlı bağlantı: kapatmak uygulamanın deposunu
+  // etkilemez.
+  final repository = ReminderRepository();
   try {
-    await (await SharedPreferences.getInstance()).reload();
     await handleNotificationAction(
       response,
-      repository: ReminderRepository(),
+      repository: repository,
       schedules: _foregroundSchedules ??= buildNotificationActionSchedules(),
       now: DateTime.now(),
     );
   } catch (e, st) {
     debugPrint('Notification action failed: $e\n$st');
+  } finally {
+    await repository.close();
   }
 }
 
