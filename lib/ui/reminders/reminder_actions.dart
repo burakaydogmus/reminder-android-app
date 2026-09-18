@@ -62,8 +62,12 @@ Future<void> toggleReminderDoneWithUndo(
       if (latest == null) return;
       if (advancedTo != null) {
         if (!latest.isDone && latest.remindAt == advancedTo) {
+          // Also brings back the subtasks the advance reset (F3.3).
           unawaited(cubit.updateReminder(
-            latest.copyWith(remindAt: () => current.remindAt),
+            latest.copyWith(
+              remindAt: () => current.remindAt,
+              subtasks: current.subtasks,
+            ),
           ));
         }
       } else if (latest.isDone == completing) {

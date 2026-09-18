@@ -10,10 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/db/row_mapping.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/subtask.dart';
 
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -31,10 +33,24 @@ void main() {
     await db.close();
   });
 
-  test('a fresh database matches the exported v2 schema', () async {
+  test('upgrade from v2 to v3 yields the v3 schema', () async {
     final connection = await verifier.startAt(2);
     final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, 3);
+    await db.close();
+  });
+
+  test('upgrade from v1 to v3 runs every step', () async {
+    final connection = await verifier.startAt(1);
+    final db = AppDatabase(connection);
+    await verifier.migrateAndValidate(db, 3);
+    await db.close();
+  });
+
+  test('a fresh database matches the exported v3 schema', () async {
+    final connection = await verifier.startAt(3);
+    final db = AppDatabase(connection);
+    await verifier.migrateAndValidate(db, 3);
     await db.close();
   });
 
@@ -134,6 +150,98 @@ void main() {
     expect(loaded.recurrence, RecurrenceRule.none);
     expect(loaded.remindAt, DateTime(2026, 9, 13, 18, 30));
     expect(loaded.locationPlaceLabel, 'Market');
+    await app.close();
+  });
+
+  test('v2 → v3 keeps rows and adds an empty subtasks table', () async {
+    const reminder = v2.RemindersData(
+      id: 'r1',
+      title: 'Market',
+      isDone: 0,
+      createdAt: '2026-09-01T10:00:00.000',
+      remindAt: '2026-09-13T18:30:00.000',
+      categoryId: 'shopping',
+      locationTriggerEnabled: 0,
+      locationRadiusMeters: 150.0,
+      position: 0,
+      updatedAt: 1000,
+      recurrence: '{"frequency":"weekly","interval":1,"weekdays":[6]}',
+    );
+    const birthday = v2.BirthdaysData(
+      id: 'b1',
+      name: 'Ayşe',
+      date: '1990-05-10T00:00:00.000',
+      notifyHour: 9,
+      notifyMinute: 0,
+      advanceOffsetsMinutes: '[0]',
+      createdAt: '2026-01-01T12:00:00.000',
+      position: 0,
+      updatedAt: 1000,
+    );
+    const settings = v2.SettingsData(
+      id: 1,
+      notificationsEnabled: 1,
+      themeMode: 'system',
+      updatedAt: 1000,
+    );
+    const meta = v2.AppMetaData(key: 'prefs_migration_v1', value: '1');
+
+    final schema = await verifier.schemaAt(2);
+    final oldDb = v2.DatabaseAtV2(schema.newConnection());
+    await oldDb.batch((batch) {
+      batch
+        ..insert(oldDb.reminders, reminder)
+        ..insert(oldDb.birthdays, birthday)
+        ..insert(oldDb.settings, settings)
+        ..insert(oldDb.appMeta, meta);
+    });
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 3);
+    await db.close();
+
+    final migrated = v3.DatabaseAtV3(schema.newConnection());
+    expect(
+      (await migrated.select(migrated.reminders).getSingle()).toJson(),
+      reminder.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+      birthday.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.settings).getSingle()).toJson(),
+      settings.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.appMeta).getSingle()).toJson(),
+      meta.toJson(),
+    );
+    expect(await migrated.select(migrated.subtasks).get(), isEmpty);
+
+    // The new table accepts rows for existing reminders.
+    await migrated.into(migrated.subtasks).insert(
+          const v3.SubtasksData(
+            reminderId: 'r1',
+            id: 's1',
+            title: 'Süt',
+            isDone: 1,
+            position: 0,
+            updatedAt: 2000,
+          ),
+        );
+    await migrated.close();
+
+    final app = AppDatabase(schema.newConnection());
+    final row = await app.select(app.reminders).getSingle();
+    final loaded = reminderFromRow(row);
+    expect(loaded.recurrence, RecurrenceRule.weekly(const [DateTime.saturday]));
+    final subtaskRows = await app.select(app.subtasks).get();
+    expect(
+      subtaskRows.map(subtaskFromRow).toList(),
+      const [Subtask(id: 's1', title: 'Süt', isDone: true)],
+    );
     await app.close();
   });
 }

@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/subtask.dart';
 
 /// Domain modelleri ↔ Drift satırları. Senkron alanları (`position`,
 /// `updated_at`, `deleted_at`) yalnızca burada ve depoda bilinir.
@@ -63,7 +64,12 @@ RecurrenceRule recurrenceFromStored(String? value) {
   }
 }
 
-Reminder reminderFromRow(ReminderRow row) {
+/// Hatırlatıcı satırı ve (sıralı, silinmemiş) madde satırları → model.
+/// Maddeler `ReminderRepository` tarafından ayrı sorguyla yüklenir.
+Reminder reminderFromRow(
+  ReminderRow row, {
+  List<SubtaskRow> subtasks = const [],
+}) {
   return Reminder(
     id: row.id,
     title: row.title,
@@ -79,6 +85,35 @@ Reminder reminderFromRow(ReminderRow row) {
     locationRadiusMeters: row.locationRadiusMeters,
     locationPlaceLabel: row.locationPlaceLabel,
     recurrence: recurrenceFromStored(row.recurrence),
+    subtasks: SubtaskList.normalized(subtasks.map(subtaskFromRow)),
+  );
+}
+
+/// Madde satırı (v3, F3.3); `position` modeldeki sırayla aynıdır.
+SubtaskRow subtaskToRow(
+  Subtask s, {
+  required String reminderId,
+  required int position,
+  required int updatedAt,
+  int? deletedAt,
+}) {
+  return SubtaskRow(
+    reminderId: reminderId,
+    id: s.id,
+    title: s.title,
+    isDone: s.isDone,
+    position: position,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+  );
+}
+
+Subtask subtaskFromRow(SubtaskRow row) {
+  return Subtask(
+    id: row.id,
+    title: row.title,
+    isDone: row.isDone,
+    position: row.position,
   );
 }
 

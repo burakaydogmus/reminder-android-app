@@ -47,6 +47,26 @@ class Reminders extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// `Subtask` satırları (v3, F3.3): hatırlatıcının maddeleri.
+///
+/// Birincil anahtar `(reminder_id, id)`: madde kimliği yalnızca kendi
+/// hatırlatıcısı içinde tekildir. `position` hatırlatıcı içindeki sıra.
+/// Hatırlatıcıyla aynı transaction'da yazılır; hatırlatıcı yumuşak
+/// silinince maddeleri de `deleted_at` alır, geri gelince onlar da gelir.
+@DataClassName('SubtaskRow')
+class Subtasks extends Table {
+  TextColumn get reminderId => text().references(Reminders, #id)();
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  BoolColumn get isDone => boolean()();
+  IntColumn get position => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get deletedAt => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {reminderId, id};
+}
+
 /// `Birthday` satırları.
 @DataClassName('BirthdayRow')
 class Birthdays extends Table {
@@ -96,7 +116,7 @@ class AppMeta extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Reminders, Birthdays, Settings, AppMeta])
+@DriftDatabase(tables: [Reminders, Subtasks, Birthdays, Settings, AppMeta])
 class AppDatabase extends _$AppDatabase {
   /// [executor] verilmezse cihazdaki `reminder.sqlite` dosyası açılır
   /// ([openDefaultConnection]). Testler `NativeDatabase.memory()` geçer.
@@ -110,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -123,7 +143,11 @@ class AppDatabase extends _$AppDatabase {
             // v2 (F3.1): tekrar kuralı. Eski satırlar NULL = tekrar yok.
             await m.addColumn(reminders, reminders.recurrence);
           }
-          if (to > 2) {
+          if (from < 3) {
+            // v3 (F3.3): maddeler tablosu. Eski hatırlatıcıların maddesi yok.
+            await m.createTable(subtasks);
+          }
+          if (to > 3) {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },

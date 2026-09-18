@@ -56,11 +56,24 @@ class ReminderRepository {
   Future<List<Reminder>> loadReminders() async {
     final storage = await _open();
     if (storage.database case final db?) {
-      final rows = await (db.select(db.reminders)
-            ..where((t) => t.deletedAt.isNull())
-            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
-          .get();
-      return rows.map(reminderFromRow).toList();
+      return db.transaction(() async {
+        final rows = await (db.select(db.reminders)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
+        final subtaskRows = await (db.select(db.subtasks)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
+        final byReminder = <String, List<SubtaskRow>>{};
+        for (final row in subtaskRows) {
+          (byReminder[row.reminderId] ??= []).add(row);
+        }
+        return [
+          for (final row in rows)
+            reminderFromRow(row, subtasks: byReminder[row.id] ?? const []),
+        ];
+      });
     }
     return _legacy.loadReminders();
   }
@@ -94,7 +107,53 @@ class ReminderRepository {
         deletedAt: Value(now),
         updatedAt: Value(now),
       ));
+      await _saveSubtasks(db, reminders, now);
     });
+  }
+
+  /// Maddeler (F3.3), hatırlatıcılarla aynı transaction'da ve aynı kuralla:
+  /// değişen/yeni/geri gelen satır upsert (`updated_at` = now), listede
+  /// olmayan madde — silinen hatırlatıcınınkiler dahil — yumuşak silinir.
+  /// Geri alınan (yeniden kaydedilen) hatırlatıcının maddeleri de geri gelir.
+  Future<void> _saveSubtasks(
+    AppDatabase db,
+    List<Reminder> reminders,
+    int now,
+  ) async {
+    final existing = {
+      for (final row in await db.select(db.subtasks).get())
+        (row.reminderId, row.id): row,
+    };
+    final kept = <(String, String)>{};
+    for (final r in reminders) {
+      for (var i = 0; i < r.subtasks.length; i++) {
+        final s = r.subtasks[i];
+        final k = (r.id, s.id);
+        // Aynı hatırlatıcıda tekrarlanan kimlik: ilki kazanır.
+        if (!kept.add(k)) continue;
+        final old = existing[k];
+        final unchanged = old != null &&
+            subtaskToRow(s,
+                    reminderId: r.id, position: i, updatedAt: old.updatedAt) ==
+                old;
+        if (unchanged) continue;
+        await db.into(db.subtasks).insertOnConflictUpdate(
+              subtaskToRow(s, reminderId: r.id, position: i, updatedAt: now)
+                  .toCompanion(false),
+            );
+      }
+    }
+    for (final entry in existing.entries) {
+      if (entry.value.deletedAt != null || kept.contains(entry.key)) continue;
+      await (db.update(db.subtasks)
+            ..where((t) =>
+                t.reminderId.equals(entry.value.reminderId) &
+                t.id.equals(entry.value.id)))
+          .write(SubtasksCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    }
   }
 
   Future<AppSettings> loadSettings() async {
@@ -189,6 +248,7 @@ class ReminderRepository {
     final storage = await _open();
     if (storage.database case final db?) {
       await db.transaction(() async {
+        await db.delete(db.subtasks).go();
         await db.delete(db.reminders).go();
         await db.delete(db.birthdays).go();
         await db.delete(db.settings).go();

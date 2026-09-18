@@ -8,6 +8,7 @@ import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
+import 'package:reminder/ui/reminders/subtask_progress.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -64,6 +65,7 @@ class ReminderCard extends StatelessWidget {
       if (_isOverdue) 'gecikti',
       if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
       if (_placeLabel != null) 'konum: $_placeLabel',
+      if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
   }
@@ -112,6 +114,11 @@ class ReminderCard extends StatelessWidget {
           separator,
           metaIcon(Icons.place_rounded, scheme.onSurfaceVariant),
           TextSpan(text: _placeLabel),
+        ],
+        if (reminder.hasSubtasks) ...[
+          separator,
+          metaIcon(Icons.check_box_outlined, scheme.onSurfaceVariant),
+          TextSpan(text: SubtaskProgressText.count(reminder.subtasks)),
         ],
       ],
     );
@@ -188,6 +195,18 @@ class ReminderCard extends StatelessWidget {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                if (reminder.hasSubtasks)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: KorSpacing.s2,
+                                      bottom: KorSpacing.s1,
+                                    ),
+                                    child: SubtaskProgressBar(
+                                      subtasks: reminder.subtasks,
+                                      color: category.fg,
+                                      height: 3,
+                                    ),
+                                  ),
                                 if (note != null && note.isNotEmpty)
                                   Text(
                                     note,

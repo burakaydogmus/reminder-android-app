@@ -856,6 +856,398 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
   }
 }
 
+class $SubtasksTable extends Subtasks
+    with TableInfo<$SubtasksTable, SubtaskRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubtasksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _reminderIdMeta =
+      const VerificationMeta('reminderId');
+  @override
+  late final GeneratedColumn<String> reminderId = GeneratedColumn<String>(
+      'reminder_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES reminders (id)'));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isDoneMeta = const VerificationMeta('isDone');
+  @override
+  late final GeneratedColumn<bool> isDone = GeneratedColumn<bool>(
+      'is_done', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_done" IN (0, 1))'));
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+      'position', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [reminderId, id, title, isDone, position, updatedAt, deletedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subtasks';
+  @override
+  VerificationContext validateIntegrity(Insertable<SubtaskRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('reminder_id')) {
+      context.handle(
+          _reminderIdMeta,
+          reminderId.isAcceptableOrUnknown(
+              data['reminder_id']!, _reminderIdMeta));
+    } else if (isInserting) {
+      context.missing(_reminderIdMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('is_done')) {
+      context.handle(_isDoneMeta,
+          isDone.isAcceptableOrUnknown(data['is_done']!, _isDoneMeta));
+    } else if (isInserting) {
+      context.missing(_isDoneMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {reminderId, id};
+  @override
+  SubtaskRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SubtaskRow(
+      reminderId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reminder_id'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      isDone: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_done'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $SubtasksTable createAlias(String alias) {
+    return $SubtasksTable(attachedDatabase, alias);
+  }
+}
+
+class SubtaskRow extends DataClass implements Insertable<SubtaskRow> {
+  final String reminderId;
+  final String id;
+  final String title;
+  final bool isDone;
+  final int position;
+  final int updatedAt;
+  final int? deletedAt;
+  const SubtaskRow(
+      {required this.reminderId,
+      required this.id,
+      required this.title,
+      required this.isDone,
+      required this.position,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['reminder_id'] = Variable<String>(reminderId);
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['is_done'] = Variable<bool>(isDone);
+    map['position'] = Variable<int>(position);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    return map;
+  }
+
+  SubtasksCompanion toCompanion(bool nullToAbsent) {
+    return SubtasksCompanion(
+      reminderId: Value(reminderId),
+      id: Value(id),
+      title: Value(title),
+      isDone: Value(isDone),
+      position: Value(position),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory SubtaskRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SubtaskRow(
+      reminderId: serializer.fromJson<String>(json['reminderId']),
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      isDone: serializer.fromJson<bool>(json['isDone']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'reminderId': serializer.toJson<String>(reminderId),
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'isDone': serializer.toJson<bool>(isDone),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+    };
+  }
+
+  SubtaskRow copyWith(
+          {String? reminderId,
+          String? id,
+          String? title,
+          bool? isDone,
+          int? position,
+          int? updatedAt,
+          Value<int?> deletedAt = const Value.absent()}) =>
+      SubtaskRow(
+        reminderId: reminderId ?? this.reminderId,
+        id: id ?? this.id,
+        title: title ?? this.title,
+        isDone: isDone ?? this.isDone,
+        position: position ?? this.position,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  SubtaskRow copyWithCompanion(SubtasksCompanion data) {
+    return SubtaskRow(
+      reminderId:
+          data.reminderId.present ? data.reminderId.value : this.reminderId,
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      isDone: data.isDone.present ? data.isDone.value : this.isDone,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubtaskRow(')
+          ..write('reminderId: $reminderId, ')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('isDone: $isDone, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      reminderId, id, title, isDone, position, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SubtaskRow &&
+          other.reminderId == this.reminderId &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.isDone == this.isDone &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class SubtasksCompanion extends UpdateCompanion<SubtaskRow> {
+  final Value<String> reminderId;
+  final Value<String> id;
+  final Value<String> title;
+  final Value<bool> isDone;
+  final Value<int> position;
+  final Value<int> updatedAt;
+  final Value<int?> deletedAt;
+  final Value<int> rowid;
+  const SubtasksCompanion({
+    this.reminderId = const Value.absent(),
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.isDone = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SubtasksCompanion.insert({
+    required String reminderId,
+    required String id,
+    required String title,
+    required bool isDone,
+    required int position,
+    required int updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : reminderId = Value(reminderId),
+        id = Value(id),
+        title = Value(title),
+        isDone = Value(isDone),
+        position = Value(position),
+        updatedAt = Value(updatedAt);
+  static Insertable<SubtaskRow> custom({
+    Expression<String>? reminderId,
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<bool>? isDone,
+    Expression<int>? position,
+    Expression<int>? updatedAt,
+    Expression<int>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (reminderId != null) 'reminder_id': reminderId,
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (isDone != null) 'is_done': isDone,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SubtasksCompanion copyWith(
+      {Value<String>? reminderId,
+      Value<String>? id,
+      Value<String>? title,
+      Value<bool>? isDone,
+      Value<int>? position,
+      Value<int>? updatedAt,
+      Value<int?>? deletedAt,
+      Value<int>? rowid}) {
+    return SubtasksCompanion(
+      reminderId: reminderId ?? this.reminderId,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      isDone: isDone ?? this.isDone,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (reminderId.present) {
+      map['reminder_id'] = Variable<String>(reminderId.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (isDone.present) {
+      map['is_done'] = Variable<bool>(isDone.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubtasksCompanion(')
+          ..write('reminderId: $reminderId, ')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('isDone: $isDone, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $BirthdaysTable extends Birthdays
     with TableInfo<$BirthdaysTable, BirthdayRow> {
   @override
@@ -1890,6 +2282,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $RemindersTable reminders = $RemindersTable(this);
+  late final $SubtasksTable subtasks = $SubtasksTable(this);
   late final $BirthdaysTable birthdays = $BirthdaysTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $AppMetaTable appMeta = $AppMetaTable(this);
@@ -1898,7 +2291,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [reminders, birthdays, settings, appMeta];
+      [reminders, subtasks, birthdays, settings, appMeta];
 }
 
 typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
@@ -1941,6 +2334,25 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<String?> recurrence,
   Value<int> rowid,
 });
+
+final class $$RemindersTableReferences
+    extends BaseReferences<_$AppDatabase, $RemindersTable, ReminderRow> {
+  $$RemindersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$SubtasksTable, List<SubtaskRow>>
+      _subtasksRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.subtasks,
+              aliasName: 'reminders__id__subtasks__reminder_id');
+
+  $$SubtasksTableProcessedTableManager get subtasksRefs {
+    final manager = $$SubtasksTableTableManager($_db, $_db.subtasks)
+        .filter((f) => f.reminderId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_subtasksRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
 
 class $$RemindersTableFilterComposer
     extends Composer<_$AppDatabase, $RemindersTable> {
@@ -2007,6 +2419,27 @@ class $$RemindersTableFilterComposer
 
   ColumnFilters<String> get recurrence => $composableBuilder(
       column: $table.recurrence, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> subtasksRefs(
+      Expression<bool> Function($$SubtasksTableFilterComposer f) f) {
+    final $$SubtasksTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.subtasks,
+        getReferencedColumn: (t) => t.reminderId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SubtasksTableFilterComposer(
+              $db: $db,
+              $table: $db.subtasks,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$RemindersTableOrderingComposer
@@ -2135,6 +2568,27 @@ class $$RemindersTableAnnotationComposer
 
   GeneratedColumn<String> get recurrence => $composableBuilder(
       column: $table.recurrence, builder: (column) => column);
+
+  Expression<T> subtasksRefs<T extends Object>(
+      Expression<T> Function($$SubtasksTableAnnotationComposer a) f) {
+    final $$SubtasksTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.subtasks,
+        getReferencedColumn: (t) => t.reminderId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$SubtasksTableAnnotationComposer(
+              $db: $db,
+              $table: $db.subtasks,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
 }
 
 class $$RemindersTableTableManager extends RootTableManager<
@@ -2146,9 +2600,9 @@ class $$RemindersTableTableManager extends RootTableManager<
     $$RemindersTableAnnotationComposer,
     $$RemindersTableCreateCompanionBuilder,
     $$RemindersTableUpdateCompanionBuilder,
-    (ReminderRow, BaseReferences<_$AppDatabase, $RemindersTable, ReminderRow>),
+    (ReminderRow, $$RemindersTableReferences),
     ReminderRow,
-    PrefetchHooks Function()> {
+    PrefetchHooks Function({bool subtasksRefs})> {
   $$RemindersTableTableManager(_$AppDatabase db, $RemindersTable table)
       : super(TableManagerState(
           db: db,
@@ -2242,11 +2696,33 @@ class $$RemindersTableTableManager extends RootTableManager<
           withReferenceMapper: (p0) => p0
               .map((e) => (
                     e.readTable<$RemindersTable, ReminderRow>(table),
-                    BaseReferences<_$AppDatabase, $RemindersTable, ReminderRow>(
-                        db, table, e)
+                    $$RemindersTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({subtasksRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (subtasksRefs) db.subtasks],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (subtasksRefs)
+                    await $_getPrefetchedData<ReminderRow, $RemindersTable,
+                            SubtaskRow>(
+                        currentTable: table,
+                        referencedTable:
+                            $$RemindersTableReferences._subtasksRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$RemindersTableReferences(db, table, p0)
+                                .subtasksRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.reminderId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
         ));
 }
 
@@ -2259,9 +2735,311 @@ typedef $$RemindersTableProcessedTableManager = ProcessedTableManager<
     $$RemindersTableAnnotationComposer,
     $$RemindersTableCreateCompanionBuilder,
     $$RemindersTableUpdateCompanionBuilder,
-    (ReminderRow, BaseReferences<_$AppDatabase, $RemindersTable, ReminderRow>),
+    (ReminderRow, $$RemindersTableReferences),
     ReminderRow,
-    PrefetchHooks Function()>;
+    PrefetchHooks Function({bool subtasksRefs})>;
+typedef $$SubtasksTableCreateCompanionBuilder = SubtasksCompanion Function({
+  required String reminderId,
+  required String id,
+  required String title,
+  required bool isDone,
+  required int position,
+  required int updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$SubtasksTableUpdateCompanionBuilder = SubtasksCompanion Function({
+  Value<String> reminderId,
+  Value<String> id,
+  Value<String> title,
+  Value<bool> isDone,
+  Value<int> position,
+  Value<int> updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+
+final class $$SubtasksTableReferences
+    extends BaseReferences<_$AppDatabase, $SubtasksTable, SubtaskRow> {
+  $$SubtasksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RemindersTable _reminderIdTable(_$AppDatabase db) =>
+      db.reminders.createAlias('subtasks__reminder_id__reminders__id');
+
+  $$RemindersTableProcessedTableManager get reminderId {
+    final $_column = $_itemColumn<String>('reminder_id')!;
+
+    final manager = $$RemindersTableTableManager($_db, $_db.reminders)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_reminderIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$SubtasksTableFilterComposer
+    extends Composer<_$AppDatabase, $SubtasksTable> {
+  $$SubtasksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDone => $composableBuilder(
+      column: $table.isDone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  $$RemindersTableFilterComposer get reminderId {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.reminderId,
+        referencedTable: $db.reminders,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RemindersTableFilterComposer(
+              $db: $db,
+              $table: $db.reminders,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SubtasksTableOrderingComposer
+    extends Composer<_$AppDatabase, $SubtasksTable> {
+  $$SubtasksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDone => $composableBuilder(
+      column: $table.isDone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  $$RemindersTableOrderingComposer get reminderId {
+    final $$RemindersTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.reminderId,
+        referencedTable: $db.reminders,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RemindersTableOrderingComposer(
+              $db: $db,
+              $table: $db.reminders,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SubtasksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SubtasksTable> {
+  $$SubtasksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDone =>
+      $composableBuilder(column: $table.isDone, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$RemindersTableAnnotationComposer get reminderId {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.reminderId,
+        referencedTable: $db.reminders,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RemindersTableAnnotationComposer(
+              $db: $db,
+              $table: $db.reminders,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$SubtasksTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SubtasksTable,
+    SubtaskRow,
+    $$SubtasksTableFilterComposer,
+    $$SubtasksTableOrderingComposer,
+    $$SubtasksTableAnnotationComposer,
+    $$SubtasksTableCreateCompanionBuilder,
+    $$SubtasksTableUpdateCompanionBuilder,
+    (SubtaskRow, $$SubtasksTableReferences),
+    SubtaskRow,
+    PrefetchHooks Function({bool reminderId})> {
+  $$SubtasksTableTableManager(_$AppDatabase db, $SubtasksTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubtasksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubtasksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubtasksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> reminderId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<bool> isDone = const Value.absent(),
+            Value<int> position = const Value.absent(),
+            Value<int> updatedAt = const Value.absent(),
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SubtasksCompanion(
+            reminderId: reminderId,
+            id: id,
+            title: title,
+            isDone: isDone,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String reminderId,
+            required String id,
+            required String title,
+            required bool isDone,
+            required int position,
+            required int updatedAt,
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SubtasksCompanion.insert(
+            reminderId: reminderId,
+            id: id,
+            title: title,
+            isDone: isDone,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$SubtasksTable, SubtaskRow>(table),
+                    $$SubtasksTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({reminderId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (reminderId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.reminderId,
+                    referencedTable:
+                        $$SubtasksTableReferences._reminderIdTable(db),
+                    referencedColumn:
+                        $$SubtasksTableReferences._reminderIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$SubtasksTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SubtasksTable,
+    SubtaskRow,
+    $$SubtasksTableFilterComposer,
+    $$SubtasksTableOrderingComposer,
+    $$SubtasksTableAnnotationComposer,
+    $$SubtasksTableCreateCompanionBuilder,
+    $$SubtasksTableUpdateCompanionBuilder,
+    (SubtaskRow, $$SubtasksTableReferences),
+    SubtaskRow,
+    PrefetchHooks Function({bool reminderId})>;
 typedef $$BirthdaysTableCreateCompanionBuilder = BirthdaysCompanion Function({
   required String id,
   required String name,
@@ -2804,6 +3582,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$RemindersTableTableManager get reminders =>
       $$RemindersTableTableManager(_db, _db.reminders);
+  $$SubtasksTableTableManager get subtasks =>
+      $$SubtasksTableTableManager(_db, _db.subtasks);
   $$BirthdaysTableTableManager get birthdays =>
       $$BirthdaysTableTableManager(_db, _db.birthdays);
   $$SettingsTableTableManager get settings =>
