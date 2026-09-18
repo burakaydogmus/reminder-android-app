@@ -16,6 +16,7 @@ import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/lists/lists_page.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/search/search_page.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_elevation.dart';
@@ -34,8 +35,8 @@ import 'package:reminder/ui/today/today_page.dart';
 /// opens its editor (after the first load), a birthday payload opens
 /// Listeler › Doğum günleri.
 ///
-/// Search (F3.6) is not on master yet: the iOS search circle stays hidden
-/// behind [kShellSearchEnabled] until the search page route lands.
+/// The iOS search circle opens the same search page as the Bugün/Listeler
+/// header button (`openSearch`, F3.6).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
@@ -67,10 +68,6 @@ class HomeShell extends StatefulWidget {
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
-
-/// Gate for the iOS search circle: flip to `true` and push the search page
-/// in `_HomeShellState._openSearch` once F3.6 (`lib/ui/search/`) is merged.
-const bool kShellSearchEnabled = false;
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
@@ -141,10 +138,6 @@ class _HomeShellState extends State<HomeShell> {
       _setCollapsed(false);
     }
     return false;
-  }
-
-  void _openSearch() {
-    // F3.6: push the search page here and enable [kShellSearchEnabled].
   }
 
   void _openTapTarget() {
@@ -275,12 +268,19 @@ class _HomeShellState extends State<HomeShell> {
   /// iOS tab bar + search circle with the a11y prefs (and, outside tests,
   /// the adaptive quality scope) above the glass.
   Widget _glassChrome(BuildContext context) {
-    Widget bar = KorGlassTabBar(
-      selectedIndex: _index,
-      onSelected: _select,
-      collapsed: _collapsed && !MediaQuery.accessibleNavigationOf(context),
-      onExpand: () => _setCollapsed(false),
-      onSearch: kShellSearchEnabled ? _openSearch : null,
+    // Under a NowScope so the search page keeps the shell's clock.
+    Widget bar = NowScope(
+      clock: widget.clock,
+      tick: _tick,
+      child: Builder(
+        builder: (context) => KorGlassTabBar(
+          selectedIndex: _index,
+          onSelected: _select,
+          collapsed: _collapsed && !MediaQuery.accessibleNavigationOf(context),
+          onExpand: () => _setCollapsed(false),
+          onSearch: () => openSearch(context),
+        ),
+      ),
     );
     if (widget.enableGlassScope) bar = GlassAdaptiveScope(child: bar);
     return A11yPrefsScope(prefs: _a11yPrefs, child: bar);

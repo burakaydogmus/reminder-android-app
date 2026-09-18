@@ -8,6 +8,7 @@ import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/components/kor_glass_surface.dart';
 import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
+import 'package:reminder/ui/search/search_page.dart';
 import 'package:reminder/ui/settings/settings_page.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
@@ -200,11 +201,7 @@ void main() {
           expect(tab(label), findsOneWidget);
         }
         expect(find.byKey(KorGlassSurface.glassKey), findsWidgets);
-        // The search circle waits for F3.6's search page.
-        expect(
-          find.byKey(KorGlassTabBar.searchKey),
-          kShellSearchEnabled ? findsOneWidget : findsNothing,
-        );
+        expect(find.byKey(KorGlassTabBar.searchKey), findsOneWidget);
 
         await tester.tap(tab('Listeler'));
         await tester.pumpAndSettle();
@@ -220,6 +217,13 @@ void main() {
         semantics.dispose();
       });
     }
+
+    iosTestWidgets('search circle opens the search page', (tester) async {
+      await pumpShell(tester);
+      await tester.tap(find.byKey(KorGlassTabBar.searchKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchPage), findsOneWidget);
+    });
 
     iosTestWidgets('tab bar floats at the bottom over the body', (
       tester,
