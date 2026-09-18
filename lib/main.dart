@@ -5,6 +5,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:reminder/app.dart';
+import 'package:reminder/config/app_licenses.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -15,6 +16,7 @@ import 'package:reminder/util/local_timezone.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerAppLicenses();
   if (Platform.isAndroid) {
     await HomeWidget.setAppGroupId('group.com.burakaydogmus.reminder');
     await HomeWidget.registerInteractivityCallback(reminderHomeWidgetCallback);

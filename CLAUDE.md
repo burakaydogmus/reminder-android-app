@@ -118,6 +118,18 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (`home/widget_change_signal.dart`, `IsolateNameServer` port) so a running app
   reloads. See **App state reload** below.
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
+- `config/app_links.dart` (F6.2b) — `AppLinks`: every external URL (privacy policy,
+  OSM copyright) in one place; the policy URL points to the GitHub file until the
+  hosted page exists (TODO). Widgets open links through an injected `LinkOpener`
+  (default `openExternalLink`, `url_launcher` `launchUrl` only — no `canLaunchUrl`,
+  so no `<queries>`/`LSApplicationQueriesSchemes`); tests pass a recording fake
+  (`SettingsPage(linkOpener:)`, `LocationPickerPage(linkOpener:)`).
+- `config/app_licenses.dart` (F6.2b) — `registerAppLicenses()` (called once in
+  `main()`) adds licences Flutter doesn't collect from packages to `LicenseRegistry`:
+  the Google Sans Flex OFL from the `fonts/GoogleSansFlex/OFL.txt` asset. Bundled
+  third-party assets (fonts, data) need an entry here; Settings › Diğer › Lisanslar
+  shows them via `showLicensePage`. The map must keep the visible, tappable
+  "© OpenStreetMap contributors" attribution (OSMF tile policy).
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
     minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
@@ -616,7 +628,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
 - Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
-  policy decision is F6.2, an inexact fallback when exact alarms are denied follows F1.7.
+  policy decision is F6.2; the inexact fallback when exact alarms are denied (then
+  dropping `USE_EXACT_ALARM`) is F6.2c.
 
 ## Platform notes
 
