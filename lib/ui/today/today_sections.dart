@@ -96,4 +96,75 @@ class TodaySections {
   /// `6 açık · 1 gecikmiş · 2 tamam`.
   String get summary =>
       '$openCount açık · $overdueCount gecikmiş · $doneCount tamam';
+
+  /// Completed items with a time today; they stay on the time ribbon.
+  List<Reminder> get completedTimed => [
+        for (final r in completed)
+          if (r.remindAt != null) r
+      ];
+
+  /// Completed items without a time (collapsible Tamamlananlar).
+  List<Reminder> get completedUntimed => [
+        for (final r in completed)
+          if (r.remindAt == null) r
+      ];
+
+  /// Time ribbon (§3.3.2): open timed items of today plus, with
+  /// [includeCompleted], today's completed timed items, in chronological
+  /// order, with one [TimelineNow] marker placed before the first item due
+  /// after [now] (items due exactly at [now] come before it).
+  List<TimelineEntry> timeline({
+    required DateTime now,
+    bool includeCompleted = true,
+  }) {
+    final items = [
+      ...today,
+      if (includeCompleted) ...completedTimed,
+    ]..sort((a, b) {
+        final byTime = a.remindAt!.toLocal().compareTo(b.remindAt!.toLocal());
+        return byTime != 0 ? byTime : compareReminders(a, b);
+      });
+    final entries = <TimelineEntry>[];
+    var nowPlaced = false;
+    for (final r in items) {
+      if (!nowPlaced && r.remindAt!.toLocal().isAfter(now)) {
+        entries.add(TimelineNow(now));
+        nowPlaced = true;
+      }
+      entries.add(TimelineReminder(r));
+    }
+    if (!nowPlaced) entries.add(TimelineNow(now));
+    return List.unmodifiable(entries);
+  }
+
+  /// "Hepsini yarına al": tomorrow (relative to [now]) at the wall-clock
+  /// time of [at].
+  static DateTime tomorrowAtSameTime(DateTime at, DateTime now) {
+    final local = at.toLocal();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+      local.hour,
+      local.minute,
+      local.second,
+    );
+  }
+}
+
+/// One row of the time ribbon.
+sealed class TimelineEntry {
+  const TimelineEntry();
+}
+
+/// A reminder on the ribbon.
+final class TimelineReminder extends TimelineEntry {
+  const TimelineReminder(this.reminder);
+  final Reminder reminder;
+}
+
+/// The ŞİMDİ line.
+final class TimelineNow extends TimelineEntry {
+  const TimelineNow(this.now);
+  final DateTime now;
 }

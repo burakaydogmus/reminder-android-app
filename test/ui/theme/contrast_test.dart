@@ -28,13 +28,11 @@ const _ui = 3.0;
 /// Design values that measure below the threshold. Key: test name, value:
 /// skip reason with the measured ratio. Never "fix" a failing token here by
 /// changing its value; it needs a design decision.
-const Map<String, String> _knownFailures = {
-  // The design doc itself notes Kor on primaryContainer is 4.24 ("yalnız
-  // ikon"). As user category "kor" (F4.3) its fg/container pair is text.
-  'light: category kor fg on container >= 4.5':
-      'Design decision needed — measured 4.24 (#B8430F on #FFDCC8); '
-          'lock or adjust in F4.3',
-};
+///
+/// Empty since 2026-09-13: light "kor" fg on its container (4.24:1) was
+/// resolved by the owner — text there uses `onContainer` (#4A1A00) and the
+/// fg stays icon-only on that background (checked against the UI minimum).
+const Map<String, String> _knownFailures = {};
 
 class _Pair {
   const _Pair(this.name, this.fg, this.bg, this.min);
@@ -109,7 +107,16 @@ List<_Pair> _pairs(_Theme t) {
     pairs
       ..add(_Pair('category $k fg on background', cat.fg, t.background, _text))
       ..add(_Pair('category $k fg on surface', cat.fg, s.surface, _text))
-      ..add(_Pair('category $k fg on container', cat.fg, cat.container, _text))
+      ..add(
+        _Pair(
+          'category $k text on container',
+          cat.onContainer,
+          cat.container,
+          _text,
+        ),
+      )
+      // Icons on the container only need the non-text minimum.
+      ..add(_Pair('category $k fg on container', cat.fg, cat.container, _ui))
       ..add(_Pair('category $k onFg on fg', cat.onFg, cat.fg, _text));
   }
   return pairs;

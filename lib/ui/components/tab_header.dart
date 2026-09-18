@@ -10,13 +10,19 @@ Future<void> openSettings(BuildContext context) {
   );
 }
 
-/// Top of a tab: optional overline (date), headlineLarge title and the
-/// Ayarlar gear (48 dp).
+/// Top of a tab: optional overline (date), headlineLarge title, optional
+/// [actions] (48 dp icon buttons, e.g. Ara) and the Ayarlar gear (48 dp).
 class TabHeader extends StatelessWidget {
-  const TabHeader({super.key, required this.title, this.overline});
+  const TabHeader({
+    super.key,
+    required this.title,
+    this.overline,
+    this.actions = const [],
+  });
 
   final String title;
   final String? overline;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +52,7 @@ class TabHeader extends StatelessWidget {
             ),
           ),
         ),
+        ...actions,
         IconButton(
           tooltip: 'Ayarlar',
           onPressed: () => openSettings(context),

@@ -23,6 +23,13 @@ DateTime _clock() => _now;
 
 Finder _header(String title) => find.widgetWithText(TabHeader, title);
 
+/// Bugün with the time ribbon is taller than the default test view.
+void _tallView(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 5400);
+  tester.view.devicePixelRatio = 2.7;
+  addTearDown(tester.view.reset);
+}
+
 Finder _navItem(String label) => find.descendant(
       of: find.byType(KorPillNavigation),
       matching: find.bySemanticsLabel(label),
@@ -365,6 +372,7 @@ void main() {
 
     for (final (themeName, theme) in korThemes) {
       testWidgets('Bugün sections ($themeName)', (tester) async {
+        _tallView(tester);
         final semantics = tester.ensureSemantics();
         final h = await UiHarness.create(
           reminders: reminders,
@@ -381,7 +389,11 @@ void main() {
         expect(find.text('3 açık · 1 gecikmiş · 1 tamam'), findsOneWidget);
         expect(find.text('Zeynep Aydın'), findsOneWidget);
 
-        for (final title in ['Kaçanlar', 'Bugün', 'Zamansız']) {
+        for (final title in [
+          'Kaçanlar',
+          'Zaman çizelgesi',
+          'Bugün bir ara',
+        ]) {
           expect(
             find.descendant(
               of: find.byType(CustomScrollView),
@@ -407,28 +419,13 @@ void main() {
         expect(find.textContaining('41.0', findRichText: true), findsNothing);
         // Later days belong to Takvim.
         expect(find.text('Kahvaltı rezervasyonu'), findsNothing);
-        // Completed is collapsed.
-        expect(find.text('Vitamin iç'), findsNothing);
-
-        final todayScroll = find
-            .descendant(
-              of: find.byType(CustomScrollView),
-              matching: find.byType(Scrollable),
-            )
-            .first;
-        final toggle = find.bySemanticsLabel(RegExp('^Tamamlananlar, 1'));
-        await tester.scrollUntilVisible(
-          toggle,
-          200,
-          scrollable: todayScroll,
-        );
-        await tester.tap(toggle);
+        // Completed timed items stay on the ribbon; the toggle hides them.
+        expect(find.text('Vitamin iç'), findsOneWidget);
+        await tester.tap(find.text('Tamamlananları gizle'));
         await tester.pumpAndSettle();
-        await tester.scrollUntilVisible(
-          find.text('Vitamin iç'),
-          200,
-          scrollable: todayScroll,
-        );
+        expect(find.text('Vitamin iç'), findsNothing);
+        await tester.tap(find.text('Tamamlananları göster'));
+        await tester.pumpAndSettle();
         expect(find.text('Vitamin iç'), findsOneWidget);
         semantics.dispose();
       });
@@ -461,6 +458,7 @@ void main() {
     });
 
     testWidgets('card checkbox toggles done', (tester) async {
+      _tallView(tester);
       final h = await UiHarness.create(reminders: reminders);
       await tester.pumpWidget(h.app(home: const HomeShell(clock: _clock)));
       await tester.pumpAndSettle();

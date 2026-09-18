@@ -12,6 +12,8 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 - **Navigasyon:** Bugün / Takvim / Listeler sekmeleri; Ayarlar dişli ikonunda
 - **Dinamik renk:** Uygulama içinde isteğe bağlı ayar (varsayılan kapalı); Android widget'ları sistem renklerini kullanır
 - **Cihaz içi yapay zekâ:** Şimdilik yok; hızlı yakalama kural tabanlı Türkçe ayrıştırıcıyla
+- **Lisans:** MIT (`LICENSE`, repo public)
+- **Kor kategori metni:** Açık temada "kor" renk anahtarlı kategori, kendi açık turuncu zemininde (`#FFDCC8`) metin olarak koyu kahve (`#4A1A00`, `onContainer`) kullanır; kor turuncusu (`#B8430F`) o zeminde yalnızca ikondur (4.24:1)
 - **Takip:** Bu dosya; her PR ilgili maddeyi `[x]` yapar
 
 **Durum işaretleri:** `[ ]` bekliyor · `[~]` devam ediyor · `[x]` tamamlandı
@@ -86,7 +88,7 @@ Diğer tüm fazların temeli.
 - [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
 - [x] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
   Kaydırarak tamamla (sağa) / ertele (sola kısa) / sil (sola uzun) + "Geri al" snackbar; her aksiyonun menü ve ekran okuyucu karşılığı.
-- [ ] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
+- [x] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
   Bugün zaman şeridi (Kaçanlar / şerit / Bugün bir ara), Takvim gündemi (Yaklaşan), Listeler › akıllı listeler (Zamansız dahil), Türkçe karakter duyarsız arama.
 
 ## Faz 4 — Arayüz ve deneyim ("Kor")
@@ -102,7 +104,7 @@ Diğer tüm fazların temeli.
 - [x] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
 - [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
-  Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; mevcut "Diğer + özel ad" yapısının migration'ı.
+  Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; zemin üzerindeki kategori metni `CategoryColors.onContainer`, ikon `fg` kullanır (kor anahtarı için zorunlu); mevcut "Diğer + özel ad" yapısının migration'ı.
 - [ ] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
 - [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
@@ -127,8 +129,10 @@ Diğer tüm fazların temeli.
 
 - [ ] **F6.1 Yerelleştirme** · `feat/i18n`
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
-- [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness`
-  Gizlilik politikası, mağaza görselleri, iOS izin metinleri, sürümleme + `CHANGELOG.md`.
+- [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
+  [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
+- [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
+  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması + uygulama içi bağlantı, `USE_EXACT_ALARM` kaldırma + inexact fallback, OSM atfı ve lisans ekranı, arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
   Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
 

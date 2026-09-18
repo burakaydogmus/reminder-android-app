@@ -12,7 +12,10 @@ import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/search/search_page.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
+import 'package:reminder/ui/today/overdue_actions.dart';
+import 'package:reminder/ui/today/time_ribbon.dart';
 import 'package:reminder/ui/today/today_sections.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_banner.dart';
@@ -22,10 +25,17 @@ import 'package:reminder/ui/permissions/permission_scope.dart';
 /// Keys for tests.
 abstract final class TodayPageKeys {
   static const notificationBanner = Key('today.notificationBanner');
+  static const moveOverdue = Key('today.moveOverdue');
+  static const ribbonCompletedToggle = Key('today.ribbonCompletedToggle');
 }
 
-/// Bugün (§3.3.2 without the time ribbon, F3.6): header, birthday banner,
-/// Kaçanlar, Bugün, Zamansız and collapsible Tamamlananlar.
+/// Bugün (§3.3.2): header (Ara, Ayarlar), birthday banner, Kaçanlar with
+/// "Hepsini yarına al", the time ribbon (timed items + ŞİMDİ line,
+/// completed items compact), Bugün bir ara (untimed) and collapsible
+/// Tamamlananlar (completed untimed items).
+///
+/// Reading order follows the tree: header → Kaçanlar → ribbon
+/// (chronological) → Bugün bir ara → Tamamlananlar.
 class TodayPage extends StatefulWidget {
   const TodayPage({super.key});
 
@@ -34,7 +44,14 @@ class TodayPage extends StatefulWidget {
 }
 
 class _TodayPageState extends State<TodayPage> {
+  /// Collapsible Tamamlananlar and the "Hepsi tamam" state.
   bool _showCompleted = false;
+
+  /// Ribbon toggle "Tamamlananları gizle".
+  bool _hideRibbonCompleted = false;
+
+  /// The ŞİMDİ glow plays once, on the first ribbon build.
+  bool _glowPlayed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +64,7 @@ class _TodayPageState extends State<TodayPage> {
           now: now,
         );
         final bottom = MediaQuery.paddingOf(context).bottom;
+        final allDoneCollapsed = sections.allDone && !_showCompleted;
 
         return SafeArea(
           bottom: false,
@@ -112,48 +130,35 @@ class _TodayPageState extends State<TodayPage> {
                     ),
                   ),
                 )
-              else if (sections.allDone && !_showCompleted)
+              else if (allDoneCollapsed)
                 SliverToBoxAdapter(
                   child: EmptyState(
                     title: 'Hepsi tamam.',
                     body: 'Bugünkü ${sections.doneCount} hatırlatmanın '
                         'hepsini bitirdin.',
                     actionLabel: 'Tamamlananları göster',
-                    onAction: () => setState(() => _showCompleted = true),
+                    onAction: () => setState(() {
+                      _showCompleted = true;
+                      _hideRibbonCompleted = false;
+                    }),
                   ),
                 ),
+              ..._overdue(context, sections, now),
+              if (!allDoneCollapsed) ..._ribbon(context, sections, now),
               ..._section(
                 context,
-                title: 'Kaçanlar',
-                icon: Icons.history_rounded,
-                iconColor: Theme.of(context).colorScheme.primary,
-                items: sections.overdue,
-                now: now,
-                timeStyle: ReminderTimeStyle.relative,
-              ),
-              ..._section(
-                context,
-                title: 'Bugün',
-                icon: Icons.schedule_rounded,
-                items: sections.today,
-                now: now,
-                timeStyle: ReminderTimeStyle.timeOnly,
-              ),
-              ..._section(
-                context,
-                title: 'Zamansız',
+                title: 'Bugün bir ara',
                 icon: Icons.inbox_rounded,
                 items: sections.untimed,
                 now: now,
-                timeStyle: ReminderTimeStyle.timeOnly,
               ),
-              if (sections.completed.isNotEmpty) ...[
+              if (sections.completedUntimed.isNotEmpty) ...[
                 _padded(
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.only(top: KorSpacing.s5),
                       child: _CompletedToggle(
-                        count: sections.completed.length,
+                        count: sections.completedUntimed.length,
                         expanded: _showCompleted,
                         onTap: () =>
                             setState(() => _showCompleted = !_showCompleted),
@@ -163,7 +168,7 @@ class _TodayPageState extends State<TodayPage> {
                 ),
                 if (_showCompleted)
                   _cards(
-                    sections.completed,
+                    sections.completedUntimed,
                     now,
                     ReminderTimeStyle.timeOnly,
                   ),
@@ -176,6 +181,104 @@ class _TodayPageState extends State<TodayPage> {
         );
       },
     );
+  }
+
+  List<Widget> _overdue(
+    BuildContext context,
+    TodaySections sections,
+    DateTime now,
+  ) {
+    if (sections.overdue.isEmpty) return const [];
+    final theme = Theme.of(context);
+    final movable = movableOverdue(sections.overdue);
+    return [
+      _padded(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: KorSpacing.s5),
+            child: _HeaderWithAction(
+              title: 'Kaçanlar',
+              icon: Icons.history_rounded,
+              iconColor: theme.colorScheme.primary,
+              action: movable.isEmpty
+                  ? null
+                  : TextButton(
+                      key: TodayPageKeys.moveOverdue,
+                      onPressed: () => moveOverdueToTomorrowWithUndo(
+                        context,
+                        overdue: sections.overdue,
+                        now: now,
+                      ),
+                      child: const Text('Hepsini yarına al'),
+                    ),
+            ),
+          ),
+        ),
+      ),
+      _cards(sections.overdue, now, ReminderTimeStyle.relative),
+    ];
+  }
+
+  List<Widget> _ribbon(
+    BuildContext context,
+    TodaySections sections,
+    DateTime now,
+  ) {
+    final hasCompleted = sections.completedTimed.isNotEmpty;
+    final entries = sections.timeline(
+      now: now,
+      includeCompleted: !_hideRibbonCompleted,
+    );
+    if (sections.today.isEmpty && !hasCompleted) return const [];
+
+    final playGlow = !_glowPlayed;
+    if (playGlow) _glowPlayed = true;
+
+    return [
+      _padded(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: KorSpacing.s5),
+            child: _HeaderWithAction(
+              title: 'Zaman çizelgesi',
+              icon: Icons.schedule_rounded,
+              action: hasCompleted
+                  ? TextButton(
+                      key: TodayPageKeys.ribbonCompletedToggle,
+                      onPressed: () => setState(
+                        () => _hideRibbonCompleted = !_hideRibbonCompleted,
+                      ),
+                      child: Text(
+                        _hideRibbonCompleted
+                            ? 'Tamamlananları göster'
+                            : 'Tamamlananları gizle',
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      ),
+      _padded(
+        SliverList.list(
+          children: [
+            for (final entry in entries)
+              switch (entry) {
+                TimelineNow(:final now) => NowLine(
+                    key: TimeRibbonKeys.nowLine,
+                    now: now,
+                    playGlow: playGlow,
+                  ),
+                TimelineReminder(:final reminder) => TimeRibbonRow(
+                    key: ValueKey(reminder.id),
+                    reminder: reminder,
+                    now: now,
+                  ),
+              },
+          ],
+        ),
+      ),
+    ];
   }
 
   /// §3.3.2 "İzin reddedildi": notifications are on in the app but the OS
@@ -206,10 +309,8 @@ class _TodayPageState extends State<TodayPage> {
     BuildContext context, {
     required String title,
     required IconData icon,
-    Color? iconColor,
     required List<Reminder> items,
     required DateTime now,
-    required ReminderTimeStyle timeStyle,
   }) {
     if (items.isEmpty) return const [];
     final theme = Theme.of(context);
@@ -221,7 +322,6 @@ class _TodayPageState extends State<TodayPage> {
             child: SectionHeader(
               title: title,
               icon: icon,
-              iconColor: iconColor,
               trailing: Text(
                 '${items.length}',
                 style: theme.textTheme.labelMedium?.copyWith(
@@ -232,7 +332,7 @@ class _TodayPageState extends State<TodayPage> {
           ),
         ),
       ),
-      _cards(items, now, timeStyle),
+      _cards(items, now, ReminderTimeStyle.timeOnly),
     ];
   }
 
@@ -269,7 +369,11 @@ class _Header extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TabHeader(title: 'Bugün', overline: KorFormat.headerDate(now)),
+        TabHeader(
+          title: 'Bugün',
+          overline: KorFormat.headerDate(now),
+          actions: const [SearchIconButton()],
+        ),
         Text(
           sections.summary,
           style: theme.textTheme.bodyMedium?.copyWith(
@@ -284,6 +388,42 @@ class _Header extends StatelessWidget {
           child: LinearProgressIndicator(value: sections.progress),
         ),
         const SizedBox(height: KorSpacing.s2),
+      ],
+    );
+  }
+}
+
+/// [SectionHeader] with a trailing text button; above the ribbon's
+/// single-column text scale the button moves to its own line so neither the
+/// title nor the button is cut off.
+class _HeaderWithAction extends StatelessWidget {
+  const _HeaderWithAction({
+    required this.title,
+    required this.icon,
+    this.iconColor,
+    this.action,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color? iconColor;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    if (action == null || !TimeRibbon.singleColumn(context)) {
+      return SectionHeader(
+        title: title,
+        icon: icon,
+        iconColor: iconColor,
+        trailing: action,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: title, icon: icon, iconColor: iconColor),
+        action!,
       ],
     );
   }
