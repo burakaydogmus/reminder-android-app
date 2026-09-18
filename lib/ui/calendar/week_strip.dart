@@ -203,63 +203,93 @@ double weekStripHeight(BuildContext context) {
   return math.max(68, content + KorSpacing.s2);
 }
 
-/// Mon–Sun week strip with horizontal paging between weeks.
-///
-/// Page [basePage] is the week of [baseWeek]; the caller owns [controller].
+/// Mon–Sun week strip; a horizontal swipe (fling) moves to the previous /
+/// next week with a short slide (none under Reduce Motion). The header's
+/// chevrons are the button alternative. Not a `Scrollable`, so the agenda
+/// stays the page's only vertical scroll view.
 class WeekStrip extends StatelessWidget {
   const WeekStrip({
     super.key,
-    required this.controller,
-    required this.basePage,
-    required this.baseWeek,
+    required this.week,
     required this.today,
     required this.selected,
     required this.dotsFor,
     required this.onSelect,
-    required this.onPageChanged,
+    required this.onWeekChange,
+    this.direction = 0,
     this.drop,
   });
 
-  final PageController controller;
-  final int basePage;
-  final DateTime baseWeek;
+  /// Any day of the shown week.
+  final DateTime week;
   final DateTime today;
   final DateTime selected;
   final List<KorColorKey> Function(DateTime day) dotsFor;
   final ValueChanged<DateTime> onSelect;
-  final ValueChanged<int> onPageChanged;
+
+  /// `-1` previous week, `1` next week.
+  final ValueChanged<int> onWeekChange;
+
+  /// Direction of the last change (slide-in side); `0` = no slide.
+  final int direction;
   final DayDropHandler? drop;
 
-  DateTime weekOfPage(int page) =>
-      CalendarDates.addDays(baseWeek, (page - basePage) * 7);
+  static const _swipeVelocity = 200.0;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final days = CalendarDates.weekDays(week);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return GestureDetector(
       key: CalendarStripKeys.strip,
-      height: weekStripHeight(context),
-      child: PageView.builder(
-        controller: controller,
-        onPageChanged: onPageChanged,
-        itemBuilder: (context, page) {
-          final days = CalendarDates.weekDays(weekOfPage(page));
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final d in days)
-                Expanded(
-                  child: CalendarDayCell(
-                    day: d,
-                    today: CalendarDates.isSameDay(d, today),
-                    selected: CalendarDates.isSameDay(d, selected),
-                    dots: dotsFor(d),
-                    onTap: () => onSelect(d),
-                    drop: drop,
-                  ),
+      onHorizontalDragEnd: (details) {
+        final v = details.primaryVelocity ?? 0;
+        if (v < -_swipeVelocity) onWeekChange(1);
+        if (v > _swipeVelocity) onWeekChange(-1);
+      },
+      child: SizedBox(
+        height: weekStripHeight(context),
+        child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeOutCubic,
+            transitionBuilder: (child, animation) {
+              final incoming = child.key == ValueKey(days.first);
+              final dx = direction == 0
+                  ? 0.0
+                  : (incoming ? direction : -direction) * 0.3;
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween(
+                    begin: Offset(dx, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
-            ],
-          );
-        },
+              );
+            },
+            child: Row(
+              key: ValueKey(days.first),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final d in days)
+                  Expanded(
+                    child: CalendarDayCell(
+                      day: d,
+                      today: CalendarDates.isSameDay(d, today),
+                      selected: CalendarDates.isSameDay(d, selected),
+                      dots: dotsFor(d),
+                      onTap: () => onSelect(d),
+                      drop: drop,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

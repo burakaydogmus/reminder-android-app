@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
+    show GlassAdaptiveScope;
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
@@ -10,28 +12,39 @@ import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/lists/lists_page.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/search/search_page.dart';
+import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
+import 'package:reminder/ui/theme/tokens/kor_elevation.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/ui/today/today_page.dart';
 
 /// App shell (§3.2): Bugün / Takvim / Listeler. Ayarlar opens from the gear
 /// in each tab header.
 ///
-/// Android: floating pill navigation + squircle FAB. iOS: plain bottom tab
-/// bar + FAB. Back from Takvim/Listeler returns to Bugün.
+/// Android: floating pill navigation + squircle FAB. iOS (F5.4): floating
+/// [KorGlassTabBar] + separate search circle + FAB; the tab bar shrinks while
+/// content scrolls down and expands on scroll up, at the top, on tab switch
+/// and always with VoiceOver. Back from Takvim/Listeler returns to Bugün.
 ///
 /// Notification taps (F3.2) arrive through [tapRouter]: a reminder payload
 /// opens its editor (after the first load), a birthday payload opens
 /// Listeler › Doğum günleri.
+///
+/// The iOS search circle opens the same search page as the Bugün/Listeler
+/// header button (`openSearch`, F3.6).
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
     this.clock = DateTime.now,
     this.tapRouter,
     this.reminderLoadTimeout = const Duration(seconds: 5),
+    this.enableGlassScope = true,
+    this.a11yPrefs,
   });
 
   /// Injected for tests; screens read it through [NowScope].
@@ -44,6 +57,14 @@ class HomeShell extends StatefulWidget {
   /// the first `load()` may still be running).
   final Duration reminderLoadTimeout;
 
+  /// iOS: wraps the glass chrome in a `GlassAdaptiveScope` (frame-timing
+  /// quality adaptation, drops to solid on slow devices). Tests turn it off.
+  final bool enableGlassScope;
+
+  /// iOS accessibility prefs for the glass fallback; defaults to
+  /// [A11yPrefs.platform] (native channel), tests pass a fixed value.
+  final A11yPrefs? a11yPrefs;
+
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -52,6 +73,13 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   int _tick = 0;
   Timer? _ticker;
+
+  /// iOS glass tab bar shrunk by scrolling.
+  bool _collapsed = false;
+  A11yPrefs? _ownedPrefs;
+
+  A11yPrefs get _a11yPrefs =>
+      widget.a11yPrefs ?? (_ownedPrefs ??= A11yPrefs.platform());
 
   NotificationTapRouter get _router =>
       widget.tapRouter ?? NotificationTapRouter.instance;
@@ -72,12 +100,44 @@ class _HomeShellState extends State<HomeShell> {
   void dispose() {
     _router.removeListener(_openTapTarget);
     _ticker?.cancel();
+    _ownedPrefs?.dispose();
     super.dispose();
   }
 
   void _select(int index) {
     if (index == _index) return;
-    setState(() => _index = index);
+    setState(() {
+      _index = index;
+      _collapsed = false;
+    });
+  }
+
+  void _setCollapsed(bool collapsed) {
+    if (collapsed == _collapsed) return;
+    setState(() => _collapsed = collapsed);
+  }
+
+  /// iOS shrink-on-scroll: down past [KorGlass.scrollSlop] collapses, up or
+  /// reaching the top expands. VoiceOver keeps the tab bar expanded.
+  bool _onScroll(ScrollNotification notification) {
+    final metrics = notification.metrics;
+    if (notification is! ScrollUpdateNotification ||
+        metrics.axis != Axis.vertical) {
+      return false;
+    }
+    if (MediaQuery.accessibleNavigationOf(context)) {
+      _setCollapsed(false);
+      return false;
+    }
+    final delta = notification.scrollDelta ?? 0;
+    if (metrics.pixels <= metrics.minScrollExtent) {
+      _setCollapsed(false);
+    } else if (delta > KorGlass.scrollSlop) {
+      _setCollapsed(true);
+    } else if (delta < -KorGlass.scrollSlop) {
+      _setCollapsed(false);
+    }
+    return false;
   }
 
   void _openTapTarget() {
@@ -146,7 +206,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final cupertino = PlatformChrome.isCupertino(context);
 
-    final body = NowScope(
+    final pages = NowScope(
       clock: widget.clock,
       tick: _tick,
       child: IndexedStack(
@@ -154,6 +214,12 @@ class _HomeShellState extends State<HomeShell> {
         children: const [TodayPage(), CalendarPage(), ListsPage()],
       ),
     );
+    final body = cupertino
+        ? NotificationListener<ScrollNotification>(
+            onNotification: _onScroll,
+            child: pages,
+          )
+        : pages;
 
     return PopScope(
       canPop: _index == 0,
@@ -161,11 +227,12 @@ class _HomeShellState extends State<HomeShell> {
         if (!didPop) _select(0);
       },
       child: Scaffold(
-        extendBody: !cupertino,
+        // Content scrolls under the floating nav on both platforms.
+        extendBody: true,
         body: body,
         floatingActionButton: cupertino ? const NewItemFab() : null,
         bottomNavigationBar: cupertino
-            ? KorTabBar(selectedIndex: _index, onSelected: _select)
+            ? _glassChrome(context)
             : SafeArea(
                 top: false,
                 minimum: const EdgeInsets.fromLTRB(
@@ -196,5 +263,26 @@ class _HomeShellState extends State<HomeShell> {
               ),
       ),
     );
+  }
+
+  /// iOS tab bar + search circle with the a11y prefs (and, outside tests,
+  /// the adaptive quality scope) above the glass.
+  Widget _glassChrome(BuildContext context) {
+    // Under a NowScope so the search page keeps the shell's clock.
+    Widget bar = NowScope(
+      clock: widget.clock,
+      tick: _tick,
+      child: Builder(
+        builder: (context) => KorGlassTabBar(
+          selectedIndex: _index,
+          onSelected: _select,
+          collapsed: _collapsed && !MediaQuery.accessibleNavigationOf(context),
+          onExpand: () => _setCollapsed(false),
+          onSearch: () => openSearch(context),
+        ),
+      ),
+    );
+    if (widget.enableGlassScope) bar = GlassAdaptiveScope(child: bar);
+    return A11yPrefsScope(prefs: _a11yPrefs, child: bar);
   }
 }

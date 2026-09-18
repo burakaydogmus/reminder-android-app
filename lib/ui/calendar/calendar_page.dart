@@ -47,52 +47,24 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-  static const _basePage = 10000;
-
-  PageController _weekController = _controllerAt(_basePage);
   final _scroll = ScrollController();
-
-  /// Monday of the week shown on [_basePage] (today's week at first build).
-  DateTime? _baseWeek;
 
   /// `null` = today (follows the clock across midnight).
   DateTime? _selected;
-  int _page = _basePage;
+
+  /// Monday of the shown week; `null` = the selected day's week.
+  DateTime? _week;
+
+  /// Last week step (slide direction of the strip).
+  int _direction = 0;
   bool _expanded = false;
   DateTime? _gridMonth;
   CalendarFilter _filter = CalendarFilter.all;
 
-  // keepPage: false — a re-created strip must open on initialPage, not on a
-  // page restored from PageStorage.
-  static PageController _controllerAt(int page) =>
-      PageController(initialPage: page, keepPage: false);
-
   @override
   void dispose() {
-    _weekController.dispose();
     _scroll.dispose();
     super.dispose();
-  }
-
-  int _pageOf(DateTime day) =>
-      _basePage + CalendarDates.weekDiff(_baseWeek!, day);
-
-  DateTime _weekOfPage(int page) =>
-      CalendarDates.addDays(_baseWeek!, (page - _basePage) * 7);
-
-  bool get _reduceMotion => MediaQuery.disableAnimationsOf(context);
-
-  void _showWeekOf(DateTime day) {
-    final page = _pageOf(day);
-    _page = page;
-    if (_weekController.hasClients) {
-      if (_weekController.page?.round() != page) {
-        _weekController.jumpToPage(page);
-      }
-    } else {
-      _weekController.dispose();
-      _weekController = _controllerAt(page);
-    }
   }
 
   void _scrollAgendaToTop() {
@@ -102,15 +74,10 @@ class _CalendarPageState extends State<CalendarPage> {
   void _select(DateTime day, DateTime today) {
     setState(() {
       _selected = CalendarDates.isSameDay(day, today) ? null : day;
+      _week = null;
+      _direction = 0;
       _gridMonth = CalendarDates.monthStart(day);
-      if (_expanded) {
-        _expanded = false;
-        _weekController.dispose();
-        _weekController = _controllerAt(_pageOf(day));
-        _page = _pageOf(day);
-      } else {
-        _showWeekOf(day);
-      }
+      _expanded = false;
     });
     _scrollAgendaToTop();
   }
@@ -118,51 +85,41 @@ class _CalendarPageState extends State<CalendarPage> {
   void _goToToday(DateTime today) {
     setState(() {
       _selected = null;
+      _week = null;
+      _direction = 0;
       _gridMonth = CalendarDates.monthStart(today);
-      if (!_expanded) _showWeekOf(today);
     });
     _scrollAgendaToTop();
   }
 
-  void _toggleExpanded(DateTime selected) {
+  void _toggleExpanded(DateTime shownWeek, DateTime selected) {
     setState(() {
       _expanded = !_expanded;
+      _direction = 0;
       if (_expanded) {
-        _gridMonth = CalendarDates.monthStart(
-          CalendarDates.addDays(_weekOfPage(_page), 3),
-        );
+        // The month of the shown week's Thursday.
+        _gridMonth =
+            CalendarDates.monthStart(CalendarDates.addDays(shownWeek, 3));
       } else {
         // Back to the selected day's week, or to the browsed month.
         final month = _gridMonth!;
-        final week = CalendarDates.isSameDay(
+        _week = CalendarDates.isSameDay(
           CalendarDates.monthStart(selected),
           month,
         )
-            ? selected
-            : month;
-        _weekController.dispose();
-        _page = _pageOf(week);
-        _weekController = _controllerAt(_page);
+            ? null
+            : CalendarDates.weekStart(month);
       }
     });
   }
 
-  void _step(int delta) {
+  void _step(int delta, DateTime shownWeek) {
     setState(() {
       if (_expanded) {
         _gridMonth = CalendarDates.addMonths(_gridMonth!, delta);
       } else {
-        final page = _page + delta;
-        _page = page;
-        if (_reduceMotion || !_weekController.hasClients) {
-          if (_weekController.hasClients) _weekController.jumpToPage(page);
-        } else {
-          _weekController.animateToPage(
-            page,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-          );
-        }
+        _week = CalendarDates.addDays(shownWeek, 7 * delta);
+        _direction = delta;
       }
     });
   }
@@ -180,8 +137,8 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     final now = NowScope.now(context);
     final today = CalendarDates.dateOnly(now);
-    _baseWeek ??= CalendarDates.weekStart(today);
     final selected = _selected ?? today;
+    final week = _week ?? CalendarDates.weekStart(selected);
     _gridMonth ??= CalendarDates.monthStart(selected);
     final theme = Theme.of(context);
 
@@ -198,7 +155,6 @@ class _CalendarPageState extends State<CalendarPage> {
         );
         final hasEntries = agenda.any((d) => !d.isEmpty);
 
-        final week = _weekOfPage(_page);
         final grid = CalendarDates.monthGrid(_gridMonth!);
         final markers = calendarDayMarkers(
           reminders: state.reminders,
@@ -243,7 +199,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       tooltip: _expanded
                           ? 'Hafta görünümüne geç'
                           : 'Ay görünümüne geç',
-                      onPressed: () => _toggleExpanded(selected),
+                      onPressed: () => _toggleExpanded(week, selected),
                       icon: Icon(
                         _expanded
                             ? Icons.view_week_rounded
@@ -267,13 +223,13 @@ class _CalendarPageState extends State<CalendarPage> {
                     IconButton(
                       key: CalendarPageKeys.previous,
                       tooltip: _expanded ? 'Önceki ay' : 'Önceki hafta',
-                      onPressed: () => _step(-1),
+                      onPressed: () => _step(-1, week),
                       icon: const Icon(Icons.chevron_left_rounded),
                     ),
                     IconButton(
                       key: CalendarPageKeys.next,
                       tooltip: _expanded ? 'Sonraki ay' : 'Sonraki hafta',
-                      onPressed: () => _step(1),
+                      onPressed: () => _step(1, week),
                       icon: const Icon(Icons.chevron_right_rounded),
                     ),
                   ],
@@ -287,26 +243,25 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: GestureDetector(
                     onVerticalDragEnd: (details) {
                       if ((details.primaryVelocity ?? 0) > 0) {
-                        _toggleExpanded(selected);
+                        _toggleExpanded(week, selected);
                       }
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         WeekStrip(
-                          controller: _weekController,
-                          basePage: _basePage,
-                          baseWeek: _baseWeek!,
+                          week: week,
                           today: today,
                           selected: selected,
                           dotsFor: dotsFor,
                           onSelect: (d) => _select(d, today),
-                          onPageChanged: (page) => setState(() => _page = page),
+                          onWeekChange: (delta) => _step(delta, week),
+                          direction: _direction,
                           drop: drop,
                         ),
                         ExpandHandle(
                           expanded: false,
-                          onToggle: () => _toggleExpanded(selected),
+                          onToggle: () => _toggleExpanded(week, selected),
                         ),
                       ],
                     ),
@@ -331,12 +286,12 @@ class _CalendarPageState extends State<CalendarPage> {
                                 selected: selected,
                                 dotsFor: dotsFor,
                                 onSelect: (d) => _select(d, today),
-                                onMonthChange: _step,
+                                onMonthChange: (d) => _step(d, week),
                                 drop: drop,
                               ),
                               ExpandHandle(
                                 expanded: true,
-                                onToggle: () => _toggleExpanded(selected),
+                                onToggle: () => _toggleExpanded(week, selected),
                               ),
                             ],
                           ),
