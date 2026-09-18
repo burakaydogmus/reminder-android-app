@@ -105,7 +105,7 @@ Diğer tüm fazların temeli.
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
 - [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
   Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; zemin üzerindeki kategori metni `CategoryColors.onContainer`, ikon `fg` kullanır (kor anahtarı için zorunlu); mevcut "Diğer + özel ad" yapısının migration'ı.
-- [ ] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
+- [x] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
 - [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
   Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.

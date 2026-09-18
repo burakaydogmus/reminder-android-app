@@ -4,6 +4,8 @@ import 'package:reminder/domain/notification_ids.dart';
 ///
 /// [date] orijinal tarihtir (yaş hesabı için yıl bilgisi de saklanır), ancak
 /// bildirim yıllık olarak `date.month/date.day` kombinasyonunda tetiklenir.
+/// Yılı bilinmeyen doğum günlerinde yıl [unknownYear] olarak saklanır
+/// ([hasYear] `false`, yaş gösterilmez); şema ve JSON biçimi değişmez.
 /// [advanceOffsetsMinutes] hatırlatmanın doğum gününden kaç dakika önce
 /// gönderileceğini belirtir (0 = doğum gününde, 1440 = 1 gün önce, vs.).
 class Birthday {
@@ -26,6 +28,13 @@ class Birthday {
     this.advanceOffsetsMinutes = const <int>[0, 1440],
     required this.createdAt,
   });
+
+  /// Yılı bilinmeyen tarihler için saklanan yıl (F4.4). Artık yıl, böylece
+  /// yılsız 29 Şubat da gösterilebilir; gerçek bir doğum yılı olamaz.
+  static const int unknownYear = 4;
+
+  /// Doğum yılı biliniyor mu (bilinmiyorsa yaş hesaplanmaz).
+  bool get hasYear => date.year != unknownYear;
 
   /// [offsetMinutes] önbildirimi için kararlı kimlik; FNV-1a
   /// (`birthday:<id>:<offsetMinutes>`), bkz. [NotificationIds].
@@ -62,6 +71,7 @@ class Birthday {
 
   /// [upcomingAge]'in saati verilebilen hali ([from] yoksa şimdi).
   int? upcomingAgeFrom({DateTime? from}) {
+    if (!hasYear) return null;
     final next = nextOccurrence(from: from);
     final age = next.year - date.year;
     if (age <= 0) return null;
