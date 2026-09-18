@@ -113,7 +113,7 @@ Diğer tüm fazların temeli.
   `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
 - [ ] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4, F4.6a*
   iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
-- [ ] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
+- [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
 ## Faz 5 — Widget ve platform

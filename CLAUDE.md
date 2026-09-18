@@ -516,7 +516,9 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (`KorRadius`, `CookieShapeBorder`), `kor_spacing.dart`, `kor_elevation.dart`.
 - `extensions/` — `KorColors` (`context.korColors`: success, glass, now line,
   `category(key)`) and `KorMotion` (`context.korMotion`: 6 springs, Reduce Motion
-  resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`.
+  resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`,
+  `HapticsScope`; `haptics_store.dart` — `HapticsStore` (see **UI structure** → Motion
+  and haptics).
 - Font: `fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf` (OFL, subset latin + latin-ext).
 - Imports: `package:material_ui/material_ui.dart` / `package:cupertino_ui/cupertino_ui.dart`,
   never `package:flutter/material.dart` or `cupertino.dart` (deprecated in-framework
@@ -581,6 +583,33 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
   sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
   clock); the Ertele sheet never accepts a past custom time.
+- **Motion and haptics (F4.7):** springs come from `KorMotion` (`context.korMotion`;
+  `resolveOf` turns spatial springs into a 150 ms fade under
+  `MediaQuery.disableAnimationsOf`, effects springs stay). APIs that only take a
+  duration + curve use `KorSpring.settleDuration` / `KorSpring.curve()` (e.g.
+  `KorMotion.sheetStyleOf` for `showModalBottomSheet(sheetAnimationStyle: ...)`; the
+  reminder editor stays a sheet on both platforms, no container transform). The
+  complete toggle of `ReminderCard` / `ReminderCompactCard` is
+  `components/kor_checkbox.dart` (`KorCheckbox`): 0 ms `KorHaptics.complete` + press
+  1 → 0.85 (spatialFast), 0–240 ms circle → `CookieShapeBorder` morph + fill, 120–300
+  ms check path, then a hold; the commit runs at **900 ms** (`KorCheckbox.hold`). A
+  second tap during the hold cancels; disposal during the hold still commits.
+  `onToggle` is called at tap time and returns the commit, so capture context there —
+  `prepareToggleReminderDone(context, reminder, hapticPlayed: true)` does that for
+  reminders. Reduce Motion: no press/morph/check/hold, commit at once, 150 ms fade.
+  `ring:` draws an outline 2 px outside the shape (F3.4 priority ring). Widget tests
+  that tap the checkbox must `pump(KorCheckbox.hold)` before `pumpAndSettle`
+  (a `Timer`, not an animation). `CookieShapeBorder` (9 lobes, `depth` 0 = circle,
+  lerps from/to `CircleBorder`) is the only expressive shape. Tabs switch through
+  `FadeThroughIndexedStack` (effectsSlow fade + 0.96 → 1 scale; fade only under
+  Reduce Motion; the pages keep their state). Haptics: always `KorHaptics.of(context)`
+  (never `HapticFeedback` directly, never the only feedback): complete medium, swipe
+  threshold / token selectionClick, undo and reorder drop light, delete heavy, reorder
+  lift medium. The Ayarlar › Görünüm "Titreşim geri bildirimi" switch is
+  `HapticsScope` (in `App`'s `MaterialApp.builder`; `UiHarness` uses
+  `HapticsStore.memory()`, exposed as `h.haptics`) over `HapticsStore`
+  (SharedPreferences `haptics_enabled_v1`, default on; UI-only, not in Drift).
+  Test haptics by mocking `SystemChannels.platform` (`HapticFeedback.vibrate`).
 - **Bugün, Listeler, Arama (F3.6):** Bugün = Kaçanlar ("Hepsini yarına al": all
   overdue to tomorrow at the same wall-clock time via `updateReminder`, one undo
   that restores all; recurring reminders are skipped in `movableOverdue`, the

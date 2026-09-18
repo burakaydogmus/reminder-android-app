@@ -8,6 +8,8 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
+import 'package:reminder/ui/theme/haptics.dart';
+import 'package:reminder/ui/theme/haptics_store.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
 import '../helpers/fake_permission_service.dart';
@@ -69,6 +71,9 @@ class UiHarness {
   /// Permission state seen by the UI (all granted unless a test changes it).
   final FakePermissionService permissions = FakePermissionService();
 
+  /// "Titreşim geri bildirimi" (on unless a test changes it).
+  final HapticsStore haptics = HapticsStore.memory();
+
   Widget app({
     required Widget home,
     ThemeData Function() theme = KorTheme.light,
@@ -83,6 +88,10 @@ class UiHarness {
           locale: const Locale('tr', 'TR'),
           supportedLocales: const [Locale('tr', 'TR'), Locale('en', 'US')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          builder: (context, child) => HapticsScope(
+            store: haptics,
+            child: child ?? const SizedBox.shrink(),
+          ),
           home: home,
         ),
       ),

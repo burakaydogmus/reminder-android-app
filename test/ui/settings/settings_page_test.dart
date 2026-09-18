@@ -39,12 +39,48 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(Switch), findsOneWidget);
+        // Also Titreşim geri bildirimi (F4.7); both Switch.adaptive.
+        expect(find.byType(Switch), findsWidgets);
+        await tester.scrollUntilVisible(
+          find.text('Hatırlatma bildirimleri'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tester.ensureVisible(find.text('Hatırlatma bildirimleri'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Hatırlatma bildirimleri'));
         await tester.pumpAndSettle();
         expect(h.cubit.state.settings.notificationsEnabled, isFalse);
+      });
+
+      testWidgets('Titreşim geri bildirimi toggles the haptics setting',
+          (tester) async {
+        final h = await UiHarness.create();
+        await tester.pumpWidget(
+          h.app(home: const SettingsPage(), theme: theme),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(SettingsPageKeys.haptics);
+        await tester.ensureVisible(row);
+        await tester.pumpAndSettle();
+        expect(_inRow(SettingsPageKeys.haptics, 'Titreşim geri bildirimi'),
+            findsOneWidget);
+        Switch toggle() => tester.widget<Switch>(
+              find.descendant(of: row, matching: find.byType(Switch)),
+            );
+        expect(toggle().value, isTrue);
+
+        await tester.tap(row);
+        await tester.pumpAndSettle();
+        expect(toggle().value, isFalse);
+        expect(await h.haptics.isEnabled(), isFalse);
+
+        await tester
+            .tap(find.descendant(of: row, matching: find.byType(Switch)));
+        await tester.pumpAndSettle();
+        expect(toggle().value, isTrue);
+        expect(await h.haptics.isEnabled(), isTrue);
       });
 
       testWidgets('reset asks for confirmation first', (tester) async {

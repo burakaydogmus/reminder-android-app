@@ -8,6 +8,7 @@ import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
+import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/ui/theme/tokens/kor_typography.dart';
@@ -35,7 +36,9 @@ abstract final class TimeRibbon {
   /// into the card (§3.3.2, §3.6 rule 6).
   static const double singleColumnScale = 1.3;
 
-  static const Duration glowDuration = Duration(milliseconds: 1200);
+  /// One-time ŞİMDİ glow (`KorMotion.nowLineGlow`).
+  static Duration glowDuration(BuildContext context) =>
+      context.korMotion.nowLineGlow;
 
   static bool singleColumn(BuildContext context) =>
       MediaQuery.textScalerOf(context).scale(100) / 100 > singleColumnScale;
@@ -203,7 +206,8 @@ class _RailPainter extends CustomPainter {
 /// ŞİMDİ line: 2 px `nowLine` from the gutter to the edge with a `primary`
 /// time pill. Placed by the caller between ribbon rows; the shell's minute
 /// tick moves it without animation. With [playGlow] and motion allowed it
-/// glows once for [TimeRibbon.glowDuration] (§3.5 nowLine).
+/// glows once for `KorMotion.nowLineGlow` (1.2 s, §3.5 nowLine); never with
+/// Reduce Motion.
 class NowLine extends StatefulWidget {
   const NowLine({super.key, required this.now, this.playGlow = false});
 
@@ -215,10 +219,7 @@ class NowLine extends StatefulWidget {
 }
 
 class _NowLineState extends State<NowLine> with SingleTickerProviderStateMixin {
-  late final AnimationController _glow = AnimationController(
-    vsync: this,
-    duration: TimeRibbon.glowDuration,
-  );
+  late final AnimationController _glow = AnimationController(vsync: this);
   bool _started = false;
 
   @override
@@ -227,7 +228,9 @@ class _NowLineState extends State<NowLine> with SingleTickerProviderStateMixin {
     if (_started) return;
     _started = true;
     if (widget.playGlow && !MediaQuery.disableAnimationsOf(context)) {
-      _glow.forward();
+      _glow
+        ..duration = TimeRibbon.glowDuration(context)
+        ..forward();
     }
   }
 

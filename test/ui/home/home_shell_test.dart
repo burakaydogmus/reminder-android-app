@@ -5,6 +5,7 @@ import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
+import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_glass_surface.dart';
 import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
@@ -477,6 +478,13 @@ void main() {
         matching: find.byType(InkResponse),
       );
       await tester.tap(toggle.first);
+      await tester.pumpAndSettle();
+      // KorCheckbox holds the row for 900 ms before completing (F4.7).
+      expect(
+        h.cubit.state.reminders.firstWhere((r) => r.id == 'untimed').isDone,
+        isFalse,
+      );
+      await tester.pump(KorCheckbox.hold);
       await tester.pumpAndSettle();
       expect(
         h.cubit.state.reminders.firstWhere((r) => r.id == 'untimed').isDone,

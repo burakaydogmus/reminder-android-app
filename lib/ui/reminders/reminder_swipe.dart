@@ -31,7 +31,7 @@ class ReminderSwipe extends StatefulWidget {
     required this.onSnooze,
     required this.onDelete,
     required this.child,
-    this.haptics = const KorHaptics(),
+    this.haptics,
   });
 
   static const double actionThreshold = 0.3;
@@ -43,7 +43,9 @@ class ReminderSwipe extends StatefulWidget {
   /// Null disables the Ertele zone (e.g. done reminders).
   final VoidCallback? onSnooze;
   final VoidCallback onDelete;
-  final KorHaptics haptics;
+
+  /// Defaults to [KorHaptics.of] (follows the haptics setting).
+  final KorHaptics? haptics;
   final Widget child;
 
   /// Zone for a signed drag [fraction] of the card width (positive =
@@ -88,7 +90,7 @@ class _ReminderSwipeState extends State<ReminderSwipe>
     final zone = ReminderSwipe.zoneFor(_fraction, canSnooze: _canSnooze);
     if (zone == _zone) return;
     if (_dragging && zone != ReminderSwipeZone.none) {
-      widget.haptics.swipeThreshold();
+      (widget.haptics ?? KorHaptics.of(context)).swipeThreshold();
     }
     setState(() => _zone = zone);
   }

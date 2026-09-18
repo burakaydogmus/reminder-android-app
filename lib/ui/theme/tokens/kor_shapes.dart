@@ -39,38 +39,61 @@ abstract final class KorRadius {
       BorderRadius.vertical(top: Radius.circular(sheetTop));
 }
 
-/// The single expressive shape: a 9-lobed "cookie" used by the checked state
-/// of `CheckboxMorph` (F4.7).
+/// The single expressive shape: the 9-sided "cookie" of a completed
+/// checkbox (`KorCheckbox`, F4.7; §3.1 "M3E şekil vurgusu").
 ///
-/// [depth] is the lobe depth as a fraction of the radius; `0` is a circle, so
-/// animating [depth] from 0 to [defaultDepth] morphs circle → cookie via
-/// [lerp]. Minimal implementation; F4.7 may refine the curve.
-class CookieShapeBorder extends ShapeBorder {
+/// The outline is a polar curve with [lobes] broad, rounded scallops and
+/// narrow notches between them (the androidx `Cookie9Sided` silhouette):
+/// `r(θ) = R · (1 − depth · v(θ))`, where `v` is 0 at a lobe's crest and 1 at
+/// a notch, sharpened by [notchSharpness]. Lobe crests touch the bounding
+/// circle, so the shape never grows past its rect; one crest points up.
+///
+/// [depth] is the notch depth as a fraction of the radius. `0` is exactly a
+/// circle, so [lerpFrom] / [lerpTo] a [CircleBorder] (or
+/// `ShapeBorder.lerp(CircleBorder(), CookieShapeBorder(), t)`) morph circle →
+/// cookie by animating [depth] from 0 to [defaultDepth].
+class CookieShapeBorder extends OutlinedBorder {
   const CookieShapeBorder({
     this.lobes = 9,
     this.depth = defaultDepth,
-    this.side = BorderSide.none,
+    super.side,
   })  : assert(lobes >= 3),
         assert(depth >= 0 && depth < 1);
 
-  static const double defaultDepth = 0.08;
+  /// A cookie with no notches: renders as a circle.
+  const CookieShapeBorder.circle({this.lobes = 9, super.side}) : depth = 0;
+
+  /// Notch depth of the finished cookie.
+  static const double defaultDepth = 0.12;
+
+  /// Exponent applied to the notch profile: > 1 widens the lobes and
+  /// narrows the notches.
+  static const double notchSharpness = 2;
+
+  /// Outline samples per lobe (smooth at checkbox and hero sizes).
+  static const int _samplesPerLobe = 24;
 
   final int lobes;
   final double depth;
-  final BorderSide side;
 
-  @override
-  EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.strokeInset);
+  /// Radius factor at polar angle [theta] (0 = up, clockwise); 1 on a crest,
+  /// `1 − depth` in a notch.
+  double radiusFactor(double theta) {
+    final notch = (1 - math.cos(lobes * theta)) / 2;
+    return 1 - depth * math.pow(notch, notchSharpness);
+  }
 
   Path _path(Rect rect) {
     final center = rect.center;
     final radius = rect.shortestSide / 2;
-    const steps = 180;
     final path = Path();
-    for (var i = 0; i <= steps; i++) {
+    if (depth == 0) {
+      return path..addOval(Rect.fromCircle(center: center, radius: radius));
+    }
+    final steps = lobes * _samplesPerLobe;
+    for (var i = 0; i < steps; i++) {
       final theta = 2 * math.pi * i / steps;
-      // Lobes point outward; valleys sink by `depth * radius`.
-      final r = radius * (1 - depth * (1 - math.cos(lobes * theta)) / 2);
+      final r = radius * radiusFactor(theta);
       final angle = theta - math.pi / 2;
       final point = center + Offset(math.cos(angle) * r, math.sin(angle) * r);
       if (i == 0) {
@@ -83,6 +106,9 @@ class CookieShapeBorder extends ShapeBorder {
   }
 
   @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.strokeInset);
+
+  @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) => _path(rect);
 
   @override
@@ -92,25 +118,31 @@ class CookieShapeBorder extends ShapeBorder {
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     if (side.style == BorderStyle.none) return;
-    canvas.drawPath(_path(rect.deflate(side.strokeInset / 2)), side.toPaint());
+    final inset = side.strokeInset - side.width / 2;
+    canvas.drawPath(_path(rect.deflate(inset)), side.toPaint());
   }
 
   @override
-  ShapeBorder scale(double t) =>
-      CookieShapeBorder(lobes: lobes, depth: depth, side: side.scale(t));
+  CookieShapeBorder copyWith({BorderSide? side, int? lobes, double? depth}) =>
+      CookieShapeBorder(
+        lobes: lobes ?? this.lobes,
+        depth: depth ?? this.depth,
+        side: side ?? this.side,
+      );
+
+  @override
+  ShapeBorder scale(double t) => copyWith(side: side.scale(t));
 
   @override
   ShapeBorder? lerpFrom(ShapeBorder? a, double t) {
     if (a is CookieShapeBorder && a.lobes == lobes) {
-      return CookieShapeBorder(
-        lobes: lobes,
-        depth: lerpDouble(a.depth, depth, t)!,
+      return copyWith(
+        depth: lerpDouble(a.depth, depth, t),
         side: BorderSide.lerp(a.side, side, t),
       );
     }
-    if (a is CircleBorder) {
-      return CookieShapeBorder(
-        lobes: lobes,
+    if (a is CircleBorder && a.eccentricity == 0) {
+      return copyWith(
         depth: depth * t,
         side: BorderSide.lerp(a.side, side, t),
       );
@@ -121,15 +153,13 @@ class CookieShapeBorder extends ShapeBorder {
   @override
   ShapeBorder? lerpTo(ShapeBorder? b, double t) {
     if (b is CookieShapeBorder && b.lobes == lobes) {
-      return CookieShapeBorder(
-        lobes: lobes,
-        depth: lerpDouble(depth, b.depth, t)!,
+      return copyWith(
+        depth: lerpDouble(depth, b.depth, t),
         side: BorderSide.lerp(side, b.side, t),
       );
     }
-    if (b is CircleBorder) {
-      return CookieShapeBorder(
-        lobes: lobes,
+    if (b is CircleBorder && b.eccentricity == 0) {
+      return copyWith(
         depth: depth * (1 - t),
         side: BorderSide.lerp(side, b.side, t),
       );
@@ -146,4 +176,7 @@ class CookieShapeBorder extends ShapeBorder {
 
   @override
   int get hashCode => Object.hash(lobes, depth, side);
+
+  @override
+  String toString() => 'CookieShapeBorder(lobes: $lobes, depth: $depth, $side)';
 }

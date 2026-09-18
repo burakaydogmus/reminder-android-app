@@ -10,6 +10,7 @@ import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/home/app_lifecycle_reloader.dart';
 import 'package:reminder/ui/onboarding/onboarding_gate.dart';
+import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
 class App extends StatelessWidget {
@@ -67,7 +68,8 @@ class App extends StatelessWidget {
                     statusBarBrightness:
                         isDark ? Brightness.dark : Brightness.light,
                   ),
-                  child: child ?? const SizedBox.shrink(),
+                  // F4.7: "Titreşim geri bildirimi" for every route.
+                  child: HapticsScope(child: child ?? const SizedBox.shrink()),
                 );
               },
               home: const OnboardingGate(),
