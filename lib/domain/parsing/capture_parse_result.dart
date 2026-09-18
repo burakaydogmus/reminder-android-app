@@ -162,8 +162,9 @@ class CaptureParseResult {
 
   final String input;
 
-  /// Input without the recognized tokens, tidied and capitalized. Falls back
-  /// to the trimmed input when nothing else is left.
+  /// Input without the recognized tokens, tidied and capitalized. When only
+  /// tokens were typed it falls back to the whole input (whitespace
+  /// collapsed, capitalized); empty input gives an empty title.
   final String title;
 
   /// Accepted tokens in input order.

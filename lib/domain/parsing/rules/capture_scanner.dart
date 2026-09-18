@@ -269,9 +269,12 @@ class _Scanner {
   CaptureParseResult buildResult() {
     final title = _buildTitle();
     final when = resolve();
+    // Tokens only (`yarın 18:00 #market`): keep the whole input as the title
+    // rather than an empty one; the UI shows the tokens as chips anyway.
+    final shown = title.isEmpty ? input.trim().replaceAll(_spaces, ' ') : title;
     return CaptureParseResult(
       input: input,
-      title: title.isEmpty ? input.trim() : TurkishText.capitalizeFirst(title),
+      title: TurkishText.capitalizeFirst(shown),
       splitSuggestion: title.isEmpty ? const [] : splitSuggestion(title),
       tokens: List.unmodifiable(_tokens),
       dateTime: when.dateTime,
@@ -287,10 +290,23 @@ class _Scanner {
 
   static final RegExp _spaces = RegExp(r'\s+');
   static final RegExp _spaceBeforePunct = RegExp(r' ([,;:.?)])');
-  static final RegExp _emptyParens = RegExp(r'\(\s*\)');
+
+  /// Brackets or quotes left empty after a token was removed (`(yarın)`,
+  /// `"yarın"`).
+  static final RegExp _emptyParens =
+      RegExp(r'\(\s*\)|\[\s*\]|"\s*"|“\s*”|‘\s*’|«\s*»');
   static final RegExp _repeatedSeparators = RegExp(r'([,;:])(?:\s*[,;:])+');
   static final RegExp _leadingJunk = RegExp(r'^[\s,;:.\-–—·|/]+');
   static final RegExp _trailingJunk = RegExp(r'[\s,;:\-–—·|/]+$');
+
+  /// Punctuation left at the start after a token was removed
+  /// (`yarın!!! ekmek` → `ekmek`).
+  static final RegExp _leadingMarks = RegExp(r'^[!?…]+(?:\s+|$)');
+
+  /// A separator orphaned before the closing mark (`Dişçi — yarın 10:00.`
+  /// → `Dişçi.`).
+  static final RegExp _separatorBeforeEnd =
+      RegExp(r'\s*[,;:\-–—·|/]+\s*([.?!…]+)$');
   static final RegExp _leadingConnector =
       RegExp(r'^(?:ve|ile)\s+', caseSensitive: false);
   static final RegExp _trailingConnector =
@@ -320,7 +336,9 @@ class _Scanner {
       final before = s;
       s = s
           .replaceFirst(_leadingJunk, '')
+          .replaceFirst(_leadingMarks, '')
           .replaceFirst(_trailingJunk, '')
+          .replaceFirstMapped(_separatorBeforeEnd, (m) => m.group(1)!)
           .replaceFirst(_leadingConnector, '')
           .replaceFirst(_trailingConnector, '');
       if (s == before) break;
