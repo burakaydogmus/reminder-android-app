@@ -1,6 +1,7 @@
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
     show
         GlassAdaptiveScope,
+        GlassAdaptiveScopeData,
         GlassContainer,
         GlassQuality,
         LiquidGlassSettings,
@@ -45,7 +46,7 @@ class KorGlassSurface extends StatelessWidget {
   static bool prefersSolid(BuildContext context) {
     if (A11yPrefs.of(context).prefersSolid) return true;
     if (MediaQuery.highContrastOf(context)) return true;
-    final adaptive = GlassAdaptiveScope.maybeOf(context);
+    final adaptive = GlassAdaptiveScopeData.maybeOf(context);
     return adaptive?.effectiveQuality == GlassQuality.minimal;
   }
 
@@ -95,6 +96,9 @@ class KorGlassSurface extends StatelessWidget {
       width: width,
       height: height,
       shape: _liquidShape,
+      // Standalone surface: not inside a shared LiquidGlassLayer, so the
+      // Kor tint/blur settings below only apply with an own layer.
+      useOwnLayer: true,
       quality: GlassQuality.standard,
       settings: LiquidGlassSettings(
         glassColor: colors.glassTint,

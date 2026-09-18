@@ -44,7 +44,8 @@ class A11yPrefsData {
       other.lowPower == lowPower;
 
   @override
-  int get hashCode => Object.hash(reduceTransparency, increaseContrast, lowPower);
+  int get hashCode =>
+      Object.hash(reduceTransparency, increaseContrast, lowPower);
 
   @override
   String toString() => 'A11yPrefsData(reduceTransparency: $reduceTransparency, '
