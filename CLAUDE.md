@@ -144,8 +144,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   "© OpenStreetMap contributors" attribution (OSMF tile policy).
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
-    minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
-    `KorTabBar`, `NewItemFab`).
+    minute tick), `kor_navigation.dart` (Android `KorPillNavigation`, `NewItemFab`)
+    and `kor_glass_tab_bar.dart` (iOS `KorGlassTabBar`, F5.4).
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
     grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
     `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
@@ -163,10 +163,12 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
     `OnboardingStore` (see **Onboarding** under UI structure).
   - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
-    `EmptyState`, `TabHeader` (gear → Ayarlar). `common/` — `KorFormat` (Turkish
+    `EmptyState`, `TabHeader` (gear → Ayarlar), `KorGlassSurface` (iOS glass /
+    solid fallback). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
   - `theme/` — Kor tokens (below); `theme/adaptive/platform_chrome.dart` is the single
-    Android/iOS chrome decision. `widgets/` — `ConfirmationDialog`.
+    Android/iOS chrome decision; `theme/adaptive/a11y_prefs.dart` (`A11yPrefs`: iOS
+    Reduce Transparency / Increase Contrast / Low Power over a MethodChannel). `widgets/` — `ConfirmationDialog`.
 - `util/` — dialogs, `local_timezone.dart`
   (`configureLocalTimezone`: device zone via `flutter_timezone`, `Etc/UTC` fallback;
   used by `main()` and the home widget callback).
@@ -200,7 +202,9 @@ Tests mirror `lib/`:
   `ReminderCubit` over the mocks, loaded with given reminders/birthdays, wrapped like
   `App`). Pass a fixed clock (`HomeShell(clock: ...)`) for date-dependent screens, run
   light and dark via `korThemes`, and select iOS chrome with
-  `platform: TargetPlatform.iOS`. Pure groupings (`TodaySections`, `buildAgenda`,
+  `platform: TargetPlatform.iOS` (iOS shell tests: `iosTestWidgets` from
+  `test/ui/home/ios_platform.dart`, `HomeShell(enableGlassScope: false, a11yPrefs:
+  A11yPrefs(...))`). Pure groupings (`TodaySections`, `buildAgenda`,
   `KorFormat`) have plain unit tests.
 - `test/helpers/` — `buildReminder(...)` / `buildBirthday(...)` factories and mocks;
   use them instead of constructing models by hand.
@@ -512,9 +516,26 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - **Shell:** `HomeShell` has three tabs (Bugün / Takvim / Listeler) in an
   `IndexedStack`; Ayarlar is a pushed route from the gear in `TabHeader`. Back on
   Takvim/Listeler selects Bugün (`PopScope`). Android: floating `KorPillNavigation` +
-  64 px `NewItemFab` (long-press: Hatırlatıcı / Doğum günü); iOS: plain `KorTabBar` +
-  FAB. Decide platform chrome only through `PlatformChrome` (reads
+  64 px `NewItemFab` (long-press: Hatırlatıcı / Doğum günü); iOS: floating glass
+  `KorGlassTabBar` + FAB (below). Decide platform chrome only through `PlatformChrome` (reads
   `Theme.of(context).platform`, so tests override it via the theme).
+- **iOS glass chrome (F5.4):** `liquid_glass_widgets` (MIT) is used **only** through
+  `KorGlassSurface` and only for iOS floating chrome (tab bar, search circle, later
+  the F4.6 capture bar); content and cards stay opaque, Android never uses glass.
+  `KorGlassTabBar`: 290×62 capsule (Bugün/Takvim/Listeler, icon + label, sliding
+  `primaryContainer` indicator on `spatialDefault`, jump under Reduce Motion) + a
+  separate 62 "Ara" circle → `openSearch`, over a `surface` edge fade. `HomeShell`
+  uses `extendBody`; scrolling down past `KorGlass.scrollSlop` collapses it to the
+  selected icon (tap expands), scrolling up / reaching the top / switching tabs
+  expands it, VoiceOver (`accessibleNavigation`) keeps it expanded; the outer bar
+  height never changes, so the body does not relayout. Solid fallback
+  (`surfaceContainerHigh` + 1px `outline`, 2px with `MediaQuery.highContrastOf`)
+  when `A11yPrefs` reports Reduce Transparency, Increase Contrast or Low Power, or
+  the `GlassAdaptiveScope` drops to `minimal`. The native side is
+  `ios/Runner/AppDelegate.swift` (`com.burakaydogmus.reminder/a11y_prefs`: `get`,
+  `changed`). Sizes live in `KorGlass` (`kor_elevation.dart`). Tab labels clamp text
+  scale at 1.3 (fixed capsule height; full label in semantics). The Bugün/Listeler
+  header search icon still shows on iOS too (F3.6 lane).
 - **Date logic in the UI layer:** groupings are pure functions of cubit state and a
   clock (`TodaySections.from`, `buildAgenda`); screens read the clock from `NowScope`
   (the shell ticks it every minute; pushed routes use `NowScope.carry`). Do not add

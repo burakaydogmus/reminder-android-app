@@ -29,5 +29,66 @@ import native_geofence
       GeneratedPluginRegistrant.register(with: registry)
     }
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    registerA11yPrefsChannel(with: engineBridge.pluginRegistry)
+  }
+
+  // MARK: - Erişilebilirlik tercihleri (F5.4)
+
+  // Flutter'ın MediaQuery'de vermediği iOS ayarları: Reduce Transparency,
+  // Increase Contrast (darker system colors) ve Low Power Mode. Cam krom
+  // (tab bar, arama düğmesi) bunlardan biri açıksa solid çizilir.
+  // Dart tarafı: lib/ui/theme/adaptive/a11y_prefs.dart.
+  private static let a11yPrefsChannelName = "com.burakaydogmus.reminder/a11y_prefs"
+  private var a11yPrefsChannel: FlutterMethodChannel?
+
+  private func registerA11yPrefsChannel(with registry: FlutterPluginRegistry) {
+    guard let registrar = registry.registrar(forPlugin: "ReminderA11yPrefs") else { return }
+    let channel = FlutterMethodChannel(
+      name: AppDelegate.a11yPrefsChannelName,
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { call, result in
+      if call.method == "get" {
+        result(AppDelegate.currentA11yPrefs())
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    a11yPrefsChannel = channel
+
+    let center = NotificationCenter.default
+    let names: [Notification.Name] = [
+      UIAccessibility.reduceTransparencyStatusDidChangeNotification,
+      UIAccessibility.darkerSystemColorsStatusDidChangeNotification,
+      Notification.Name.NSProcessInfoPowerStateDidChange,
+    ]
+    for name in names {
+      center.removeObserver(self, name: name, object: nil)
+      center.addObserver(
+        self,
+        selector: #selector(a11yPrefsDidChange),
+        name: name,
+        object: nil
+      )
+    }
+  }
+
+  // Güç modu bildirimi herhangi bir thread'den gelebilir; kanal ana
+  // thread'de çağrılır.
+  @objc private func a11yPrefsDidChange() {
+    DispatchQueue.main.async { [weak self] in
+      self?.a11yPrefsChannel?.invokeMethod(
+        "changed",
+        arguments: AppDelegate.currentA11yPrefs()
+      )
+    }
+  }
+
+  private static func currentA11yPrefs() -> [String: Bool] {
+    return [
+      "reduceTransparency": UIAccessibility.isReduceTransparencyEnabled,
+      "increaseContrast": UIAccessibility.isDarkerSystemColorsEnabled,
+      "lowPower": ProcessInfo.processInfo.isLowPowerModeEnabled,
+    ]
   }
 }

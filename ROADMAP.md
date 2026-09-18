@@ -124,8 +124,9 @@ Diğer tüm fazların temeli.
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
 - [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
-- [ ] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
+- [x] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
   Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.
+  *Not:* yakalama çubuğu (accessory) F4.6b hızlı yakalama arayüzü ile gelir; `KorGlassSurface` ona hazır.
 
 ## Faz 6 — Yayın hazırlığı
 

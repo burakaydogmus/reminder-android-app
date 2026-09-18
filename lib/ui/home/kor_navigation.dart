@@ -169,59 +169,6 @@ class _PillNavItem extends StatelessWidget {
   }
 }
 
-/// iOS bottom tab bar: plain (non-glass, F5.4 adds glass), icon + label,
-/// active item in `primary`.
-class KorTabBar extends StatelessWidget {
-  const KorTabBar({
-    super.key,
-    required this.selectedIndex,
-    required this.onSelected,
-    this.destinations = kShellDestinations,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-  final List<KorDestination> destinations;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return NavigationBarTheme(
-      data: theme.navigationBarTheme.copyWith(
-        height: 62,
-        indicatorColor: scheme.surfaceContainerHigh,
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            color: states.contains(WidgetState.selected)
-                ? scheme.primary
-                : scheme.onSurfaceVariant,
-          ),
-        ),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => theme.textTheme.labelSmall?.copyWith(
-            color: states.contains(WidgetState.selected)
-                ? scheme.primary
-                : scheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-      child: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onSelected,
-        destinations: [
-          for (final d in destinations)
-            NavigationDestination(
-              icon: Icon(d.icon),
-              selectedIcon: Icon(d.selectedIcon),
-              label: d.label,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 enum _NewItemKind { reminder, birthday }
 
 /// 64 px squircle "Yeni hatırlatıcı" FAB; long-press offers
