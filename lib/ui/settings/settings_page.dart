@@ -1,8 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/config/app_licenses.dart';
+import 'package:reminder/config/app_links.dart';
 import 'package:reminder/data/backup/backup_io.dart';
 import 'package:reminder/data/backup/backup_service.dart';
 import 'package:reminder/data/reminder_repository.dart';
@@ -19,18 +22,27 @@ import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 abstract final class SettingsPageKeys {
   static const backupExport = Key('settings.backupExport');
   static const backupImport = Key('settings.backupImport');
+  static const privacyPolicy = Key('settings.privacyPolicy');
+  static const licenses = Key('settings.licenses');
 }
 
 /// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
-/// ekran widget'ı, Yedekleme and data reset.
+/// ekran widget'ı, Yedekleme, Diğer (privacy policy, licences) and data
+/// reset.
 class SettingsPage extends StatefulWidget {
   /// [backupIo] and [backupService] are injectable for tests; by default the
   /// platform share sheet/picker and a repository on the app's shared
-  /// database are used.
-  const SettingsPage({super.key, this.backupIo, this.backupService});
+  /// database are used. [linkOpener] opens external links (browser).
+  const SettingsPage({
+    super.key,
+    this.backupIo,
+    this.backupService,
+    this.linkOpener = openExternalLink,
+  });
 
   final BackupIo? backupIo;
   final BackupService? backupService;
+  final LinkOpener linkOpener;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -195,6 +207,32 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
+                icon: Icons.info_outline_rounded,
+                title: 'Diğer',
+                padding: const EdgeInsets.fromLTRB(
+                  KorSpacing.s5,
+                  KorSpacing.s3,
+                  KorSpacing.s5,
+                  KorSpacing.s2,
+                ),
+                children: [
+                  _LinkRow(
+                    key: SettingsPageKeys.privacyPolicy,
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Gizlilik politikası',
+                    external: true,
+                    onTap: () => _openPrivacyPolicy(context),
+                  ),
+                  _LinkRow(
+                    key: SettingsPageKeys.licenses,
+                    icon: Icons.description_outlined,
+                    title: 'Lisanslar',
+                    onTap: () => _openLicenses(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: KorSpacing.s5),
+              GroupedCard(
                 padding: const EdgeInsets.symmetric(vertical: KorSpacing.s2),
                 children: [
                   Semantics(
@@ -245,6 +283,30 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final opened = await widget.linkOpener(AppLinks.privacyPolicy);
+    if (opened || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bağlantı açılamadı.')),
+    );
+  }
+
+  /// Flutter's licence page: packages from `pubspec.lock` plus the ones added
+  /// by `registerAppLicenses` (Google Sans Flex).
+  Future<void> _openLicenses(BuildContext context) async {
+    String? version;
+    try {
+      version = (await PackageInfo.fromPlatform()).version;
+    } catch (_) {}
+    if (!context.mounted) return;
+    showLicensePage(
+      context: context,
+      applicationName: 'Hatırlatıcı',
+      applicationVersion: version,
+      applicationLegalese: appLegalese,
+    );
+  }
+
   /// Confirmation with "Önce yedekle": after a backup (shared or sheet
   /// closed) the dialog comes back so the user can still reset.
   Future<void> _clearDataStore(
@@ -290,6 +352,42 @@ class _SwitchRow extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: Switch.adaptive(value: value, onChanged: onChanged),
         onTap: () => onChanged(!value),
+      ),
+    );
+  }
+}
+
+/// One tappable row in a [GroupedCard]: icon, title and a trailing hint
+/// (open-in-new for links that leave the app, chevron otherwise).
+class _LinkRow extends StatelessWidget {
+  const _LinkRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.external = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool external;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      link: external,
+      button: !external,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: scheme.onSurfaceVariant),
+        title: Text(title),
+        trailing: Icon(
+          external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+          color: scheme.onSurfaceVariant,
+        ),
+        onTap: onTap,
       ),
     );
   }

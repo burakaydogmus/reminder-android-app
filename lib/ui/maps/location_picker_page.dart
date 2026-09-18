@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:reminder/config/app_links.dart';
 import 'package:reminder/config/maps_config.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/permission_service.dart';
@@ -29,12 +30,16 @@ class LocationPickerPage extends StatefulWidget {
   final double initialRadiusMeters;
   final String? initialLabel;
 
+  /// Opens the OSM copyright page from the attribution; injectable for tests.
+  final LinkOpener linkOpener;
+
   const LocationPickerPage({
     super.key,
     required this.categoryId,
     this.initialPoint,
     this.initialRadiusMeters = 150,
     this.initialLabel,
+    this.linkOpener = openExternalLink,
   });
 
   @override
@@ -201,6 +206,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     });
   }
 
+  Future<void> _openOsmCopyright() async {
+    final opened = await widget.linkOpener(AppLinks.osmCopyright);
+    if (opened || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bağlantı açılamadı.')),
+    );
+  }
+
   void _confirmAndPop() {
     Navigator.pop(
       context,
@@ -328,10 +341,30 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         ),
                       ],
                     ),
-                    SimpleAttributionWidget(
-                      source: const Text('OpenStreetMap'),
-                      backgroundColor:
-                          theme.colorScheme.surface.withValues(alpha: 0.92),
+                    // OSMF tile policy: visible "© OpenStreetMap
+                    // contributors" linking to the copyright page (F6.2b).
+                    // Bottom left keeps it clear of "Konumuma git".
+                    DefaultTextStyle.merge(
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                      child: Semantics(
+                        link: true,
+                        child: SimpleAttributionWidget(
+                          alignment: Alignment.bottomLeft,
+                          onTap: _openOsmCopyright,
+                          source: Text(
+                            'OpenStreetMap contributors',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: scheme.primary,
+                              decoration: TextDecoration.underline,
+                              decorationColor: scheme.primary,
+                            ),
+                          ),
+                          backgroundColor:
+                              scheme.surface.withValues(alpha: 0.92),
+                        ),
+                      ),
                     ),
                   ],
                 ),
