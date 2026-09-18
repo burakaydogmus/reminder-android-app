@@ -18,6 +18,14 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Hareket ve titreşim:** kartın tamamlama dairesi dokununca hafifçe basılıyor, 9 dilimli
+  "kurabiye" şekline dönüşüp kategori rengiyle doluyor ve ✓ çiziliyor; kart yanlış dokunuşu fark
+  etmen için 0,9 sn yerinde bekledikten sonra tamamlanıyor (bu sürede tekrar dokunmak iptal
+  eder, "Geri al" her zamanki gibi çalışır). Sekme geçişleri yumuşak bir geçişle, düzenleyici
+  yay (spring) hareketiyle açılıyor. Ayarlar › Görünüm'de **"Titreşim geri bildirimi"** anahtarı
+  (varsayılan açık): tamamlama, kaydırma eşiği, geri alma, silme ve madde sıralamada kısa
+  titreşimler. "Hareketi azalt" açıkken şekil dönüşümü ve bekleme olmadan kısa bir geçişle
+  tamamlanır. (F4.7)
 - **MIT lisansı eklendi** (kökte `LICENSE`, "Copyright (c) 2026 Burak Aydoğmuş"); üçüncü taraf
   atıfları `docs/store/licensing.md`'de. (#27)
 - **Öncelik ve sabitleme:** editörde "Öncelik" seçimi (Yok / Düşük / Orta / Yüksek) ve üst
@@ -58,6 +66,10 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Değişti
 
+- **"Alarmlar ve hatırlatıcılar" izni artık isteğe bağlı:** izin yoksa (Android 14+'da yeni
+  kurulumlarda varsayılan) hatırlatmalar yine gelir, yalnızca birkaç dakika gecikebilir; izin
+  verilince bildirimler kendiliğinden tam zamanlıya geçer. Google Play'in kısıtladığı
+  `USE_EXACT_ALARM` izni kaldırıldı. (F6.2c)
 - iOS'ta cam efekti (Liquid Glass) gölgelendiricileri açılışta önceden yükleniyor; sekme
   çubuğu ilk karede boş görünmüyor. (F5.4 takip)
 - **Depolama Drift (SQLite) veritabanına taşındı;** eski SharedPreferences verisi ilk açılışta

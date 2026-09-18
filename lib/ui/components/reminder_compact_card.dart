@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
@@ -161,11 +162,20 @@ class ReminderCompactCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        CompactCompleteToggle(
-                          done: done,
+                        KorCheckbox(
+                          value: done,
+                          size: compactCheckboxSize,
                           color: category.fg,
                           onColor: category.onFg,
-                          onTap: toggle,
+                          ring: PriorityPinVisuals.checkboxRing(
+                            context,
+                            reminder,
+                          ),
+                          onToggle: () => prepareToggleReminderDone(
+                            context,
+                            reminder,
+                            hapticPlayed: true,
+                          ),
                         ),
                         const SizedBox(width: KorSpacing.s2),
                         Expanded(
@@ -245,52 +255,5 @@ class ReminderCompactCard extends StatelessWidget {
   }
 }
 
-/// 48 dp complete toggle with a 22 px circle (compact rows).
-class CompactCompleteToggle extends StatelessWidget {
-  const CompactCompleteToggle({
-    super.key,
-    required this.done,
-    required this.color,
-    required this.onColor,
-    required this.onTap,
-  });
-
-  final bool done;
-  final Color color;
-  final Color onColor;
-  final VoidCallback onTap;
-
-  static const double _visual = 22;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      button: true,
-      checked: done,
-      label: done ? 'Geri aç' : 'Tamamla',
-      excludeSemantics: true,
-      child: InkResponse(
-        onTap: onTap,
-        radius: KorSizes.minTouch / 2,
-        child: SizedBox.square(
-          dimension: KorSizes.minTouch,
-          child: Center(
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: done ? color : null,
-                shape: CircleBorder(side: BorderSide(color: color, width: 2)),
-              ),
-              child: SizedBox.square(
-                dimension: _visual,
-                child: done
-                    ? Icon(Icons.check_rounded, size: 16, color: onColor)
-                    : null,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Visual size of the compact rows' [KorCheckbox] (48 dp target).
+const double compactCheckboxSize = 22;

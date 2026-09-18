@@ -39,7 +39,13 @@ class FakePermissionService implements PermissionService {
   @override
   Future<void> openExactAlarmSettings() async {
     calls.add('openExactAlarmSettings');
+    final result = exactAlarmSettingsResult;
+    if (result != null) snapshot = snapshot.copyWith(exactAlarms: result);
   }
+
+  /// Exact-alarm state after returning from [openExactAlarmSettings]
+  /// (default: unchanged).
+  ExactAlarmState? exactAlarmSettingsResult;
 
   @override
   Future<LocationPermissionState> requestLocationWhenInUse() async {

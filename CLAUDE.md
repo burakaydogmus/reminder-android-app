@@ -277,7 +277,16 @@ The sync is **diff-based** (F1.7):
   `notification_schedule_fingerprints_v1` (`NotificationFingerprintStore`, reloaded
   before reading); they are written after scheduling. Missing/corrupt store → all
   desired entries are rescheduled. Changing how notifications are built (channel
-  settings, schedule mode) → bump `_ScheduleSpec._version`.
+  settings, actions, …) → bump `_ScheduleSpec._version` (currently 5).
+- **Schedule mode (F6.2c):** chosen **once per sync** from `canScheduleExactNotifications()`
+  (injectable via `NotificationService.forTesting(canScheduleExact:)`): permitted (or not
+  Android 12+) → `exactAllowWhileIdle`, otherwise `inexactAllowWhileIdle` (may be a few
+  minutes late, needs no permission). The mode is part of the fingerprint, so granting or
+  revoking the permission reschedules everything on the next sync (resume reload,
+  Settings return). A `PlatformException` from exact scheduling
+  (`exact_alarms_not_permitted`) never aborts the sync: that notification and the rest
+  of the sync fall back to inexact and store inexact fingerprints. Never hard-code the
+  mode. `FakeNotificationsPlugin.exactAlarmsPermitted = false` simulates the rejection.
 - **Recurring reminders (F3.1):** only the **next** occurrence is scheduled per
   reminder (`NotificationService.reminderFireTime`: a future `remindAt`, or for an
   overdue recurring reminder the rule's next occurrence after now, so it keeps
@@ -524,7 +533,9 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (`KorRadius`, `CookieShapeBorder`), `kor_spacing.dart`, `kor_elevation.dart`.
 - `extensions/` — `KorColors` (`context.korColors`: success, glass, now line,
   `category(key)`) and `KorMotion` (`context.korMotion`: 6 springs, Reduce Motion
-  resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`.
+  resolver). `kor_theme.dart` — `KorTheme` builders; `haptics.dart` — `KorHaptics`,
+  `HapticsScope`; `haptics_store.dart` — `HapticsStore` (see **UI structure** → Motion
+  and haptics).
 - Font: `fonts/GoogleSansFlex/GoogleSansFlex-Latin.ttf` (OFL, subset latin + latin-ext).
 - Imports: `package:material_ui/material_ui.dart` / `package:cupertino_ui/cupertino_ui.dart`,
   never `package:flutter/material.dart` or `cupertino.dart` (deprecated in-framework
@@ -589,6 +600,33 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
   sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
   clock); the Ertele sheet never accepts a past custom time.
+- **Motion and haptics (F4.7):** springs come from `KorMotion` (`context.korMotion`;
+  `resolveOf` turns spatial springs into a 150 ms fade under
+  `MediaQuery.disableAnimationsOf`, effects springs stay). APIs that only take a
+  duration + curve use `KorSpring.settleDuration` / `KorSpring.curve()` (e.g.
+  `KorMotion.sheetStyleOf` for `showModalBottomSheet(sheetAnimationStyle: ...)`; the
+  reminder editor stays a sheet on both platforms, no container transform). The
+  complete toggle of `ReminderCard` / `ReminderCompactCard` is
+  `components/kor_checkbox.dart` (`KorCheckbox`): 0 ms `KorHaptics.complete` + press
+  1 → 0.85 (spatialFast), 0–240 ms circle → `CookieShapeBorder` morph + fill, 120–300
+  ms check path, then a hold; the commit runs at **900 ms** (`KorCheckbox.hold`). A
+  second tap during the hold cancels; disposal during the hold still commits.
+  `onToggle` is called at tap time and returns the commit, so capture context there —
+  `prepareToggleReminderDone(context, reminder, hapticPlayed: true)` does that for
+  reminders. Reduce Motion: no press/morph/check/hold, commit at once, 150 ms fade.
+  `ring:` draws an outline 2 px outside the shape (F3.4 priority ring). Widget tests
+  that tap the checkbox must `pump(KorCheckbox.hold)` before `pumpAndSettle`
+  (a `Timer`, not an animation). `CookieShapeBorder` (9 lobes, `depth` 0 = circle,
+  lerps from/to `CircleBorder`) is the only expressive shape. Tabs switch through
+  `FadeThroughIndexedStack` (effectsSlow fade + 0.96 → 1 scale; fade only under
+  Reduce Motion; the pages keep their state). Haptics: always `KorHaptics.of(context)`
+  (never `HapticFeedback` directly, never the only feedback): complete medium, swipe
+  threshold / token selectionClick, undo and reorder drop light, delete heavy, reorder
+  lift medium. The Ayarlar › Görünüm "Titreşim geri bildirimi" switch is
+  `HapticsScope` (in `App`'s `MaterialApp.builder`; `UiHarness` uses
+  `HapticsStore.memory()`, exposed as `h.haptics`) over `HapticsStore`
+  (SharedPreferences `haptics_enabled_v1`, default on; UI-only, not in Drift).
+  Test haptics by mocking `SystemChannels.platform` (`HapticFeedback.vibrate`).
 - **Bugün, Listeler, Arama (F3.6):** Bugün = Kaçanlar ("Hepsini yarına al": all
   overdue to tomorrow at the same wall-clock time via `updateReminder`, one undo
   that restores all; recurring reminders are skipped in `movableOverdue`, the
@@ -680,10 +718,10 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (`ReminderEditorKeys.priority`); both saved with "Kaydet". Shared visuals in
   `reminders/priority_pin_visuals.dart` (`PriorityPinVisuals`). `ReminderCard`: pin
   icon before the title, "!!! Yüksek" (marker + text, colour never alone) in the
-  meta line, and for open high-priority reminders a 2.5 px `primary` ring on the
-  checkbox — passed as the toggle's `ring` **decoration parameter** (keep it a
-  parameter when the checkbox animation changes). `ReminderCompactCard`: pin icon +
-  trailing "!!" marker. Labels add "sabitlendi" and "Yüksek öncelik".
+  meta line, and for open high-priority reminders a 2.5 px `primary` ring
+  (`PriorityPinVisuals.checkboxRing`) passed as `KorCheckbox(ring: …)` — never edit
+  the checkbox's own border for it. `ReminderCompactCard`: pin icon, the same ring
+  and a trailing "!!" marker. Labels add "sabitlendi" and "Yüksek öncelik".
   `togglePinnedWithUndo` is the pin action: long-press menus (card and calendar
   agenda) and semantics custom actions "Sabitle" / "Sabitlemeyi kaldır"; there is
   no pin swipe.
@@ -755,9 +793,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - iOS: `ios/Podfile` sets `PERMISSION_LOCATION=1` for permission_handler (all its
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
-- Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
-  policy decision is F6.2; the inexact fallback when exact alarms are denied (then
-  dropping `USE_EXACT_ALARM`) is F6.2c.
+- Exact alarms (F6.2c): the manifest declares only `SCHEDULE_EXACT_ALARM` —
+  **never add `USE_EXACT_ALARM`** (Play restricts it to alarm-clock/calendar apps; see
+  `docs/store/permissions-review.md` §3). The permission is optional: without it
+  notifications are scheduled inexact (see **Schedule sync**). The exact-alarm sheet and the
+  Settings row explain "İzin olmadan hatırlatmalar birkaç dakika gecikebilir"
+  (`PermissionFlows.exactAlarmTradeOff`); `PermissionFlows.fixExactAlarms` reloads the cubit
+  (→ resync) when the state changed on return from system settings.
 
 ## Platform notes
 

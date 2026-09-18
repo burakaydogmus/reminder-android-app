@@ -1,10 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/physics.dart';
 
 /// Spring token as plain data (damping ratio + stiffness, mass 1).
 ///
-/// Values are androidx `ExpressiveMotionTokens`; kept package-free so F4.7 can
-/// map them onto `motor` later.
+/// Values are androidx `ExpressiveMotionTokens`, driven with Flutter's own
+/// [SpringSimulation] (no motion package). APIs that only take a duration and
+/// a curve (sheets, implicit animations) use [settleDuration] + [curve].
 @immutable
 class KorSpring {
   const KorSpring({
@@ -27,6 +30,34 @@ class KorSpring {
         ratio: dampingRatio,
       );
 
+  /// A spring from 0 to 1 at rest.
+  SpringSimulation simulation() => SpringSimulation(
+        description,
+        0,
+        1,
+        0,
+        tolerance: _settleTolerance,
+      );
+
+  static const _settleTolerance = Tolerance(distance: 0.005, velocity: 0.05);
+  static final Map<KorSpring, Duration> _settleCache = {};
+
+  /// Time the 0 → 1 spring needs to come to rest (within 0.5 %).
+  Duration get settleDuration => _settleCache.putIfAbsent(this, () {
+        final sim = simulation();
+        var ms = 1;
+        while (ms < 5000 && !sim.isDone(ms / 1000)) {
+          ms++;
+        }
+        return Duration(milliseconds: ms);
+      });
+
+  /// The 0 → 1 spring as a [Curve] over [settleDuration]. With
+  /// [clampOvershoot] the bounce is cut at 1 (for layouts that must not
+  /// travel past their end, e.g. a sheet's bottom edge).
+  Curve curve({bool clampOvershoot = false}) =>
+      _SpringCurve(this, clampOvershoot: clampOvershoot);
+
   @override
   bool operator ==(Object other) =>
       other is KorSpring &&
@@ -36,6 +67,21 @@ class KorSpring {
 
   @override
   int get hashCode => Object.hash(dampingRatio, stiffness, spatial);
+}
+
+class _SpringCurve extends Curve {
+  _SpringCurve(this.spring, {required this.clampOvershoot});
+
+  final KorSpring spring;
+  final bool clampOvershoot;
+  late final SpringSimulation _sim = spring.simulation();
+  late final double _seconds = spring.settleDuration.inMicroseconds / 1e6;
+
+  @override
+  double transformInternal(double t) {
+    final x = _sim.x(t * _seconds);
+    return clampOvershoot ? math.min(x, 1) : x;
+  }
 }
 
 /// Result of resolving a [KorSpring] against accessibility settings.
@@ -99,6 +145,7 @@ class KorMotion extends ThemeExtension<KorMotion> {
     this.long = const Duration(milliseconds: 400),
     this.reduceMotionFade = const Duration(milliseconds: 150),
     this.fallbackCurve = Curves.easeOutCubic,
+    this.nowLineGlow = const Duration(milliseconds: 1200),
   });
 
   /// Checkbox morph, press, chip "pop".
@@ -128,6 +175,10 @@ class KorMotion extends ThemeExtension<KorMotion> {
   final Duration reduceMotionFade;
   final Curve fallbackCurve;
 
+  /// One-time ŞİMDİ line glow when Bugün opens (§3.5); none with Reduce
+  /// Motion.
+  final Duration nowLineGlow;
+
   static const standard = KorMotion();
 
   /// Resolves [token]: with [reduceMotion], spatial springs become a
@@ -151,6 +202,26 @@ class KorMotion extends ThemeExtension<KorMotion> {
     return reduceMotion ? reduceMotionFade : duration;
   }
 
+  /// Sheet entrance on [spatialSlow] (settle time + spring curve, overshoot
+  /// clamped so the sheet never lifts off the bottom edge); a
+  /// [reduceMotionFade]-long ease with Reduce Motion. Pass to
+  /// `showModalBottomSheet(sheetAnimationStyle: ...)`.
+  AnimationStyle sheetStyleOf(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduceMotion) {
+      return AnimationStyle(
+        duration: reduceMotionFade,
+        reverseDuration: reduceMotionFade,
+        curve: fallbackCurve,
+      );
+    }
+    return AnimationStyle(
+      duration: spatialSlow.settleDuration,
+      reverseDuration: medium,
+      curve: spatialSlow.curve(clampOvershoot: true),
+    );
+  }
+
   @override
   KorMotion copyWith({
     KorSpring? spatialFast,
@@ -164,6 +235,7 @@ class KorMotion extends ThemeExtension<KorMotion> {
     Duration? long,
     Duration? reduceMotionFade,
     Curve? fallbackCurve,
+    Duration? nowLineGlow,
   }) {
     return KorMotion(
       spatialFast: spatialFast ?? this.spatialFast,
@@ -177,6 +249,7 @@ class KorMotion extends ThemeExtension<KorMotion> {
       long: long ?? this.long,
       reduceMotionFade: reduceMotionFade ?? this.reduceMotionFade,
       fallbackCurve: fallbackCurve ?? this.fallbackCurve,
+      nowLineGlow: nowLineGlow ?? this.nowLineGlow,
     );
   }
 

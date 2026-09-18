@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
@@ -10,7 +11,6 @@ import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
 import 'package:reminder/ui/reminders/subtask_progress.dart';
-import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -28,7 +28,8 @@ enum ReminderTimeStyle {
 
 /// Reminder card (§3.3.2, `components.ReminderCard`).
 ///
-/// The leading circle is its own 48 dp toggle target. Tap opens the editor,
+/// The leading [KorCheckbox] is its own 48 dp toggle target (cookie morph,
+/// completion after a 900 ms hold, F4.7). Tap opens the editor,
 /// long-press opens Tamamla / Ertele / Düzenle / Sil, and the same actions
 /// are swipes ([ReminderSwipe]) and semantics custom actions (F3.5). Every
 /// action offers "Geri al". Overdue is signalled by text + icon ("Gecikti"),
@@ -174,14 +175,18 @@ class ReminderCard extends StatelessWidget {
                     padding: KorSpacing.reminderCardPadding,
                     child: Row(
                       children: [
-                        _CompleteToggle(
-                          done: done,
+                        KorCheckbox(
+                          value: done,
                           color: category.fg,
                           onColor: category.onFg,
-                          onTap: toggle,
                           ring: PriorityPinVisuals.checkboxRing(
                             context,
                             reminder,
+                          ),
+                          onToggle: () => prepareToggleReminderDone(
+                            context,
+                            reminder,
+                            hapticPlayed: true,
                           ),
                         ),
                         const SizedBox(width: KorSpacing.s3),
@@ -272,60 +277,4 @@ abstract final class KorTimeText {
       (Theme.of(context).textTheme.labelLarge ?? const TextStyle()).copyWith(
         fontFeatures: const [FontFeature.tabularFigures()],
       );
-}
-
-class _CompleteToggle extends StatelessWidget {
-  const _CompleteToggle({
-    required this.done,
-    required this.color,
-    required this.onColor,
-    required this.onTap,
-    this.ring,
-  });
-
-  final bool done;
-  final Color color;
-  final Color onColor;
-  final VoidCallback onTap;
-
-  /// Outline replacing the default 2 px category ring, e.g. the 2.5 px
-  /// primary high-priority ring (F3.4, `PriorityPinVisuals.checkboxRing`).
-  final BorderSide? ring;
-
-  @override
-  Widget build(BuildContext context) {
-    final duration = MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : context.korMotion.short;
-    return Semantics(
-      container: true,
-      button: true,
-      checked: done,
-      label: done ? 'Geri aç' : 'Tamamla',
-      excludeSemantics: true,
-      child: InkResponse(
-        onTap: onTap,
-        radius: KorSizes.minTouch / 2,
-        child: SizedBox.square(
-          dimension: KorSizes.minTouch,
-          child: Center(
-            child: AnimatedContainer(
-              duration: duration,
-              width: KorSizes.checkboxVisual,
-              height: KorSizes.checkboxVisual,
-              decoration: ShapeDecoration(
-                color: done ? color : null,
-                shape: CircleBorder(
-                  side: ring ?? BorderSide(color: color, width: 2),
-                ),
-              ),
-              child: done
-                  ? Icon(Icons.check_rounded, size: 18, color: onColor)
-                  : null,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

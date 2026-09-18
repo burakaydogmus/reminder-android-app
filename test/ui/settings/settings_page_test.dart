@@ -39,12 +39,48 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(find.byType(Switch), findsOneWidget);
+        // Also Titreşim geri bildirimi (F4.7); both Switch.adaptive.
+        expect(find.byType(Switch), findsWidgets);
+        await tester.scrollUntilVisible(
+          find.text('Hatırlatma bildirimleri'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tester.ensureVisible(find.text('Hatırlatma bildirimleri'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Hatırlatma bildirimleri'));
         await tester.pumpAndSettle();
         expect(h.cubit.state.settings.notificationsEnabled, isFalse);
+      });
+
+      testWidgets('Titreşim geri bildirimi toggles the haptics setting',
+          (tester) async {
+        final h = await UiHarness.create();
+        await tester.pumpWidget(
+          h.app(home: const SettingsPage(), theme: theme),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(SettingsPageKeys.haptics);
+        await tester.ensureVisible(row);
+        await tester.pumpAndSettle();
+        expect(_inRow(SettingsPageKeys.haptics, 'Titreşim geri bildirimi'),
+            findsOneWidget);
+        Switch toggle() => tester.widget<Switch>(
+              find.descendant(of: row, matching: find.byType(Switch)),
+            );
+        expect(toggle().value, isTrue);
+
+        await tester.tap(row);
+        await tester.pumpAndSettle();
+        expect(toggle().value, isFalse);
+        expect(await h.haptics.isEnabled(), isFalse);
+
+        await tester
+            .tap(find.descendant(of: row, matching: find.byType(Switch)));
+        await tester.pumpAndSettle();
+        expect(toggle().value, isTrue);
+        expect(await h.haptics.isEnabled(), isTrue);
       });
 
       testWidgets('reset asks for confirmation first', (tester) async {
@@ -150,6 +186,70 @@ void main() {
             .tap(_inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'));
         await tester.pumpAndSettle();
         expect(h.permissions.calls, contains('openExactAlarmSettings'));
+      });
+
+      group('exact alarms (F6.2c)', () {
+        Future<UiHarness> pumpDenied(WidgetTester tester) async {
+          final h = await UiHarness.create();
+          h.permissions.snapshot = PermissionSnapshot.allGranted.copyWith(
+            exactAlarms: ExactAlarmState.denied,
+          );
+          await tester.pumpWidget(
+            h.app(home: const SettingsPage(), theme: theme),
+          );
+          await tester.pumpAndSettle();
+          return h;
+        }
+
+        testWidgets('denied row explains the delay, nothing is blocked',
+            (tester) async {
+          await pumpDenied(tester);
+
+          expect(
+            _inRow(
+              PermissionsGroupKeys.exactAlarms,
+              'Kapalı — izin olmadan hatırlatmalar birkaç dakika gecikebilir',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            _inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'),
+            findsOneWidget,
+          );
+          // Notifications stay "Açık": exact alarms are optional.
+          expect(
+            _inRow(PermissionsGroupKeys.notifications, 'Açık'),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('granting in settings resyncs schedules', (tester) async {
+          final h = await pumpDenied(tester);
+          h.permissions.exactAlarmSettingsResult = ExactAlarmState.granted;
+          clearInteractions(h.repository);
+
+          await tester
+              .tap(_inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'));
+          await tester.pumpAndSettle();
+
+          expect(h.permissions.calls, ['openExactAlarmSettings']);
+          expect(
+              _inRow(PermissionsGroupKeys.exactAlarms, 'Açık'), findsOneWidget);
+          // ReminderCubit.load → ScheduleSync.syncAll recomputes the mode.
+          verify(() => h.repository.loadReminders()).called(1);
+        });
+
+        testWidgets('returning unchanged does not reload', (tester) async {
+          final h = await pumpDenied(tester);
+          clearInteractions(h.repository);
+
+          await tester
+              .tap(_inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'));
+          await tester.pumpAndSettle();
+
+          expect(h.permissions.calls, ['openExactAlarmSettings']);
+          verifyNever(() => h.repository.loadReminders());
+        });
       });
 
       testWidgets('not yet requested offers "İzin ver"', (tester) async {

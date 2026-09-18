@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/calendar/agenda_rows.dart';
+import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
@@ -81,20 +82,18 @@ Finder _inCard(String title) => find.descendant(
       matching: find.textContaining(title, findRichText: true),
     );
 
-/// The checkbox circle of a [ReminderCard] (its only [AnimatedContainer]).
-BorderSide _checkboxSide(WidgetTester tester, String title) {
-  final container = tester.widget<AnimatedContainer>(
-    find.descendant(
-      of: find.ancestor(
-        of: find.textContaining(title, findRichText: true),
-        matching: find.byType(ReminderCard),
+/// The priority ring passed to the card's [KorCheckbox] (`null` = none).
+BorderSide? _checkboxRing(WidgetTester tester, String title) => tester
+    .widget<KorCheckbox>(
+      find.descendant(
+        of: find.ancestor(
+          of: find.textContaining(title, findRichText: true),
+          matching: find.byType(ReminderCard),
+        ),
+        matching: find.byType(KorCheckbox),
       ),
-      matching: find.byType(AnimatedContainer),
-    ),
-  );
-  final shape = (container.decoration! as ShapeDecoration).shape;
-  return (shape as CircleBorder).side;
-}
+    )
+    .ring;
 
 void main() {
   for (final (themeName, theme) in korThemes) {
@@ -198,12 +197,11 @@ void main() {
           find.textContaining('!!! Yüksek', findRichText: true),
           findsOneWidget,
         );
-        final ring = _checkboxSide(tester, 'Elektrik faturası');
+        final ring = _checkboxRing(tester, 'Elektrik faturası')!;
         expect(ring.width, 2.5);
         expect(ring.color, scheme.primary);
 
-        final plain = _checkboxSide(tester, 'Kitap iade');
-        expect(plain.width, 2);
+        expect(_checkboxRing(tester, 'Kitap iade'), isNull);
         expect(find.textContaining('!', findRichText: true), findsOneWidget);
       });
 
@@ -239,8 +237,8 @@ void main() {
           find.textContaining('!! Orta', findRichText: true),
           findsOneWidget,
         );
-        expect(_checkboxSide(tester, 'Düşük iş').width, 2);
-        expect(_checkboxSide(tester, 'Orta iş').width, 2);
+        expect(_checkboxRing(tester, 'Düşük iş'), isNull);
+        expect(_checkboxRing(tester, 'Orta iş'), isNull);
         expect(find.byIcon(Icons.push_pin_rounded), findsNothing);
       });
 
@@ -265,7 +263,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(_checkboxSide(tester, 'Bitti').width, 2);
+        expect(_checkboxRing(tester, 'Bitti'), isNull);
       });
 
       testWidgets('compact row: pin icon and trailing marker', (tester) async {
@@ -296,7 +294,38 @@ void main() {
         final node = _node(tester, 'Sunum slaytları');
         expect(node.label, contains('sabitlendi, Orta öncelik'));
         expect(_actions(node), contains('Sabitlemeyi kaldır'));
+        expect(
+            tester.widget<KorCheckbox>(find.byType(KorCheckbox)).ring, isNull);
         semantics.dispose();
+      });
+
+      testWidgets('compact row: high priority gets the ring', (tester) async {
+        final h = await UiHarness.create(
+          reminders: [
+            buildReminder(
+              id: 'c',
+              title: 'Fatura',
+              priority: ReminderPriority.high,
+            ),
+          ],
+          now: _clock,
+        );
+        await tester.pumpWidget(
+          h.app(
+            theme: theme,
+            home: Scaffold(
+              body: ReminderCompactCard(reminder: _byId(h, 'c'), now: _now),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final scheme =
+            Theme.of(tester.element(find.byType(Scaffold))).colorScheme;
+        final ring = tester.widget<KorCheckbox>(find.byType(KorCheckbox)).ring;
+        expect(ring?.width, 2.5);
+        expect(ring?.color, scheme.primary);
+        expect(find.text('!!!'), findsOneWidget);
       });
     });
   }

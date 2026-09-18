@@ -114,7 +114,7 @@ Diğer tüm fazların temeli.
   `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
 - [ ] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4, F4.6a*
   iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
-- [ ] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
+- [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
 ## Faz 5 — Widget ve platform
@@ -137,8 +137,8 @@ Diğer tüm fazların temeli.
   [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
 - [x] **F6.2b Mağaza uyumluluğu (atıf, gizlilik bağlantısı, lisanslar)** · `fix/store-compliance`
   Haritada tıklanabilir "© OpenStreetMap contributors" (telif sayfası); Ayarlar › Diğer: "Gizlilik politikası" (`lib/config/app_links.dart`) ve "Lisanslar" (`showLicensePage`); Google Sans Flex OFL `LicenseRegistry`'de. §8 madde 4, 7 (atıf), 9.
-- [ ] **F6.2c Tam zamanlı alarm yedeği** · *bağımlı: F3.3*
-  İzin reddedilince inexact zamanlama + izin değişince yeniden senkron; sonra `USE_EXACT_ALARM` kaldırılır.
+- [x] **F6.2c Tam zamanlı alarm yedeği** · `fix/exact-alarm-fallback`
+  İzin yoksa `inexactAllowWhileIdle` (mod senkron başına seçilir, parmak izinde; v5), exact kurulum hatasında bildirim başına yedek; izin değişince (ön plana dönüş, Ayarlar'dan dönüş) yeniden senkron. Manifestten `USE_EXACT_ALARM` kaldırıldı; açıklama sayfası ve Ayarlar satırı gecikmeyi anlatıyor. §8 madde 1–2.
 - [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
   Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması (+ `AppLinks.privacyPolicy` güncellemesi), arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`

@@ -21,6 +21,7 @@ import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/subtasks_card.dart';
+import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
@@ -52,6 +53,9 @@ Future<void> showReminderEditorSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // F4.7: the editor sheet rises on spatialSlow (fade-length ease with
+    // Reduce Motion); it stays a sheet on both platforms (F4.1).
+    sheetAnimationStyle: context.korMotion.sheetStyleOf(context),
     builder: (ctx) => _ReminderEditorBody(
       existing: existing,
       initialCategoryId: initialCategoryId,

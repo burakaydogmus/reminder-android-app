@@ -540,7 +540,7 @@ void main() {
         final canonical = jsonEncode([
           'v$version',
           n.details!.android!.channelId,
-          AndroidScheduleMode.exactAllowWhileIdle.name,
+          n.scheduleMode!.name,
           n.title,
           n.body,
           n.scheduledDate.millisecondsSinceEpoch,
@@ -575,11 +575,12 @@ void main() {
       );
       expect(plugin.writeCalls, 0);
 
-      // Store written by v3 (before F3.3: no subtasks in the fingerprint).
-      expect(NotificationService.scheduleFingerprintVersion, 4);
+      // Store written by v4 (before F6.2c: the mode was a constant; same
+      // canonical shape otherwise).
+      expect(NotificationService.scheduleFingerprintVersion, 5);
       await store.save({
         for (final n in plugin.pending.values)
-          n.id: fingerprint(n, version: 3, payload: n.payload),
+          n.id: fingerprint(n, version: 4, payload: n.payload),
       });
 
       await service.syncSchedules(

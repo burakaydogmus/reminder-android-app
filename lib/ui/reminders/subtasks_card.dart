@@ -6,6 +6,7 @@ import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/subtask_progress.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
+import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// Keys for tests.
@@ -236,6 +237,9 @@ class _SubtasksCardState extends State<SubtasksCard> {
             padding: EdgeInsets.zero,
             onReorderItem: (from, to) =>
                 _reorderOpen((items) => items.reordered(from, to)),
+            // §3.1 Haptik: lift medium, drop light (F4.7).
+            onReorderStart: (_) => KorHaptics.of(context).reorderPickUp(),
+            onReorderEnd: (_) => KorHaptics.of(context).reorderDrop(),
             children: [
               for (final (index, s) in open.indexed)
                 _SubtaskRow(
