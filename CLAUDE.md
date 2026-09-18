@@ -476,7 +476,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   clock); the Ertele sheet never accepts a past custom time.
 - **Bugün, Listeler, Arama (F3.6):** Bugün = Kaçanlar ("Hepsini yarına al": all
   overdue to tomorrow at the same wall-clock time via `updateReminder`, one undo
-  that restores all; skip recurring reminders once F3.1 adds them) → time ribbon
+  that restores all; recurring reminders are skipped in `movableOverdue`, the
+  button hides when nothing is movable) → time ribbon
   (`TodaySections.timeline`: chronological, ŞİMDİ marker before the first item due
   after now; 56 px gutter, rail, nodes filled when done, open cards with
   `ReminderTimeStyle.hidden`, completed rows as `ReminderCompactCard`, toggle
