@@ -131,8 +131,12 @@ Diğer tüm fazların temeli.
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
 - [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
   [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
+- [x] **F6.2b Mağaza uyumluluğu (atıf, gizlilik bağlantısı, lisanslar)** · `fix/store-compliance`
+  Haritada tıklanabilir "© OpenStreetMap contributors" (telif sayfası); Ayarlar › Diğer: "Gizlilik politikası" (`lib/config/app_links.dart`) ve "Lisanslar" (`showLicensePage`); Google Sans Flex OFL `LicenseRegistry`'de. §8 madde 4, 7 (atıf), 9.
+- [ ] **F6.2c Tam zamanlı alarm yedeği** · *bağımlı: F3.3*
+  İzin reddedilince inexact zamanlama + izin değişince yeniden senkron; sonra `USE_EXACT_ALARM` kaldırılır.
 - [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
-  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması + uygulama içi bağlantı, `USE_EXACT_ALARM` kaldırma + inexact fallback, OSM atfı ve lisans ekranı, arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
+  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması (+ `AppLinks.privacyPolicy` güncellemesi), arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
   Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
 
