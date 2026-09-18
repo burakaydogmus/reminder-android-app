@@ -59,7 +59,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `AppSettings`. Nullable fields in `copyWith` take `T? Function()?`
   (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
   **Feb 28 in non-leap years** (`occurrenceInYear`, used by `nextOccurrence`,
-  `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests.
+  `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests. A birthday
+  without a known year is stored with the sentinel year `Birthday.unknownYear` (4, a
+  leap year so a year-less 29 Şubat works): `hasYear` is false and no age is shown
+  (F4.4; no schema/JSON change).
 - `domain/model/recurrence.dart` — `RecurrenceRule` (F3.1): none / daily / weekly
   (sorted Mon-first weekdays) / monthly (day of month, clamped to the month end:
   31 → 30/28/29), `interval` (every N days/weeks/months; "Özel" = daily N ≥ 2),
@@ -149,7 +152,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
     grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
     `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
-    `CalendarPage` + `buildAgenda` (30-day agenda, `BirthdayOccurrence`). `lists/` —
+    `CalendarPage`, `buildAgenda` / `calendarDayMarkers` (pure, `agenda.dart`),
+    `week_strip.dart` (`WeekStrip`, `MonthGrid`, `CalendarDayCell`),
+    `agenda_rows.dart`, `reschedule.dart` (see **Takvim** below). `lists/` —
     `ListsPage` (smart-list bento + categories), `SmartList` (pure membership),
     `SmartListPage`, `ReminderFilterPage`. `search/` — `SearchPage`,
     `ReminderSearch` (pure ranking/grouping), `RecentSearchStore`.
@@ -162,9 +167,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
   - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
     `OnboardingStore` (see **Onboarding** under UI structure).
-  - `components/` — `ReminderCard`, `BirthdayCard`, `SectionHeader`, `GroupedCard`,
-    `EmptyState`, `TabHeader` (gear → Ayarlar), `KorGlassSurface` (iOS glass /
-    solid fallback). `common/` — `KorFormat` (Turkish
+  - `components/` — `ReminderCard`, `BirthdayCard`, `BirthdayRow`, `SectionHeader`,
+    `GroupedCard`, `EmptyState`, `TabHeader` (gear → Ayarlar), `KorGlassSurface` (iOS
+    glass / solid fallback). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
   - `theme/` — Kor tokens (below); `theme/adaptive/platform_chrome.dart` is the single
     Android/iOS chrome decision; `theme/adaptive/a11y_prefs.dart` (`A11yPrefs`: iOS
@@ -582,6 +587,31 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   query word must hit title, note, category or place label; rank title word start
   < title < category/place < note; note-only matches go to "Notlarda". Recent
   searches: SharedPreferences `search_recent_v1`, max 8, newest first.
+- **Takvim and Doğum günleri (F4.4):** pure date math in `domain/calendar_dates.dart`
+  (Monday-first weeks, 6×7 month grid from the Monday on or before the 1st, calendar
+  field arithmetic) and `domain/recurrence_expansion.dart` (`reminderOccurrences`: the
+  stored `remindAt` plus following `RecurrenceRule` occurrences inside `[from, to)`,
+  never before the stored `remindAt`). `buildAgenda(from:, filter:,
+  includeEmptyDays:)` starts at the selected day (default today, 30 days): not-done
+  timed reminders incl. overdue ones of the range, recurring ones at every occurrence
+  (`ReminderOccurrence.isStored` false → read-only `AgendaOccurrenceRow`, tap opens the
+  series), birthdays as all-day rows (29 Şubat → 28 Şubat in non-leap years, like the
+  notifications); filters Tümü / Hatırlatıcılar / Doğum günleri / Konumlu also apply
+  to the ≤3 category dots (`calendarDayMarkers`, birthdays first). Selecting a day
+  (strip, grid, "Bugün") re-bases the agenda on it. The week strip changes week on a
+  horizontal fling (chevrons are the button alternative); it is deliberately not a
+  `Scrollable`, so the agenda stays the page's only vertical scroll view (the iOS
+  shrink-on-scroll tab bar and its tests rely on that). The grid opens with ▦ or a
+  pull on the handle. **Reschedule:** `AgendaReminderRow` wraps `ReminderCard` in a
+  `LongPressDraggable` (400 ms, shorter than the card's long-press so the drag wins);
+  dropping on a strip/grid day calls `rescheduleReminderWithUndo` (same time on the
+  new day via `updateReminder`, one `UndoSnackBar`; a recurring series moves as a
+  whole — new anchor + `alignedTo`, undo restores both); drops that would land in the
+  past are refused. Long-press + release opens the calendar menu (Taşı… + card
+  actions); the row is one semantics node re-exposing the card actions plus "Taşı…"
+  (date picker). Doğum günleri: `BirthdayGroups` (pure: hero, month groups,
+  subtitles, 29 Şubat note); text on the birthday container uses `onContainer`. The
+  birthday editor has a "Yıl bilinmiyor" chip (`Birthday.unknownYear`).
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
