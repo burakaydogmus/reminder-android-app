@@ -8,6 +8,7 @@ import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
+import 'package:reminder/ui/reminders/subtask_progress.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -67,8 +68,33 @@ class ReminderCompactCard extends StatelessWidget {
         '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
       if (_isOverdue) 'gecikti',
       if (place != null) 'konum: $place',
+      if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
+  }
+
+  /// Category label, plus "☑ 2/6" when the reminder has subtasks (F3.3).
+  InlineSpan _defaultSubtitle(Color categoryColor, Color mutedColor) {
+    return TextSpan(
+      children: [
+        TextSpan(
+          text: reminder.categoryDisplayLabel,
+          style: TextStyle(color: categoryColor),
+        ),
+        if (reminder.hasSubtasks) ...[
+          const TextSpan(text: '  ·  '),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: KorSpacing.s1),
+              child:
+                  Icon(Icons.check_box_outlined, size: 14, color: mutedColor),
+            ),
+          ),
+          TextSpan(text: SubtaskProgressText.count(reminder.subtasks)),
+        ],
+      ],
+    );
   }
 
   @override
@@ -149,9 +175,9 @@ class ReminderCompactCard extends StatelessWidget {
                                 ),
                                 Text.rich(
                                   subtitle ??
-                                      TextSpan(
-                                        text: reminder.categoryDisplayLabel,
-                                        style: TextStyle(color: category.fg),
+                                      _defaultSubtitle(
+                                        category.fg,
+                                        scheme.onSurfaceVariant,
                                       ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
