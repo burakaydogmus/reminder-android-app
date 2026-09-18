@@ -32,6 +32,7 @@ class UiHarness {
   static Future<UiHarness> create({
     List<Reminder> reminders = const [],
     List<Birthday> birthdays = const [],
+    DateTime Function() now = DateTime.now,
   }) async {
     if (!_fallbacksRegistered) {
       registerModelFallbackValues();
@@ -59,6 +60,7 @@ class UiHarness {
       notifications,
       geofence: geofence,
       homeWidget: homeWidget,
+      now: now,
     );
     await cubit.load();
     return UiHarness._(repository, cubit);
