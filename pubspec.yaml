@@ -43,6 +43,9 @@ dependencies:
   share_plus: ^13.3.0
   file_selector: ^1.1.0
   package_info_plus: ^10.2.1
+  # F6.2b: privacy policy and OSM copyright links in the browser (launchUrl
+  # only, no canLaunchUrl, so no <queries>/LSApplicationQueriesSchemes).
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +71,8 @@ flutter:
 
   assets:
     - assets/launcher/icon.png
+    # Shown on the Lisanslar page (LicenseRegistry, lib/config/licenses.dart).
+    - fonts/GoogleSansFlex/OFL.txt
 
   fonts:
     # Kor theme: variable font, axes wght/opsz/ROND, latin+latin-ext.
