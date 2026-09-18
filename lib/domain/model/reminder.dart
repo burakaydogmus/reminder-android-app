@@ -1,5 +1,6 @@
 ﻿import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/notification_ids.dart';
 
@@ -38,6 +39,14 @@ class Reminder {
   /// (`completeReminder`).
   final List<Subtask> subtasks;
 
+  /// Öncelik (F3.4), [ReminderPriority] ölçeği: 0 yok … 3 yüksek; varsayılan
+  /// 0. JSON anahtarı `priority` (eksik → 0, aralık dışı → sıkıştırılır).
+  final int priority;
+
+  /// Sabitlenmiş (F3.4): listelerde en üstte (`compareReminders`). JSON
+  /// anahtarı `pinned` (eksik → `false`).
+  final bool pinned;
+
   const Reminder({
     required this.id,
     required this.title,
@@ -54,6 +63,8 @@ class Reminder {
     this.locationPlaceLabel,
     this.recurrence = RecurrenceRule.none,
     this.subtasks = const [],
+    this.priority = ReminderPriority.none,
+    this.pinned = false,
   });
 
   /// Belirtilen alanları değiştirilmiş bir kopya döndürür.
@@ -77,6 +88,8 @@ class Reminder {
     String? Function()? locationPlaceLabel,
     RecurrenceRule? recurrence,
     List<Subtask>? subtasks,
+    int? priority,
+    bool? pinned,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -102,6 +115,8 @@ class Reminder {
           : this.locationPlaceLabel,
       recurrence: recurrence ?? this.recurrence,
       subtasks: subtasks ?? this.subtasks,
+      priority: priority ?? this.priority,
+      pinned: pinned ?? this.pinned,
     );
   }
 
@@ -109,6 +124,9 @@ class Reminder {
   /// sonraki tekrara ilerler (`completeReminder`).
   /// Madde var mı (F3.3).
   bool get hasSubtasks => subtasks.isNotEmpty;
+
+  /// Öncelik atanmış mı (F3.4).
+  bool get hasPriority => priority != ReminderPriority.none;
 
   bool get isRecurring => !recurrence.isNone && remindAt != null;
 
@@ -144,6 +162,8 @@ class Reminder {
         'locationPlaceLabel': locationPlaceLabel,
         'recurrence': recurrence.toJson(),
         'subtasks': [for (final s in subtasks) s.toJson()],
+        'priority': priority,
+        'pinned': pinned,
       };
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -166,6 +186,10 @@ class Reminder {
       locationPlaceLabel: json['locationPlaceLabel'] as String?,
       recurrence: RecurrenceRule.fromJson(json['recurrence']),
       subtasks: Subtask.listFromJson(json['subtasks']),
+      priority: ReminderPriority.normalize(
+        json['priority'] is num ? (json['priority'] as num).toInt() : null,
+      ),
+      pinned: json['pinned'] is bool ? json['pinned'] as bool : false,
     );
   }
 }
