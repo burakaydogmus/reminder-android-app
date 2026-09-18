@@ -9,6 +9,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -16,6 +17,7 @@ import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/subtasks_card.dart';
@@ -29,6 +31,8 @@ abstract final class ReminderEditorKeys {
   static const title = Key('reminderEditor.title');
   static const save = Key('reminderEditor.save');
   static const recurrence = Key('reminderEditor.recurrence');
+  static const pin = Key('reminderEditor.pin');
+  static const priority = Key('reminderEditor.priority');
 }
 
 /// Reminder editor sheet (§3.3.4, reduced to today's data): title first with
@@ -107,6 +111,10 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   /// Maddeler (F3.3); "Kaydet" ile hatırlatıcıyla birlikte kaydedilir.
   late List<Subtask> _subtasks;
 
+  /// Öncelik ve sabitleme (F3.4); "Kaydet" ile kaydedilir.
+  late int _priority;
+  late bool _pinned;
+
   @override
   void initState() {
     super.initState();
@@ -138,6 +146,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     _locRadius = e?.locationRadiusMeters ?? 150;
     _locLabel = e?.locationPlaceLabel;
     _subtasks = e?.subtasks ?? const [];
+    _priority = e?.priority ?? ReminderPriority.none;
+    _pinned = e?.pinned ?? false;
   }
 
   @override
@@ -381,6 +391,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       locationPlaceLabel: _locationTrigger ? _locLabel : null,
       recurrence: remindAt == null ? RecurrenceRule.none : _recurrence,
       subtasks: _cleanSubtasks(),
+      priority: _priority,
+      pinned: _pinned,
     );
 
     if (existing == null) {
@@ -437,14 +449,32 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(
-              header: true,
-              child: Text(
-                widget.existing == null
-                    ? 'Yeni hatırlatıcı'
-                    : 'Hatırlatıcıyı düzenle',
-                style: theme.textTheme.titleLarge,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      widget.existing == null
+                          ? 'Yeni hatırlatıcı'
+                          : 'Hatırlatıcıyı düzenle',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                ),
+                // 📌 in the top bar (§3.3.4, F3.4); saved with "Kaydet".
+                IconButton(
+                  key: ReminderEditorKeys.pin,
+                  isSelected: _pinned,
+                  tooltip: PriorityPinVisuals.pinActionLabel(_pinned),
+                  icon: Icon(PriorityPinVisuals.pinIcon(false)),
+                  selectedIcon: Icon(
+                    PriorityPinVisuals.pinIcon(true),
+                    color: scheme.primary,
+                  ),
+                  onPressed: () => setState(() => _pinned = !_pinned),
+                ),
+              ],
             ),
             const SizedBox(height: KorSpacing.s4),
             TextField(
@@ -505,6 +535,11 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                 ),
               ),
             ],
+            const SizedBox(height: KorSpacing.s4),
+            _PrioritySelector(
+              value: _priority,
+              onChanged: (p) => setState(() => _priority = p),
+            ),
             const SizedBox(height: KorSpacing.s5),
             GroupedCard(
               key: _scheduleSectionKey,
@@ -818,6 +853,38 @@ class _CategoryChip extends StatelessWidget {
       side: BorderSide(
         color: selected ? colors.fg : scheme.outlineVariant,
       ),
+    );
+  }
+}
+
+/// "⚑ Öncelik" + Yok / Düşük / Orta / Yüksek (§3.3.4, F3.4). The segments
+/// carry text, so the choice never depends on colour.
+class _PrioritySelector extends StatelessWidget {
+  const _PrioritySelector({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionHeader(title: 'Öncelik', icon: Icons.flag_outlined),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<int>(
+            key: ReminderEditorKeys.priority,
+            showSelectedIcon: false,
+            segments: [
+              for (final p in ReminderPriority.values)
+                ButtonSegment(value: p, label: Text(ReminderPriority.label(p))),
+            ],
+            selected: {value},
+            onSelectionChanged: (s) => onChanged(s.first),
+          ),
+        ),
+      ],
     );
   }
 }
