@@ -109,18 +109,20 @@ Diğer tüm fazların temeli.
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
 - [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
   Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.
-- [ ] **F4.6 Hızlı yakalama + Türkçe ayrıştırıcı** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4*
-  iOS yakalama çubuğu / Android FAB, token vurgulu alan, `TurkishDateParser` (saf Dart, 200+ örnek cümlelik test tablosu, İ/ı testleri), "maddelere böl" önerisi.
+- [x] **F4.6a Türkçe ayrıştırıcı (domain)** · `feat/turkish-capture-parser`
+  `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
+- [ ] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4, F4.6a*
+  iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
 - [ ] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
 ## Faz 5 — Widget ve platform
 
-- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6*
+- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6b*
   4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
 - [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
-- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6*
+- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
 - [ ] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
   Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.
@@ -156,7 +158,7 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
                                    ↓
                           F2.1 → F2.2
                                    ↓
-          F3.1 → F3.2 → F3.3 → F3.4 → F4.6 (hızlı yakalama)
+          F3.1 → F3.2 → F3.3 → F3.4 → F4.6b (hızlı yakalama; F4.6a ayrıştırıcı hazır)
                                    ↓
           F3.5 · F3.6 → F4.4   ‖   F4.2 · F4.3 · F4.7 · F5.4
                                    ↓
