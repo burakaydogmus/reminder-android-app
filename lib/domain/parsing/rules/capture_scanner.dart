@@ -272,6 +272,7 @@ class _Scanner {
     return CaptureParseResult(
       input: input,
       title: title.isEmpty ? input.trim() : TurkishText.capitalizeFirst(title),
+      splitSuggestion: title.isEmpty ? const [] : splitSuggestion(title),
       tokens: List.unmodifiable(_tokens),
       dateTime: when.dateTime,
       hasExplicitTime: when.timed,

@@ -30,6 +30,7 @@ export 'capture_parse_result.dart';
 
 part 'rules/capture_scanner.dart';
 part 'rules/date_rules.dart';
+part 'rules/list_rules.dart';
 part 'rules/recurrence_rules.dart';
 part 'rules/resolution.dart';
 part 'rules/tag_rules.dart';

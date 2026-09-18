@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'cases/capture_case.dart';
 import 'cases/date_cases.dart';
 import 'cases/recurrence_cases.dart';
+import 'cases/split_cases.dart';
 import 'cases/tag_cases.dart';
 import 'cases/time_cases.dart';
 
@@ -14,6 +15,7 @@ void main() {
     'times': timeCases,
     'recurrence': recurrenceCases,
     'tags': tagCases,
+    'split': splitCases,
   };
 
   for (final entry in tables.entries) {

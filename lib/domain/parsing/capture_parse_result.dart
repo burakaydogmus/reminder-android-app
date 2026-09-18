@@ -115,6 +115,7 @@ class CaptureParserConfig {
     this.eveningHour = 20,
     this.nightHour = 22,
     this.categoryAliases = defaultCategoryAliases,
+    this.listCategoryIds = const {ReminderCategoryIds.market},
   });
 
   final int morningHour;
@@ -127,6 +128,10 @@ class CaptureParserConfig {
   /// diacritics ignored, spaces removed). F4.3 custom categories can pass
   /// their own map.
   final Map<String, List<String>> categoryAliases;
+
+  /// Category ids whose `#tag` turns a comma/`ve` list into a
+  /// "Maddelere böl?" suggestion.
+  final Set<String> listCategoryIds;
 
   /// Turkish labels of `ReminderCategoryIds` (plus the ids themselves).
   static const Map<String, List<String>> defaultCategoryAliases = {
@@ -190,7 +195,9 @@ class CaptureParseResult {
   /// Raw `@place` text without `@`, as typed.
   final String? placeKey;
 
-  /// Items for "Maddelere böl?" — empty when no list was detected.
+  /// Items for "Maddelere böl?" — empty when no list was detected. Only with
+  /// a `#tag` of `CaptureParserConfig.listCategoryIds` and at least two
+  /// items; the UI picks the list title (design: "Market alışverişi").
   final List<String> splitSuggestion;
 
   Iterable<CaptureToken> tokensOf(CaptureTokenKind kind) =>
