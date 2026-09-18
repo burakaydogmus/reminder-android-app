@@ -72,6 +72,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `alignedTo(date)` adapts the rule when the whole series moves to another date.
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`.
+- `domain/parsing/` — Turkish quick-capture parser (F4.6a, see **Quick-capture
+  parser**).
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
   action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
@@ -116,6 +118,18 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (`home/widget_change_signal.dart`, `IsolateNameServer` port) so a running app
   reloads. See **App state reload** below.
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
+- `config/app_links.dart` (F6.2b) — `AppLinks`: every external URL (privacy policy,
+  OSM copyright) in one place; the policy URL points to the GitHub file until the
+  hosted page exists (TODO). Widgets open links through an injected `LinkOpener`
+  (default `openExternalLink`, `url_launcher` `launchUrl` only — no `canLaunchUrl`,
+  so no `<queries>`/`LSApplicationQueriesSchemes`); tests pass a recording fake
+  (`SettingsPage(linkOpener:)`, `LocationPickerPage(linkOpener:)`).
+- `config/app_licenses.dart` (F6.2b) — `registerAppLicenses()` (called once in
+  `main()`) adds licences Flutter doesn't collect from packages to `LicenseRegistry`:
+  the Google Sans Flex OFL from the `fonts/GoogleSansFlex/OFL.txt` asset. Bundled
+  third-party assets (fonts, data) need an entry here; Settings › Diğer › Lisanslar
+  shows them via `showLicensePage`. The map must keep the visible, tappable
+  "© OpenStreetMap contributors" attribution (OSMF tile policy).
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
     minute tick), `kor_navigation.dart` (Android `KorPillNavigation`, `NewItemFab`)
@@ -399,6 +413,34 @@ does not recognise; keep that cleanup if the sync changes again.
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
 
+## Quick-capture parser (F4.6a)
+
+- `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
+  `ReminderCategoryIds`. Entry point `CaptureParser.parse(input, now:, config:)` in
+  `turkish_capture_parser.dart`; the rules are `part` files in `rules/` (scanner,
+  tags, dates, times, recurrence, resolution, list split); `turkish_text.dart` does
+  Turkish casing/folding (İ↔i, I↔ı) **without shifting string offsets**.
+- Result types (`capture_parse_result.dart`) are **neutral**: `CaptureToken` (kind,
+  exact `start`/`end` in the original input, `confidence`), `RecurrenceSpec`
+  (daily / weekly / monthly / everyNDays), `CaptureParseResult` (title, tokens,
+  `dateTime` + `hasExplicitTime`, `isPast`, recurrence, `categoryKey`/`categoryId`,
+  priority 0–3, `placeKey`, `splitSuggestion`), `CaptureParserConfig` (day-part hours
+  for "Ayarlar › sabah saati", category aliases, list categories).
+- Rules: high-confidence matches only, first match per slot wins (later ones stay in
+  the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
+  `pazar` with a suffix is the market, a time without a date is today if still
+  ahead, else tomorrow. Details in each rule file's doc comment.
+- **F4.6b maps the results; don't add model mapping here.** `RecurrenceSpec` →
+  `RecurrenceRule` (`lib/domain/model/recurrence.dart`): daily → `daily()`,
+  everyNDays → `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
+  `monthly(dayOfMonth:)`. `RecurrenceRule` clamps day 31 to short months while the
+  parser's first occurrence skips them, so compute the first `remindAt` with the
+  rule when they differ. `isPast` → the F1.8b past-time warning; `categoryId == null`
+  with a `categoryKey` → "Yeni kategori oluştur?"; priority → F3.4.
+- Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
+  clock (`kNow`, 13 Eylül 2026 14:32; the table must keep ≥ 200 sentences), plus
+  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config.
+
 ## Workflow rules (from ROADMAP.md)
 
 - **Branch name:** `<type>/<short-name>` — `feat/`, `fix/`, `chore/`, `refactor/`,
@@ -607,7 +649,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
 - Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
-  policy decision is F6.2, an inexact fallback when exact alarms are denied follows F1.7.
+  policy decision is F6.2; the inexact fallback when exact alarms are denied (then
+  dropping `USE_EXACT_ALARM`) is F6.2c.
 
 ## Platform notes
 

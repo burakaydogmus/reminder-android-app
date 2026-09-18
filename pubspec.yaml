@@ -46,6 +46,9 @@ dependencies:
   # iOS glass chrome (F5.4): tab bar and search button only; solid fallback
   # under Reduce Transparency / Increase Contrast / low power. MIT, no deps.
   liquid_glass_widgets: ^1.5.0
+  # F6.2b: privacy policy and OSM copyright links in the browser (launchUrl
+  # only, no canLaunchUrl, so no <queries>/LSApplicationQueriesSchemes).
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +74,8 @@ flutter:
 
   assets:
     - assets/launcher/icon.png
+    # Shown on the Lisanslar page (LicenseRegistry, lib/config/licenses.dart).
+    - fonts/GoogleSansFlex/OFL.txt
 
   fonts:
     # Kor theme: variable font, axes wght/opsz/ROND, latin+latin-ext.
