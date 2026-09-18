@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -15,6 +16,8 @@ import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 abstract final class BirthdayEditorKeys {
   static const name = Key('birthdayEditor.name');
   static const save = Key('birthdayEditor.save');
+  static const date = Key('birthdayEditor.date');
+  static const yearUnknown = Key('birthdayEditor.yearUnknown');
 }
 
 Future<void> showBirthdayEditorSheet(
@@ -42,6 +45,9 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _noteCtrl;
   late DateTime? _date;
+
+  /// "Yıl bilinmiyor" (F4.4): saved with [Birthday.unknownYear], no age.
+  late bool _yearUnknown;
   late TimeOfDay _notifyTime;
   late Set<int> _offsets;
   String? _nameError;
@@ -53,6 +59,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     _nameCtrl = TextEditingController(text: e?.name ?? '');
     _noteCtrl = TextEditingController(text: e?.note ?? '');
     _date = e?.date;
+    _yearUnknown = e != null && !e.hasYear;
     _notifyTime = TimeOfDay(
       hour: e?.notifyHour ?? 9,
       minute: e?.notifyMinute ?? 0,
@@ -69,7 +76,13 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final base = _date ?? DateTime(now.year - 25, now.month, now.day);
+    final date = _date;
+    final base = date == null
+        ? DateTime(now.year - 25, now.month, now.day)
+        : date.year == Birthday.unknownYear
+            // The picker needs a real year; a leap year keeps 29 Şubat.
+            ? DateTime(_lastLeapYear(now.year), date.month, date.day)
+            : date;
     final picked = await showDatePicker(
       context: context,
       initialDate: base,
@@ -78,6 +91,22 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       helpText: 'Doğum tarihi',
     );
     if (picked != null) setState(() => _date = picked);
+  }
+
+  static int _lastLeapYear(int from) {
+    var y = from;
+    while (!CalendarDates.isLeapYear(y)) {
+      y--;
+    }
+    return y;
+  }
+
+  void _setYearUnknown(bool value) {
+    setState(() {
+      _yearUnknown = value;
+      // A stored year-less date has no real year to go back to.
+      if (!value && _date?.year == Birthday.unknownYear) _date = null;
+    });
   }
 
   Future<void> _pickTime() async {
@@ -125,7 +154,9 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       id: existing?.id ?? const Uuid().v4(),
       name: name,
       note: note.isEmpty ? null : note,
-      date: _date!,
+      date: _yearUnknown
+          ? DateTime(Birthday.unknownYear, _date!.month, _date!.day)
+          : _date!,
       notifyHour: _notifyTime.hour,
       notifyMinute: _notifyTime.minute,
       advanceOffsetsMinutes: offsetsSorted,
@@ -181,9 +212,14 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
-    final dateLabel = _date != null
-        ? DateFormat('d MMMM y', 'tr_TR').format(_date!)
-        : 'Tarih seç';
+    final date = _date;
+    final dateLabel = date == null
+        ? 'Tarih seç'
+        : _yearUnknown
+            // Format on a leap year so a year-less 29 Şubat stays 29 Şubat.
+            ? DateFormat('d MMMM', 'tr_TR')
+                .format(DateTime(2000, date.month, date.day))
+            : DateFormat('d MMMM y', 'tr_TR').format(date);
     final timeLabel = KorFormat.time(
       DateTime(2000, 1, 1, _notifyTime.hour, _notifyTime.minute),
     );
@@ -268,6 +304,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                   runSpacing: KorSpacing.s3,
                   children: [
                     ActionChip(
+                      key: BirthdayEditorKeys.date,
                       avatar: const Icon(Icons.calendar_today_rounded),
                       label: Text(dateLabel),
                       tooltip: 'Doğum tarihi seç',
@@ -284,7 +321,20 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                       tooltip: 'Bildirim saati seç',
                       onPressed: _pickTime,
                     ),
+                    FilterChip(
+                      key: BirthdayEditorKeys.yearUnknown,
+                      label: const Text('Yıl bilinmiyor'),
+                      selected: _yearUnknown,
+                      onSelected: _setYearUnknown,
+                    ),
                   ],
+                ),
+                const SizedBox(height: KorSpacing.s3),
+                Text(
+                  'Yılı bilmiyorsan “Yıl bilinmiyor”u seç; yaş gösterilmez.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
