@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,6 +9,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -14,6 +17,8 @@ import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
+import 'package:reminder/ui/reminders/reminder_actions.dart';
+import 'package:reminder/ui/reminders/subtasks_card.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
@@ -99,6 +104,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   String? _titleError;
   String? _locationError;
 
+  /// Maddeler (F3.3); "Kaydet" ile hatırlatıcıyla birlikte kaydedilir.
+  late List<Subtask> _subtasks;
+
   @override
   void initState() {
     super.initState();
@@ -129,6 +137,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     _locLng = e?.locationLongitude;
     _locRadius = e?.locationRadiusMeters ?? 150;
     _locLabel = e?.locationPlaceLabel;
+    _subtasks = e?.subtasks ?? const [];
   }
 
   @override
@@ -274,7 +283,17 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     }
   }
 
-  Future<void> _save() async {
+  /// "Tümü tamam — hatırlatıcıyı tamamla?": saves, then completes through
+  /// the shared Tamamla action (undo snackbar; recurring reminders advance).
+  Future<void> _saveAndComplete() => _save(complete: true);
+
+  /// Items with a title, trimmed, in order.
+  List<Subtask> _cleanSubtasks() => SubtaskList.inOrder([
+        for (final s in _subtasks)
+          if (s.title.trim().isNotEmpty) s.copyWith(title: s.title.trim()),
+      ]);
+
+  Future<void> _save({bool complete = false}) async {
     final cubit = context.read<ReminderCubit>();
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
@@ -361,6 +380,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       locationRadiusMeters: _locRadius,
       locationPlaceLabel: _locationTrigger ? _locLabel : null,
       recurrence: remindAt == null ? RecurrenceRule.none : _recurrence,
+      subtasks: _cleanSubtasks(),
     );
 
     if (existing == null) {
@@ -369,7 +389,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       await cubit.updateReminder(reminder);
     }
 
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (complete && !reminder.isDone) {
+      unawaited(
+          toggleReminderDoneWithUndo(context, reminder, now: widget.clock));
+    }
+    Navigator.of(context).pop();
   }
 
   /// Never shows raw coordinates.
@@ -654,10 +679,18 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                   ),
               ],
             ),
+            const SizedBox(height: KorSpacing.s4),
+            SubtasksCard(
+              subtasks: _subtasks,
+              categoryId: _categoryId,
+              onChanged: (next) => setState(() => _subtasks = next),
+              onCompleteReminder:
+                  (widget.existing?.isDone ?? false) ? null : _saveAndComplete,
+            ),
             const SizedBox(height: KorSpacing.s6),
             FilledButton(
               key: ReminderEditorKeys.save,
-              onPressed: _save,
+              onPressed: () => _save(),
               child: const Text('Kaydet'),
             ),
           ],

@@ -1,3 +1,5 @@
+import 'dart:convert' show LineSplitter;
+
 /// Hatırlatıcının bir maddesi (F3.3, alt görev / checklist).
 ///
 /// Saf Dart değer tipi. [position] listedeki sırayı tutar; [SubtaskList]
@@ -98,6 +100,12 @@ extension SubtaskList on List<Subtask> {
     ]);
   }
 
+  /// [items] verilen sırayla, `0..n-1` olarak numaralanmış kopya.
+  static List<Subtask> inOrder(Iterable<Subtask> items) => List.unmodifiable([
+        for (final (i, s) in items.indexed)
+          s.position == i ? s : s.copyWith(position: i),
+      ]);
+
   int get doneCount => where((s) => s.isDone).length;
 
   int get openCount => length - doneCount;
@@ -150,8 +158,8 @@ extension SubtaskList on List<Subtask> {
 
   /// [oldIndex] konumundaki maddeyi [newIndex] konumuna taşır. [newIndex],
   /// taşınan madde çıkarıldıktan **sonraki** listedeki hedef konumdur
-  /// (`ReorderableListView.onReorder`'daki gibi değil; oradaki değer için
-  /// [reorderedForList] kullanın). Geçersiz konumlar kırpılır.
+  /// (`ReorderableListView.onReorderItem` ile aynı). Geçersiz konumlar
+  /// kırpılır.
   List<Subtask> reordered(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= length) return _renumbered([...this]);
     final items = [...this];
@@ -159,11 +167,6 @@ extension SubtaskList on List<Subtask> {
     items.insert(newIndex.clamp(0, items.length), moved);
     return _renumbered(items);
   }
-
-  /// `ReorderableListView.onReorder` değerleri: aşağı taşımada [newIndex]
-  /// taşınan madde çıkarılmadan önceki listeye göredir.
-  List<Subtask> reorderedForList(int oldIndex, int newIndex) =>
-      reordered(oldIndex, newIndex > oldIndex ? newIndex - 1 : newIndex);
 
   /// [id] maddesini [delta] kadar (−1 yukarı, +1 aşağı) taşır.
   List<Subtask> moved(String id, int delta) {
@@ -195,6 +198,15 @@ List<String> splitSubtaskText(String text) {
         title,
   ];
 }
+
+/// Yalnızca satır sonlarından böler (çok satırlı yapıştırma, Enter); satır
+/// içindeki virgül ve "ve" korunur ("Peynir, beyaz" tek madde kalır). Madde
+/// işaretleri ve boş satırlar [splitSubtaskText]'teki gibi atılır.
+List<String> splitSubtaskLines(String text) => [
+      for (final line in const LineSplitter().convert(text))
+        if (_cleanSubtaskTitle(line) case final title when title.isNotEmpty)
+          title,
+    ];
 
 /// Metin birden fazla maddeye bölünüyorsa `true` ("Maddelere böl?" önerisi
 /// ve çok parçalı yapıştırma için).

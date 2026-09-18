@@ -118,13 +118,6 @@ void main() {
       expect(positions(items.reordered(0, 2)), [0, 1, 2, 3]);
     });
 
-    test('reorderedForList uses ReorderableListView indices', () {
-      // Dragging A below C: onReorder(0, 3).
-      expect(titles(items.reorderedForList(0, 3)), ['B', 'C', 'A', 'D']);
-      // Dragging D to the top: onReorder(3, 0).
-      expect(titles(items.reorderedForList(3, 0)), ['D', 'A', 'B', 'C']);
-    });
-
     test('moved up/down, clamped at the ends', () {
       expect(titles(items.moved('s2', -1)), ['B', 'A', 'C', 'D']);
       expect(titles(items.moved('s2', 1)), ['A', 'C', 'B', 'D']);
@@ -186,6 +179,23 @@ void main() {
       expect(looksLikeSubtaskList('Tek madde'), isFalse);
       expect(looksLikeSubtaskList('süt ve ekmek'), isTrue);
     });
+  });
+
+  group('splitSubtaskLines', () {
+    test('splits on line breaks only, keeps commas and "ve"', () {
+      expect(
+        splitSubtaskLines('Peynir, beyaz\r\n- Domates ve biber\n\n  Çay  '),
+        ['Peynir, beyaz', 'Domates ve biber', 'Çay'],
+      );
+      expect(splitSubtaskLines('   '), isEmpty);
+    });
+  });
+
+  test('SubtaskList.inOrder renumbers in the given order', () {
+    final items = buildSubtasks(['A', 'B', 'C']);
+    final reversed = SubtaskList.inOrder(items.reversed);
+    expect(titles(reversed), ['C', 'B', 'A']);
+    expect(positions(reversed), [0, 1, 2]);
   });
 
   group('completeReminder and subtasks', () {
