@@ -550,6 +550,8 @@ void main() {
           // v3 (F3.1): the reminder's recurrence rule ("null" = none);
           // birthdays have none.
           if (version >= 3) n.id == future.notificationId ? 'null' : '-',
+          // v4 (F3.3): Android BigText of open subtasks; none here.
+          if (version >= 4) '-',
         ]);
         final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
         return '$hash:${canonical.length}';
@@ -573,12 +575,11 @@ void main() {
       );
       expect(plugin.writeCalls, 0);
 
-      // Store written by v2 (before F3.1: no recurrence rule in the
-      // fingerprint).
-      expect(NotificationService.scheduleFingerprintVersion, 3);
+      // Store written by v3 (before F3.3: no subtasks in the fingerprint).
+      expect(NotificationService.scheduleFingerprintVersion, 4);
       await store.save({
         for (final n in plugin.pending.values)
-          n.id: fingerprint(n, version: 2, payload: n.payload),
+          n.id: fingerprint(n, version: 3, payload: n.payload),
       });
 
       await service.syncSchedules(
