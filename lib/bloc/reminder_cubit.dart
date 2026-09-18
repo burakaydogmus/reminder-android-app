@@ -4,6 +4,7 @@ import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/schedule_sync.dart';
@@ -157,13 +158,21 @@ class ReminderCubit extends Cubit<ReminderState> {
     await _persistAndSync();
   }
 
-  Future<void> toggleDone(String id) async {
+  /// Tamamlanmışsa geri alır, değilse [completeReminder] kuralıyla tamamlar:
+  /// tekrarlayan hatırlatıcı bitmez, bir sonraki tekrara ilerler (F3.1).
+  ///
+  /// Güncellenen hatırlatıcıyı döndürür (UI "Sonraki: …" geri bildirimi
+  /// için); id bulunamazsa `null`.
+  Future<Reminder?> toggleDone(String id) async {
+    Reminder? updated;
     final next = _sorted(state.reminders.map((r) {
       if (r.id != id) return r;
-      return r.copyWith(isDone: !r.isDone);
+      return updated =
+          r.isDone ? r.copyWith(isDone: false) : completeReminder(r, _now());
     }));
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
+    return updated;
   }
 
   Future<void> addBirthday(Birthday birthday) async {

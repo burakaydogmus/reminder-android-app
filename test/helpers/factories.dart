@@ -1,4 +1,5 @@
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 
@@ -18,8 +19,10 @@ Reminder buildReminder({
   double? locationLongitude,
   double locationRadiusMeters = 150,
   String? locationPlaceLabel,
+  RecurrenceRule recurrence = RecurrenceRule.none,
 }) {
   return Reminder(
+    recurrence: recurrence,
     id: id,
     title: title,
     note: note,
