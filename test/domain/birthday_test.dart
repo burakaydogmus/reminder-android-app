@@ -252,4 +252,28 @@ void main() {
       expect(b.copyWith(name: 'Başka').note, 'eski');
     });
   });
+
+  group('year-less birthdays (F4.4)', () {
+    test('the unknown-year sentinel has no age but keeps day and month', () {
+      final b = buildBirthday(date: DateTime(Birthday.unknownYear, 10, 3));
+      expect(b.hasYear, isFalse);
+      expect(b.upcomingAgeFrom(from: DateTime(2026, 9, 13)), isNull);
+      expect(
+        b.nextOccurrence(from: DateTime(2026, 9, 13)),
+        DateTime(2026, 10, 3, 9),
+      );
+      expect(buildBirthday(date: DateTime(1990, 10, 3)).hasYear, isTrue);
+    });
+
+    test('a year-less 29 Şubat round-trips through JSON', () {
+      final b = buildBirthday(date: DateTime(Birthday.unknownYear, 2, 29));
+      final restored = Birthday.fromJson(b.toJson());
+      expect(restored.date, DateTime(Birthday.unknownYear, 2, 29));
+      expect(restored.hasYear, isFalse);
+      expect(
+        restored.nextOccurrence(from: DateTime(2026, 9, 13)),
+        DateTime(2027, 2, 28, 9),
+      );
+    });
+  });
 }

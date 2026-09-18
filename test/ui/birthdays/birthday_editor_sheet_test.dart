@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
@@ -83,5 +84,91 @@ void main() {
     await tester.pumpAndSettle();
     expect(h.permissions.calls, isEmpty);
     expect(find.byKey(BirthdayEditorKeys.save), findsNothing);
+  });
+
+  group('year optional (F4.4)', () {
+    Future<void> save(WidgetTester tester) async {
+      await tester.ensureVisible(find.byKey(BirthdayEditorKeys.save));
+      await tester.tap(find.byKey(BirthdayEditorKeys.save));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('"Yıl bilinmiyor" saves the date without a year', (
+      tester,
+    ) async {
+      final h = await UiHarness.create();
+      await tester.pumpWidget(h.app(home: _opener()));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(BirthdayEditorKeys.name), 'Annem');
+      await tester.tap(find.byKey(BirthdayEditorKeys.date));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(DatePickerDialog);
+      await tester.tap(find.descendant(of: dialog, matching: find.text('15')));
+      final ok = MaterialLocalizations.of(tester.element(dialog)).okButtonLabel;
+      await tester.tap(find.text(ok));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(BirthdayEditorKeys.yearUnknown));
+      await tester.tap(find.byKey(BirthdayEditorKeys.yearUnknown));
+      await tester.pumpAndSettle();
+      final month = DateTime.now().month;
+      expect(
+        find.text(
+            DateFormat('d MMMM', 'tr_TR').format(DateTime(2000, month, 15))),
+        findsOneWidget,
+      );
+      await save(tester);
+
+      final saved = h.cubit.state.birthdays.single;
+      expect(saved.hasYear, isFalse);
+      expect(saved.date, DateTime(Birthday.unknownYear, month, 15));
+      expect(saved.upcomingAge, isNull);
+    });
+
+    testWidgets('an existing year-less 29 Şubat keeps its year-less date', (
+      tester,
+    ) async {
+      final existing = buildBirthday(
+        name: 'Deniz',
+        date: DateTime(Birthday.unknownYear, 2, 29),
+      );
+      final h = await UiHarness.create(birthdays: [existing]);
+      await tester.pumpWidget(h.app(home: _opener(existing: existing)));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('29 Şubat'), findsOneWidget);
+      final chip = tester.widget<FilterChip>(
+        find.byKey(BirthdayEditorKeys.yearUnknown),
+      );
+      expect(chip.selected, isTrue);
+      await save(tester);
+      expect(
+        h.cubit.state.birthdays.single.date,
+        DateTime(Birthday.unknownYear, 2, 29),
+      );
+    });
+
+    testWidgets('turning "Yıl bilinmiyor" off asks for a full date', (
+      tester,
+    ) async {
+      final existing = buildBirthday(
+        date: DateTime(Birthday.unknownYear, 10, 3),
+      );
+      final h = await UiHarness.create(birthdays: [existing]);
+      await tester.pumpWidget(h.app(home: _opener(existing: existing)));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(BirthdayEditorKeys.yearUnknown));
+      await tester.tap(find.byKey(BirthdayEditorKeys.yearUnknown));
+      await tester.pumpAndSettle();
+      expect(find.text('Tarih seç'), findsOneWidget);
+      await save(tester);
+      expect(find.text('Tarih seçin.'), findsOneWidget);
+      expect(h.cubit.state.birthdays.single.date, existing.date);
+    });
   });
 }
