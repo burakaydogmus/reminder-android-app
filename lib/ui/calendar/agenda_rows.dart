@@ -12,6 +12,7 @@ import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
+import 'package:reminder/ui/reminders/subtask_progress.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -43,6 +44,7 @@ String agendaReminderLabel(ReminderOccurrence o, DateTime now) {
     if (overdue) 'gecikti',
     if (r.isRecurring) 'tekrar: ${r.recurrence.summary}',
     if (place != null) 'konum: $place',
+    if (r.hasSubtasks) SubtaskProgressText.spoken(r.subtasks),
     if (o.isStored) 'tamamlanmadı' else 'serinin sonraki tekrarı',
   ].join(', ');
 }
