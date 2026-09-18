@@ -547,6 +547,9 @@ void main() {
           n.scheduledDate.location.name,
           n.matchDateTimeComponents?.name ?? '-',
           payload ?? '-',
+          // v3 (F3.1): the reminder's recurrence rule ("null" = none);
+          // birthdays have none.
+          if (version >= 3) n.id == future.notificationId ? 'null' : '-',
         ]);
         final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
         return '$hash:${canonical.length}';
@@ -570,15 +573,12 @@ void main() {
       );
       expect(plugin.writeCalls, 0);
 
-      // Store written by v1 (before F3.2: reminders had no payload).
-      expect(NotificationService.scheduleFingerprintVersion, 2);
+      // Store written by v2 (before F3.1: no recurrence rule in the
+      // fingerprint).
+      expect(NotificationService.scheduleFingerprintVersion, 3);
       await store.save({
         for (final n in plugin.pending.values)
-          n.id: fingerprint(
-            n,
-            version: 1,
-            payload: n.id == future.notificationId ? null : n.payload,
-          ),
+          n.id: fingerprint(n, version: 2, payload: n.payload),
       });
 
       await service.syncSchedules(

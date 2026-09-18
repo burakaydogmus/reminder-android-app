@@ -1,4 +1,5 @@
-﻿import 'package:reminder/domain/model/reminder_category.dart';
+﻿import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/notification_ids.dart';
 
 class Reminder {
@@ -25,6 +26,10 @@ class Reminder {
   /// Harita / yer adı özeti.
   final String? locationPlaceLabel;
 
+  /// Tekrar kuralı (F3.1); varsayılan [RecurrenceRule.none]. Yalnızca
+  /// [remindAt] varken anlamlıdır, bkz. [isRecurring].
+  final RecurrenceRule recurrence;
+
   const Reminder({
     required this.id,
     required this.title,
@@ -39,6 +44,7 @@ class Reminder {
     this.locationLongitude,
     this.locationRadiusMeters = 150,
     this.locationPlaceLabel,
+    this.recurrence = RecurrenceRule.none,
   });
 
   /// Belirtilen alanları değiştirilmiş bir kopya döndürür.
@@ -60,6 +66,7 @@ class Reminder {
     double? Function()? locationLongitude,
     double? locationRadiusMeters,
     String? Function()? locationPlaceLabel,
+    RecurrenceRule? recurrence,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -83,8 +90,13 @@ class Reminder {
       locationPlaceLabel: locationPlaceLabel != null
           ? locationPlaceLabel()
           : this.locationPlaceLabel,
+      recurrence: recurrence ?? this.recurrence,
     );
   }
+
+  /// Zamanlı ve tekrar kuralı olan hatırlatıcı. Tamamlanınca bitmez, bir
+  /// sonraki tekrara ilerler (`completeReminder`).
+  bool get isRecurring => !recurrence.isNone && remindAt != null;
 
   /// Zamanlı bildirim kimliği; kararlı FNV-1a (`reminder:<id>`), bkz.
   /// [NotificationIds].
@@ -116,6 +128,7 @@ class Reminder {
         'locationLongitude': locationLongitude,
         'locationRadiusMeters': locationRadiusMeters,
         'locationPlaceLabel': locationPlaceLabel,
+        'recurrence': recurrence.toJson(),
       };
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -136,6 +149,7 @@ class Reminder {
       locationRadiusMeters:
           (json['locationRadiusMeters'] as num?)?.toDouble() ?? 150,
       locationPlaceLabel: json['locationPlaceLabel'] as String?,
+      recurrence: RecurrenceRule.fromJson(json['recurrence']),
     );
   }
 }

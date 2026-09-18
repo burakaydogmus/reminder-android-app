@@ -62,6 +62,7 @@ class ReminderCard extends StatelessWidget {
       if (at != null)
         '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
       if (_isOverdue) 'gecikti',
+      if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
       if (_placeLabel != null) 'konum: $_placeLabel',
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
@@ -101,6 +102,11 @@ class ReminderCard extends StatelessWidget {
           separator,
           metaIcon(Icons.schedule_rounded, scheme.primary),
           TextSpan(text: 'Gecikti', style: TextStyle(color: scheme.primary)),
+        ],
+        if (reminder.isRecurring) ...[
+          separator,
+          metaIcon(Icons.repeat_rounded, scheme.onSurfaceVariant),
+          TextSpan(text: reminder.recurrence.summary),
         ],
         if (_placeLabel != null) ...[
           separator,

@@ -77,7 +77,7 @@ Diğer tüm fazların temeli.
 
 *F3.1–F3.3 veri modeline dokunur, sıralı ilerler.*
 
-- [ ] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
+- [x] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
 - [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
