@@ -18,6 +18,17 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **MIT lisansı eklendi** (kökte `LICENSE`, "Copyright (c) 2026 Burak Aydoğmuş"); üçüncü taraf
+  atıfları `docs/store/licensing.md`'de. (#27)
+- **Tekrarlayan hatırlatmalar:** günlük, haftalık (gün seçimiyle), aylık veya her N günde bir;
+  isteğe bağlı bitiş tarihi. Tekrarlayan bir hatırlatıcı tamamlanınca bir sonraki tekrara geçer;
+  kartta tekrar özeti görünür. Veritabanı şeması v2'ye geçti (otomatik taşıma). (#25)
+- **Bildirim eylemleri:** hatırlatıcı bildiriminden doğrudan Tamamla ve Ertele (10 dk, 1 saat;
+  iOS'ta ayrıca yarın sabah), uygulama kapalıyken de çalışır. Bildirime dokununca ilgili
+  hatırlatıcı açılır. (#23)
+- **Mağaza hazırlık dokümanları:** gizlilik politikası (tr/en), Play Data safety ve App Store
+  gizlilik etiketi cevapları, izin ve politika incelemesi, mağaza metni taslakları, lisans notu
+  (`docs/store/`). (F6.2a)
 - **Yedekleme:** hatırlatıcıları, doğum günlerini ve ayarları sürümlü bir JSON dosyasına dışa
   aktarma (sistem paylaşım menüsü) ve dosyadan birleştirerek ya da değiştirerek geri yükleme. (#24)
 - **Tanıtım (onboarding):** ilk açılışta 4 adımlı tanıtım; bildirim izni yalnızca açıklamayla,
