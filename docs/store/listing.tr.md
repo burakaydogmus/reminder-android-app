@@ -1,8 +1,8 @@
 # Mağaza sayfası taslağı — Türkçe
 
-Durum: 13 Eylül 2026 kodu. Yalnızca **bugün çalışan** özellikler yazıldı. Henüz yapılmamış olanlar
-(tekrarlayan hatırlatmalar F3.1, bildirimden tamamla/ertele F3.2, doğal dille hızlı yakalama F4.6,
-iOS widget F5.2, zaman şeridi F3.6) eklendiğinde metin güncellenmeli. Mağaza metinleri uygulamanın
+Durum: 18 Eylül 2026 kodu (tekrarlayan hatırlatmalar F3.1 ve bildirim eylemleri F3.2 dahil).
+Yalnızca **bugün çalışan** özellikler yazıldı. Henüz yapılmamış olanlar (doğal dille hızlı yakalama
+F4.6, iOS widget F5.2, zaman şeridi F3.6) eklendiğinde metin güncellenmeli. Mağaza metinleri uygulamanın
 gerçek deneyimini yansıtmalı (App Store §2.3; Play meta veri politikası).
 
 Sınırlar: Play başlık 30, kısa açıklama 80, tam açıklama 4000 karakter
@@ -13,24 +13,27 @@ ad ve alt başlık 30 karakter, anahtar kelimeler 100
 — anahtar kelime sınırı bu sayfada **bayt** olarak geçiyor; Türkçe harfler UTF-8'de 2 bayt olduğu
 için 100 baytı aşmamak güvenli yol).
 
+Aşağıdaki uzunluklar 18 Eylül 2026'da betikle ölçüldü: karakter = Unicode kod noktası (Python
+`len`), bayt = UTF-8. Metin değişirse yeniden ölçülmeli.
+
 ## Uygulama adı seçenekleri (≤ 30)
 
 | Seçenek | Uzunluk | Not |
 |---|---|---|
 | Hatırlatıcı | 11 | Mevcut `CFBundleDisplayName`. Genel bir kelime; mağazada ayırt edilmesi zor, aynı adlı uygulamalar olabilir (*doğrulanmalı*). |
 | Kor: Hatırlatıcı | 16 | Tasarım adını marka yapar. |
-| Kor – Hatırlatıcı ve Listeler | 28 | |
+| Kor – Hatırlatıcı ve Listeler | 29 | |
 | Hatırlatıcı: Zaman ve Konum | 27 | Özelliği anlatır, anahtar kelime içerir. |
-| Kor: Hatırlatma & Doğum Günü | 27 | |
+| Kor: Hatırlatma & Doğum Günü | 28 | |
 
 **Öneri:** Mağaza adı "Kor: Hatırlatıcı", ana ekranda "Hatırlatıcı" kalabilir.
 App Store alt başlık (≤ 30): **"Zamanında, yerinde hatırlat"** (27).
 
 ## Kısa açıklama (Play, ≤ 80)
 
-> Saatinde ya da vardığın yerde hatırlatır. Doğum günleri, listeler; veriler cihazda.
+> Saatinde ya da vardığın yerde hatırlatır. Doğum günleri, listeler; veri cihazda.
 
-(79 karakter)
+(80 karakter — sınırda; önceki taslak "… veriler cihazda." 83 karakterdi.)
 
 ## Tam açıklama (Play / App Store, ≤ 4000)
 
@@ -48,6 +51,12 @@ Haritadan bir yer seç, yarıçapı belirle. Oraya vardığında bildirim gelir;
 
 DOĞUM GÜNLERİNİ UNUTMA
 Doğum günlerini bir kez ekle, her yıl hatırlatılsın. İstersen bir gün ya da bir hafta önceden haber alırsın. 29 Şubat doğumlular da unutulmaz.
+
+TEKRARLA
+Her gün, her hafta seçtiğin günlerde, her ay ya da birkaç günde bir. İstersen bir bitiş tarihi koy. Tekrarlayan bir hatırlatıcıyı tamamlayınca bir sonraki tekrara geçer.
+
+BİLDİRİMDEN BİTİR
+Bildirimdeki düğmelerle uygulamayı açmadan tamamla ya da 10 dakika, 1 saat sonraya ertele.
 
 KAYDIR, BİTİR, GERİ AL
 Sağa kaydır: tamamla. Sola kaydır: ertele ya da sil. Yanlışlıkla mı yaptın? "Geri al" bir dokunuş uzağında. Aynı işlemler uzun basma menüsünde ve ekran okuyucu eylemlerinde de var.
@@ -73,7 +82,7 @@ Hesap yok, reklam yok, analiz yok. Hatırlatıcıların, doğum günlerin ve kon
 Harita verileri © OpenStreetMap katkıcıları.
 ```
 
-Uzunluk: yaklaşık 2.000 karakter (sınırın altında; yayından önce tam sayım yapılmalı).
+Uzunluk: 2.389 karakter (sınır 4000).
 
 > Places ile "yakındaki marketler" özelliği mağaza sürümünde bulunmayacağı (anahtarsız derleme
 > önerisi) için metne yazılmadı. iOS sürümünde "ANA EKRAN ARACI (ANDROID)" bölümü çıkarılmalı.
@@ -82,14 +91,17 @@ Uzunluk: yaklaşık 2.000 karakter (sınırın altında; yayından önce tam say
 
 > Saatinde ya da vardığın yerde hatırlatır, doğum günlerini her yıl hatırlar. Hesap yok, reklam yok; verilerin cihazında kalır.
 
+(125 karakter)
+
 ## Anahtar kelimeler (App Store, ≤ 100)
 
 ```text
 hatırlatma,yapılacaklar,görev,alışveriş,market,doğum günü,konum,bildirim,ajanda,liste,not
 ```
 
-Uygulama adında ve alt başlıkta geçen kelimeler (hatırlatıcı, zaman, yer) tekrar edilmedi. Bayt
-sayısı yayından önce kontrol edilmeli (Türkçe harfler 2 bayt; aşarsa `ajanda` / `not` çıkarılır).
+Uygulama adında ve alt başlıkta geçen kelimeler (hatırlatıcı, zaman, yer) tekrar edilmedi.
+89 karakter, **98 bayt** (UTF-8; Türkçe harfler 2 bayt) — 100 bayt sınırının altında, ama kelime
+eklenecekse önce `ajanda` / `not` çıkarılmalı.
 
 ## Ekran görüntüsü planı
 

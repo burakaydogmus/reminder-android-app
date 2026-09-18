@@ -1,12 +1,13 @@
 # Store listing draft — English
 
-Based on the code as of 13 September 2026. Only features that work **today** are listed; not yet
-built: recurring reminders (F3.1), notification actions (F3.2), natural-language quick capture
-(F4.6), iOS widget (F5.2), timeline strip (F3.6). Note: the app UI is Turkish-only until F6.1
+Based on the code as of 18 September 2026 (recurring reminders F3.1 and notification actions F3.2
+included). Only features that work **today** are listed; not yet built: natural-language quick
+capture (F4.6), iOS widget (F5.2), timeline strip (F3.6). Note: the app UI is Turkish-only until F6.1
 (localization) — publish the English listing only after F6.1, or state "Turkish interface" clearly.
 
 Limits: Play title 30, short description 80, full description 4000; App Store name and subtitle
-30, keywords 100 (bytes per App Store Connect help). Sources as in [`listing.tr.md`](listing.tr.md).
+30, keywords 100 (bytes per App Store Connect help). Sources as in [`listing.tr.md`](listing.tr.md). Lengths below
+were measured by script on 18 September 2026 (characters = Unicode code points, bytes = UTF-8).
 
 ## App name options (≤ 30)
 
@@ -17,13 +18,13 @@ Limits: Play title 30, short description 80, full description 4000; App Store na
 | Hatırlatıcı: Time & Place | 25 |
 | Kor: Remind by Time & Place | 27 |
 
-**Suggestion:** "Kor: Reminders". App Store subtitle (≤ 30): **"On time, in the right place"** (28).
+**Suggestion:** "Kor: Reminders". App Store subtitle (≤ 30): **"On time, in the right place"** (27).
 
 ## Short description (Play, ≤ 80)
 
-> Reminders by time or place, yearly birthdays and lists. Your data stays on device.
+> Reminders by time or place, yearly birthdays. Your data stays on your device.
 
-(81 characters — trim to: "Reminders by time or place, yearly birthdays. Your data stays on your device." = 77)
+(77 characters; the earlier draft "… yearly birthdays and lists. Your data stays on device." was 82.)
 
 ## Full description (≤ 4000)
 
@@ -41,6 +42,12 @@ Choose a place on the map and set a radius. You get a notification when you arri
 
 NEVER MISS A BIRTHDAY
 Add a birthday once and get reminded every year, optionally a day or a week in advance. Feb 29 birthdays included.
+
+REPEAT IT
+Every day, on chosen weekdays, every month or every few days, with an optional end date. Complete a repeating reminder and it moves on to the next time.
+
+DONE FROM THE NOTIFICATION
+Use the notification buttons to complete a reminder or snooze it for 10 minutes or an hour without opening the app.
 
 SWIPE, DONE, UNDO
 Swipe right to complete, left to snooze or delete. Changed your mind? Undo is one tap away. Every action is also in the long-press menu and available to screen readers.
@@ -66,11 +73,13 @@ No account, no ads, no analytics. Your reminders, birthdays and location never l
 Map data © OpenStreetMap contributors.
 ```
 
-Remove the widget section for iOS.
+Length: 2,193 characters (limit 4000). Remove the widget section for iOS.
 
 ## App Store promotional text (≤ 170)
 
 > Reminders by time or place, and birthdays every year. No account, no ads — your data stays on your device.
+
+(106 characters)
 
 ## Keywords (App Store, ≤ 100)
 
@@ -78,7 +87,7 @@ Remove the widget section for iOS.
 to do,todo list,task,grocery,shopping list,birthday,location,geofence,notification,agenda,planner
 ```
 
-(97 characters; words already in the name/subtitle are not repeated.)
+(97 characters = 97 bytes, ASCII only; words already in the name/subtitle are not repeated.)
 
 ## Screenshot plan
 
