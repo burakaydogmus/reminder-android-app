@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -27,25 +28,45 @@ import 'package:reminder/services/schedule_sync.dart';
 /// **Aksiyonlar (F3.2):** hatırlatıcı ve konum bildirimleri Tamamla/Ertele
 /// aksiyonları taşır (Android düğmeleri, iOS kategorisi); doğum günleri
 /// taşımaz. Yanıtlar `notification_actions.dart` içinde işlenir.
+///
+/// **Tam zamanlı alarm yedeği (F6.2c):** Android 12+'da "Alarmlar ve
+/// hatırlatıcılar" izni yoksa bildirimler `inexactAllowWhileIdle` ile kurulur
+/// (birkaç dakika gecikebilir, ama gelir); izin varsa `exactAllowWhileIdle`.
+/// Mod her senkronda bir kez belirlenir ve parmak izine girer; izin verilince
+/// bir sonraki senkron (ör. uygulama ön plana dönünce) bildirimleri tam
+/// zamanlı olarak yeniden kurar.
 class NotificationService implements NotificationSync {
-  NotificationService._(this._plugin, this._fingerprints);
+  NotificationService._(
+    this._plugin,
+    this._fingerprints,
+    Future<bool> Function()? canScheduleExact,
+  ) : _canScheduleExactOverride = canScheduleExact;
 
   static final NotificationService instance = NotificationService._(
     FlutterLocalNotificationsPlugin(),
     const NotificationFingerprintStore(),
+    null,
   );
 
   /// Gerçek plugin yerine sahte bir plugin ile çalışan örnek (testler).
+  /// [canScheduleExact] tam zamanlı alarm iznini taklit eder (varsayılan:
+  /// izin var).
   @visibleForTesting
   factory NotificationService.forTesting(
     FlutterLocalNotificationsPlugin plugin, {
     NotificationFingerprintStore fingerprints =
         const NotificationFingerprintStore(),
+    Future<bool> Function()? canScheduleExact,
   }) =>
-      NotificationService._(plugin, fingerprints);
+      NotificationService._(
+        plugin,
+        fingerprints,
+        canScheduleExact ?? () async => true,
+      );
 
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationFingerprintStore _fingerprints;
+  final Future<bool> Function()? _canScheduleExactOverride;
 
   bool _initialized = false;
 
@@ -218,15 +239,34 @@ class NotificationService implements NotificationSync {
     }
 
     final stored = await _fingerprints.load();
+    // Mod senkron başına bir kez belirlenir (F6.2c).
+    var mode = desired.isEmpty
+        ? exactScheduleMode
+        : scheduleModeFor(canScheduleExact: await _canScheduleExact());
     final next = <int, String>{};
     for (final spec in desired.values) {
-      final fingerprint = spec.fingerprint;
-      next[spec.id] = fingerprint;
+      final fingerprint = spec.fingerprint(mode);
       final upToDate = stored != null &&
           pendingIds.contains(spec.id) &&
           stored[spec.id] == fingerprint;
-      if (upToDate) continue;
-      await _schedule(spec);
+      if (upToDate) {
+        next[spec.id] = fingerprint;
+        continue;
+      }
+      try {
+        await _schedule(spec, mode);
+      } on PlatformException catch (e) {
+        // Tam zamanlı kurulum reddedildi (ör. izin kontrolden sonra geri
+        // alındı: `exact_alarms_not_permitted`). Senkron durmaz: bu ve kalan
+        // bildirimler inexact kurulur; izin dönünce parmak izi farkı onları
+        // yeniden tam zamanlı kurar.
+        if (mode == inexactScheduleMode) rethrow;
+        debugPrint('Exact alarm scheduling failed (${e.code}); '
+            'falling back to inexact.');
+        mode = inexactScheduleMode;
+        await _schedule(spec, mode);
+      }
+      next[spec.id] = spec.fingerprint(mode);
     }
 
     // Kurulumlardan **sonra** yazılır: yarıda kalan bir senkron eski parmak
@@ -236,18 +276,47 @@ class NotificationService implements NotificationSync {
     }
   }
 
-  Future<void> _schedule(_ScheduleSpec spec) => _plugin.zonedSchedule(
+  Future<void> _schedule(_ScheduleSpec spec, AndroidScheduleMode mode) =>
+      _plugin.zonedSchedule(
         id: spec.id,
         title: spec.title,
         body: spec.body,
         scheduledDate: spec.scheduledDate,
         notificationDetails: spec.details,
-        androidScheduleMode: _androidScheduleMode,
+        androidScheduleMode: mode,
         matchDateTimeComponents: spec.matchDateTimeComponents,
         payload: spec.payload,
       );
 
-  static const _androidScheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
+  /// Tam zamanlı alarm izni varken kullanılan mod.
+  static const exactScheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
+
+  /// İzin yokken kullanılan mod (`setAndAllowWhileIdle`): Doze'da da çalışır,
+  /// izin gerektirmez; sistem birkaç dakika geciktirebilir.
+  static const inexactScheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
+
+  /// Senkronda kullanılacak Android zamanlama modu (F6.2c).
+  @visibleForTesting
+  static AndroidScheduleMode scheduleModeFor(
+          {required bool canScheduleExact}) =>
+      canScheduleExact ? exactScheduleMode : inexactScheduleMode;
+
+  /// Android 12+'da `canScheduleExactNotifications()`; Android dışında (iOS)
+  /// ve eski Android'de `true`. Kontrol hata verirse tam zamanlı denenir;
+  /// kurulum reddedilirse senkron inexact'a düşer.
+  Future<bool> _canScheduleExact() async {
+    final override = _canScheduleExactOverride;
+    if (override != null) return override();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return true;
+    try {
+      return await android.canScheduleExactNotifications() ?? true;
+    } on PlatformException catch (e) {
+      debugPrint('canScheduleExactNotifications failed: ${e.code}');
+      return true;
+    }
+  }
 
   /// Parmak izine giren kurulum biçimi sürümü (testler için görünür).
   @visibleForTesting
@@ -484,7 +553,9 @@ class _ScheduleSpec {
   ///   `matchDateTimeComponents` ile kurulur.
   /// - v4 (F3.3): gövdede "N madde kaldı", Android BigText açık maddeleri
   ///   listeler; madde metni parmak izine girdi.
-  static const _version = 4;
+  /// - v5 (F6.2c): Android zamanlama modu izne göre seçilir (exact /
+  ///   inexact) ve senkronda belirlenen mod parmak izine girer.
+  static const _version = 5;
 
   final int id;
   final String channelId;
@@ -503,13 +574,15 @@ class _ScheduleSpec {
   /// eklenir, işaretlenir veya yeniden adlandırılırsa bildirim yeniden kurulur.
   final String? subtasks;
 
-  /// Bildirimin kurulduğu haliyle eşleşen kısa özet. Zaman hem an hem de
-  /// saat dilimi olarak girer (`dateAndTime` tekrarı yerel saate bağlıdır).
-  String get fingerprint {
+  /// Bildirimin [mode] ile kurulduğu haliyle eşleşen kısa özet. Zaman hem an
+  /// hem de saat dilimi olarak girer (`dateAndTime` tekrarı yerel saate
+  /// bağlıdır). Mod değişince (izin verildi / geri alındı) bildirim yeniden
+  /// kurulur.
+  String fingerprint(AndroidScheduleMode mode) {
     final canonical = jsonEncode([
       'v$_version',
       channelId,
-      NotificationService._androidScheduleMode.name,
+      mode.name,
       title,
       body,
       scheduledDate.millisecondsSinceEpoch,

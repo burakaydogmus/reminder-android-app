@@ -266,7 +266,16 @@ The sync is **diff-based** (F1.7):
   `notification_schedule_fingerprints_v1` (`NotificationFingerprintStore`, reloaded
   before reading); they are written after scheduling. Missing/corrupt store → all
   desired entries are rescheduled. Changing how notifications are built (channel
-  settings, schedule mode) → bump `_ScheduleSpec._version`.
+  settings, actions, …) → bump `_ScheduleSpec._version` (currently 5).
+- **Schedule mode (F6.2c):** chosen **once per sync** from `canScheduleExactNotifications()`
+  (injectable via `NotificationService.forTesting(canScheduleExact:)`): permitted (or not
+  Android 12+) → `exactAllowWhileIdle`, otherwise `inexactAllowWhileIdle` (may be a few
+  minutes late, needs no permission). The mode is part of the fingerprint, so granting or
+  revoking the permission reschedules everything on the next sync (resume reload,
+  Settings return). A `PlatformException` from exact scheduling
+  (`exact_alarms_not_permitted`) never aborts the sync: that notification and the rest
+  of the sync fall back to inexact and store inexact fingerprints. Never hard-code the
+  mode. `FakeNotificationsPlugin.exactAlarmsPermitted = false` simulates the rejection.
 - **Recurring reminders (F3.1):** only the **next** occurrence is scheduled per
   reminder (`NotificationService.reminderFireTime`: a future `remindAt`, or for an
   overdue recurring reminder the rule's next occurrence after now, so it keeps
@@ -725,9 +734,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - iOS: `ios/Podfile` sets `PERMISSION_LOCATION=1` for permission_handler (all its
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
-- Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
-  policy decision is F6.2; the inexact fallback when exact alarms are denied (then
-  dropping `USE_EXACT_ALARM`) is F6.2c.
+- Exact alarms (F6.2c): the manifest declares only `SCHEDULE_EXACT_ALARM` —
+  **never add `USE_EXACT_ALARM`** (Play restricts it to alarm-clock/calendar apps; see
+  `docs/store/permissions-review.md` §3). The permission is optional: without it
+  notifications are scheduled inexact (see **Schedule sync**). The exact-alarm sheet and the
+  Settings row explain "İzin olmadan hatırlatmalar birkaç dakika gecikebilir"
+  (`PermissionFlows.exactAlarmTradeOff`); `PermissionFlows.fixExactAlarms` reloads the cubit
+  (→ resync) when the state changed on return from system settings.
 
 ## Platform notes
 

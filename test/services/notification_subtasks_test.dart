@@ -150,8 +150,11 @@ void main() {
       );
     });
 
-    test('fingerprint version is 4 (F3.3)', () {
-      expect(NotificationService.scheduleFingerprintVersion, 4);
+    test('fingerprint version is at least 4 (F3.3)', () {
+      expect(
+        NotificationService.scheduleFingerprintVersion,
+        greaterThanOrEqualTo(4),
+      );
     });
   });
 

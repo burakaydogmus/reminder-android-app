@@ -81,7 +81,8 @@ paylaşılmıyor" demektir. Önerimiz: harita karoları konum verisi olarak işl
 
 ## İlgili ama Data safety dışı beyanlar
 
-- **Konum izinleri beyanı** (`ACCESS_BACKGROUND_LOCATION`) ve **exact alarm** kararı ayrı
-  formlardır — bkz. [`permissions-review.md`](permissions-review.md).
+- **Konum izinleri beyanı** (`ACCESS_BACKGROUND_LOCATION`) ayrı bir formdur — bkz.
+  [`permissions-review.md`](permissions-review.md). **Exact alarm** beyanı gerekmez:
+  `USE_EXACT_ALARM` kaldırıldı, yalnızca kullanıcının verdiği `SCHEDULE_EXACT_ALARM` var (F6.2c).
 - Harici SDK'larda gizli trafik olmadığı `pubspec.lock` üzerinden tekrar kontrol edilmeli
   (her bağımlılık güncellemesinden sonra).
