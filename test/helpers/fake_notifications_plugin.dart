@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -12,6 +13,7 @@ class FakePendingNotification {
     this.payload,
     this.matchDateTimeComponents,
     this.details,
+    this.scheduleMode,
   });
 
   final int id;
@@ -21,6 +23,9 @@ class FakePendingNotification {
   final String? payload;
   final DateTimeComponents? matchDateTimeComponents;
   final NotificationDetails? details;
+
+  /// `zonedSchedule` ile verilen Android zamanlama modu.
+  final AndroidScheduleMode? scheduleMode;
 }
 
 /// Platform kanalına dokunmayan, bekleyen bildirimleri bellekte tutan
@@ -44,6 +49,13 @@ class FakeNotificationsPlugin extends Fake
   int cancelCalls = 0;
   int scheduleCalls = 0;
 
+  /// `false` ise tam zamanlı modlar (`exact*`, `alarmClock`) Android 12+'daki
+  /// gibi `exact_alarms_not_permitted` hatası verir.
+  bool exactAlarmsPermitted = true;
+
+  /// Reddedilen tam zamanlı kurulum denemelerinin id'leri.
+  final List<int> rejectedExactIds = [];
+
   /// Son `initialize` çağrısının ayarları ve işleyicileri.
   InitializationSettings? initializeSettings;
   DidReceiveNotificationResponseCallback? foregroundCallback;
@@ -66,6 +78,7 @@ class FakeNotificationsPlugin extends Fake
     scheduleCalls = 0;
     cancelledIds.clear();
     scheduledIds.clear();
+    rejectedExactIds.clear();
   }
 
   @override
@@ -133,6 +146,15 @@ class FakeNotificationsPlugin extends Fake
     String? payload,
     DateTimeComponents? matchDateTimeComponents,
   }) async {
+    if (!exactAlarmsPermitted &&
+        androidScheduleMode != AndroidScheduleMode.inexact &&
+        androidScheduleMode != AndroidScheduleMode.inexactAllowWhileIdle) {
+      rejectedExactIds.add(id);
+      throw PlatformException(
+        code: 'exact_alarms_not_permitted',
+        message: 'Exact alarms are not permitted',
+      );
+    }
     scheduleCalls++;
     scheduledIds.add(id);
     pending[id] = FakePendingNotification(
@@ -143,6 +165,7 @@ class FakeNotificationsPlugin extends Fake
       payload: payload,
       matchDateTimeComponents: matchDateTimeComponents,
       details: notificationDetails,
+      scheduleMode: androidScheduleMode,
     );
   }
 }
