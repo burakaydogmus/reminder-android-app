@@ -1,6 +1,7 @@
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
@@ -63,7 +64,10 @@ Future<UiHarness> _pump(
   ThemeData Function() theme = KorTheme.light,
   List<Reminder>? reminders,
 }) async {
-  final h = await UiHarness.create(reminders: reminders ?? _reminders());
+  final h = await UiHarness.create(
+    reminders: reminders ?? _reminders(),
+    now: _clock,
+  );
   await tester.pumpWidget(
     h.app(home: const HomeShell(clock: _clock), theme: theme),
   );
@@ -299,6 +303,83 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('recurring overdue items stay; undo restores only moved ones',
+        (tester) async {
+      final h = await _pump(
+        tester,
+        reminders: [
+          buildReminder(
+            id: 'bill',
+            title: 'Elektrik faturasını öde',
+            remindAt: DateTime(2026, 9, 12, 18),
+          ),
+          buildReminder(
+            id: 'pill',
+            title: 'İlaç iç',
+            remindAt: DateTime(2026, 9, 13, 8),
+            recurrence: RecurrenceRule.daily(),
+          ),
+        ],
+      );
+      await tester.tap(find.byKey(TodayPageKeys.moveOverdue));
+      await tester.pumpAndSettle();
+
+      expect(_byId(h, 'bill').remindAt, DateTime(2026, 9, 14, 18));
+      expect(_byId(h, 'pill').remindAt, DateTime(2026, 9, 13, 8));
+      expect(
+        find.text('“Elektrik faturasını öde” yarına alındı'),
+        findsOneWidget,
+      );
+      // The recurring item is still overdue, so Kaçanlar stays without the
+      // button (nothing left to move).
+      expect(find.text('Kaçanlar'), findsOneWidget);
+      expect(find.byKey(TodayPageKeys.moveOverdue), findsNothing);
+
+      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.pumpAndSettle();
+      expect(_byId(h, 'bill').remindAt, DateTime(2026, 9, 12, 18));
+      expect(_byId(h, 'pill').remindAt, DateTime(2026, 9, 13, 8));
+      expect(find.byKey(TodayPageKeys.moveOverdue), findsOneWidget);
+    });
+  });
+
+  testWidgets('completing a recurring ribbon item advances it off the ribbon',
+      (tester) async {
+    _tallView(tester);
+    final semantics = tester.ensureSemantics();
+    final h = await _pump(
+      tester,
+      reminders: [
+        buildReminder(
+          id: 'walk',
+          title: 'Yürüyüş',
+          remindAt: DateTime(2026, 9, 13, 18),
+          recurrence: RecurrenceRule.daily(),
+        ),
+      ],
+    );
+    final node =
+        tester.getSemantics(find.bySemanticsLabel(RegExp('^Yürüyüş,')));
+    final id = node.getSemanticsData().customSemanticsActionIds!.firstWhere(
+          (id) => CustomSemanticsAction.getAction(id)!.label == 'Tamamla',
+        );
+    node.owner!.performAction(node.id, SemanticsAction.customAction, id);
+    await tester.pumpAndSettle();
+
+    final walk = _byId(h, 'walk');
+    expect(walk.isDone, isFalse);
+    expect(walk.remindAt, DateTime(2026, 9, 14, 18));
+    // Not shown as a completed compact row; it left today's ribbon.
+    expect(find.byType(ReminderCompactCard), findsNothing);
+    expect(find.byKey(TimeRibbonKeys.gutter('walk')), findsNothing);
+    expect(find.textContaining('Sonraki:'), findsOneWidget);
+
+    await tester.tap(find.text(UndoSnackBar.actionLabel));
+    await tester.pumpAndSettle();
+    expect(_byId(h, 'walk').remindAt, DateTime(2026, 9, 13, 18));
+    expect(find.byKey(TimeRibbonKeys.gutter('walk')), findsOneWidget);
+    semantics.dispose();
   });
 
   for (final (themeName, theme) in korThemes) {

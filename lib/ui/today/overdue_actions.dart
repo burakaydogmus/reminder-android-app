@@ -10,11 +10,11 @@ import 'package:reminder/ui/today/today_sections.dart';
 
 /// Overdue reminders "Hepsini yarına al" moves.
 ///
-/// Recurring reminders (F3.1) must be skipped once the model has a
-/// recurrence rule; until then every overdue reminder is movable.
+/// Recurring reminders (F3.1) are skipped: their next occurrence comes from
+/// the rule, so moving one would shift the whole series.
 List<Reminder> movableOverdue(Iterable<Reminder> overdue) => [
       for (final r in overdue)
-        if (!r.isDone && r.remindAt != null) r
+        if (!r.isDone && r.remindAt != null && !r.isRecurring) r
     ];
 
 /// "Hepsini yarına al" (§3.3.2): moves every overdue reminder to tomorrow at
