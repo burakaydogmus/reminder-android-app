@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:material_ui/material_ui.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
+    show LiquidGlassWidgets;
 
 import 'package:reminder/app.dart';
 import 'package:reminder/config/app_licenses.dart';
@@ -21,6 +23,21 @@ Future<void> main() async {
     await HomeWidget.setAppGroupId('group.com.burakaydogmus.reminder');
     await HomeWidget.registerInteractivityCallback(reminderHomeWidgetCallback);
   }
+  // F5.4: pre-warm the glass shaders (async disk-to-RAM I/O only, no GPU
+  // work) so the iOS tab bar has no placeholder frame; runs alongside the
+  // steps below and is awaited before runApp. A failure is only reported:
+  // glass then loads its shaders lazily. Android never uses glass.
+  final glassWarmUp = Platform.isIOS
+      ? LiquidGlassWidgets.initialize().catchError(
+          (Object error, StackTrace stack) => FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stack,
+              library: 'liquid_glass_widgets',
+            ),
+          ),
+        )
+      : Future<void>.value();
   await initializeDateFormatting('tr_TR');
   await configureLocalTimezone();
   await NotificationService.instance.initialize();
@@ -31,6 +48,7 @@ Future<void> main() async {
   // location permissions are asked in context via PermissionFlows.
   await GeofenceService.instance.initialize();
   GeofenceService.instance.startListening(NotificationService.instance);
+  await glassWarmUp;
   runApp(
     PermissionScope(
       service: PlatformPermissionService.platform(),

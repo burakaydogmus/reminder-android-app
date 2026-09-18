@@ -15,6 +15,7 @@ import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/search/recent_search_store.dart';
 import 'package:reminder/ui/search/reminder_search.dart';
+import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -37,12 +38,21 @@ Future<void> openSearch(BuildContext context) {
   );
 }
 
-/// 48 dp "Ara" header button (Bugün, Listeler).
+/// 48 dp "Ara" header button (Bugün, Listeler, smart lists).
+///
+/// On iOS the shell's glass tab bar already has an "Ara" circle, so the
+/// button hides itself on the shell's route (the first route: Bugün,
+/// Listeler headers) and only shows on pushed pages, which cover the tab bar.
+/// Android always shows it.
 class SearchIconButton extends StatelessWidget {
   const SearchIconButton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    if (PlatformChrome.isCupertino(context) &&
+        (ModalRoute.of(context)?.isFirst ?? true)) {
+      return const SizedBox.shrink();
+    }
     return IconButton(
       tooltip: 'Ara',
       onPressed: () => openSearch(context),
