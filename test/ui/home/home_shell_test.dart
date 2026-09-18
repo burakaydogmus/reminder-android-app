@@ -3,11 +3,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/home/home_shell.dart';
+import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/ui/calendar/calendar_page.dart';
+import 'package:reminder/ui/components/kor_glass_surface.dart';
+import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/settings/settings_page.dart';
+import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
+import 'package:reminder/ui/theme/kor_theme.dart';
+import 'package:reminder/ui/today/today_page.dart';
 
 import '../../helpers/factories.dart';
 import '../ui_harness.dart';
+import 'ios_platform.dart';
 
 // 13 Sep 2026 is a Sunday.
 final _now = DateTime(2026, 9, 13, 14, 32);
@@ -126,29 +134,197 @@ void main() {
     });
   }
 
-  testWidgets('iOS uses the bottom tab bar', (tester) async {
-    final h = await UiHarness.create();
-    await tester.pumpWidget(
-      h.app(
-        home: const HomeShell(clock: _clock),
-        platform: TargetPlatform.iOS,
-      ),
-    );
-    await tester.pumpAndSettle();
+  group('HomeShell (iOS glass chrome)', () {
+    Finder tab(String label) => find.descendant(
+          of: find.byKey(KorGlassTabBar.capsuleKey),
+          matching: find.bySemanticsLabel(label),
+        );
+    final collapsed = find.byKey(KorGlassTabBar.collapsedKey);
+    Finder scrollOf(Type page) => find
+        .descendant(of: find.byType(page), matching: find.byType(Scrollable))
+        .first;
+    // Enough rows to scroll Bugün (untimed) and Takvim (tomorrow).
+    final many = [
+      for (var i = 0; i < 30; i++)
+        buildReminder(id: 'u$i', title: 'Zamansız $i'),
+      for (var i = 0; i < 30; i++)
+        buildReminder(
+          id: 't$i',
+          title: 'Yarın $i',
+          remindAt: DateTime(2026, 9, 14, 8, i),
+        ),
+    ];
 
-    expect(find.byType(KorTabBar), findsOneWidget);
-    expect(find.byType(KorPillNavigation), findsNothing);
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
-    expect(find.byType(NewItemFab), findsOneWidget);
+    Future<void> pumpShell(
+      WidgetTester tester, {
+      A11yPrefsData prefs = A11yPrefsData.none,
+      bool enableGlassScope = false,
+      List<Reminder> reminders = const [],
+      ThemeData Function() theme = KorTheme.light,
+    }) async {
+      final h = await UiHarness.create(reminders: reminders);
+      final a11y = A11yPrefs(prefs);
+      addTearDown(a11y.dispose);
+      await tester.pumpWidget(
+        h.app(
+          home: HomeShell(
+            clock: _clock,
+            enableGlassScope: enableGlassScope,
+            a11yPrefs: a11y,
+          ),
+          theme: theme,
+          platform: TargetPlatform.iOS,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Listeler'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(_header('Listeler'), findsOneWidget);
+    for (final (themeName, theme) in korThemes) {
+      iosTestWidgets('glass tab bar switches pages ($themeName)', (
+        tester,
+      ) async {
+        final semantics = tester.ensureSemantics();
+        await pumpShell(tester, theme: theme);
+
+        expect(find.byType(KorGlassTabBar), findsOneWidget);
+        expect(find.byType(KorPillNavigation), findsNothing);
+        expect(find.byType(NewItemFab), findsOneWidget);
+        for (final label in ['Bugün', 'Takvim', 'Listeler']) {
+          expect(tab(label), findsOneWidget);
+        }
+        expect(find.byKey(KorGlassSurface.glassKey), findsWidgets);
+        // The search circle waits for F3.6's search page.
+        expect(
+          find.byKey(KorGlassTabBar.searchKey),
+          kShellSearchEnabled ? findsOneWidget : findsNothing,
+        );
+
+        await tester.tap(tab('Listeler'));
+        await tester.pumpAndSettle();
+        expect(_header('Listeler'), findsOneWidget);
+        expect(
+          tester.getSemantics(tab('Listeler')),
+          isSemantics(isSelected: true),
+        );
+
+        await tester.tap(tab('Takvim'));
+        await tester.pumpAndSettle();
+        expect(_header('Takvim'), findsOneWidget);
+        semantics.dispose();
+      });
+    }
+
+    iosTestWidgets('tab bar floats at the bottom over the body', (
+      tester,
+    ) async {
+      await pumpShell(tester);
+      final screen = tester.getSize(find.byType(HomeShell));
+      final capsule = tester.getRect(find.byKey(KorGlassTabBar.capsuleKey));
+      expect(capsule.height, 62);
+      expect(capsule.width, lessThanOrEqualTo(290));
+      expect(screen.height - capsule.bottom, lessThan(40));
+      final scaffold = tester.widget<Scaffold>(
+        find
+            .descendant(
+              of: find.byType(HomeShell),
+              matching: find.byType(Scaffold),
+            )
+            .first,
+      );
+      expect(scaffold.extendBody, isTrue);
+    });
+
+    iosTestWidgets('targets are at least 48pt', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpShell(tester);
+      await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));
+      semantics.dispose();
+    });
+
+    iosTestWidgets('shrinks on scroll down and expands on scroll up', (
+      tester,
+    ) async {
+      await pumpShell(tester, reminders: many);
+      expect(collapsed, findsNothing);
+
+      await tester.drag(scrollOf(TodayPage), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(collapsed, findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(KorGlassTabBar.capsuleKey)).width,
+        lessThan(100),
+      );
+
+      await tester.drag(scrollOf(TodayPage), const Offset(0, 100));
+      await tester.pumpAndSettle();
+      expect(collapsed, findsNothing);
+      expect(tab('Bugün'), findsOneWidget);
+    });
+
+    iosTestWidgets('collapsed tab bar expands on tap and on tab switch', (
+      tester,
+    ) async {
+      await pumpShell(tester, reminders: many);
+      await tester.drag(scrollOf(TodayPage), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      await tester.tap(collapsed);
+      await tester.pumpAndSettle();
+      expect(collapsed, findsNothing);
+
+      // Collapse on Takvim; back selects Bugün with the tab bar expanded.
+      await tester.tap(tab('Takvim'));
+      await tester.pumpAndSettle();
+      await tester.drag(scrollOf(CalendarPage), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(collapsed, findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      // Bugün's header is scrolled away; the page index tells the tab.
+      final pages = tester.widget<IndexedStack>(
+        find
+            .descendant(
+              of: find.byType(HomeShell),
+              matching: find.byType(IndexedStack),
+            )
+            .first,
+      );
+      expect(pages.index, 0);
+      expect(collapsed, findsNothing);
+    });
+
+    iosTestWidgets('stays expanded with VoiceOver', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(accessibleNavigation: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpShell(tester, reminders: many);
+
+      await tester.drag(scrollOf(TodayPage), const Offset(0, -300));
+      await tester.pumpAndSettle();
+      expect(collapsed, findsNothing);
+      expect(tab('Takvim'), findsOneWidget);
+    });
+
+    iosTestWidgets('Reduce Transparency renders solid chrome', (tester) async {
+      await pumpShell(
+        tester,
+        prefs: const A11yPrefsData(reduceTransparency: true),
+      );
+      expect(find.byKey(KorGlassSurface.glassKey), findsNothing);
+      expect(find.byKey(KorGlassSurface.solidKey), findsWidgets);
+    });
+
+    iosTestWidgets('builds with the adaptive glass scope (default)', (
+      tester,
+    ) async {
+      await pumpShell(tester, enableGlassScope: true);
+      expect(find.byType(KorGlassTabBar), findsOneWidget);
+      await tester.tap(tab('Takvim'));
+      await tester.pumpAndSettle();
+      expect(_header('Takvim'), findsOneWidget);
+    });
   });
 
   group('Bugün and Takvim content (fixed clock)', () {
