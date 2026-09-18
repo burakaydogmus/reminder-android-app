@@ -14,7 +14,8 @@ part of '../turkish_capture_parser.dart';
 ///   `öğleden sonra` (15:00), `akşam` (20:00), `gece` (22:00), also
 ///   `sabahleyin`, `akşama (kadar)`, and possessive `akşamı`/`gecesi` right
 ///   after a date (`cuma akşamı`). With an hour they shift it: `akşam 8'de` =
-///   20:00, `gece 11'de` = 23:00, `gece 2'de` = 02:00, `öğlen 1'de` = 13:00.
+///   20:00, `gece 11'de` = 23:00, `gece 2'de` = 02:00, `öğlen 1'de` = 13:00
+///   (1–6 after `öğlen`/`öğle` and 1–11 after `öğleden sonra` are PM).
 ///   `bu akşam` also fixes the date to today.
 /// - A bare day part is **not** a time when it is part of a noun phrase:
 ///   suffixed forms (`akşamki`, `akşamın`), after `bir/o/şu/dün/geçen/bütün/
@@ -123,7 +124,7 @@ extension _TimeRules on _Scanner {
         if (hour >= 6 && hour <= 11) return hour + 12;
         return hour == 12 ? 0 : hour;
       case 'ogle':
-        return hour >= 1 && hour <= 5 ? hour + 12 : hour;
+        return hour >= 1 && hour <= 6 ? hour + 12 : hour;
       default:
         return hour;
     }
