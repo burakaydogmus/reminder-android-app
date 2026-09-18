@@ -83,15 +83,20 @@ Future<void> handleReminderHomeWidgetToggle(
     return completeReminder(r, at);
   }).toList();
 
+  final birthdays = await repository.loadBirthdays();
+  final settings = await repository.loadSettings();
+
   if (!changed) {
-    await schedules.refreshHomeWidget(reminders);
+    await schedules.refreshHomeWidget(
+      reminders: reminders,
+      birthdays: birthdays,
+      settings: settings,
+    );
     return;
   }
 
   await repository.saveReminders(updated);
 
-  final birthdays = await repository.loadBirthdays();
-  final settings = await repository.loadSettings();
   await schedules.syncAll(
     reminders: updated,
     birthdays: birthdays,

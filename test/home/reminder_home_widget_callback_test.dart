@@ -100,10 +100,7 @@ void main() {
       );
 
   List<String> widgetIds() =>
-      (verify(() => homeWidget.sync(captureAny())).captured.single
-              as List<Reminder>)
-          .map((r) => r.id)
-          .toList();
+      capturedHomeWidgetReminders(homeWidget).map((r) => r.id).toList();
 
   group('reminderIdFromWidgetUri', () {
     test('reads the id of a toggle uri', () {
