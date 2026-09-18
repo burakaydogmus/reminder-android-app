@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
@@ -66,6 +67,7 @@ class ReminderCard extends StatelessWidget {
       if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
       if (_placeLabel != null) 'konum: $_placeLabel',
       if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
+      ...PriorityPinVisuals.spokenParts(reminder),
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
   }
@@ -120,6 +122,10 @@ class ReminderCard extends StatelessWidget {
           metaIcon(Icons.check_box_outlined, scheme.onSurfaceVariant),
           TextSpan(text: SubtaskProgressText.count(reminder.subtasks)),
         ],
+        if (reminder.hasPriority) ...[
+          separator,
+          ...PriorityPinVisuals.metaSpans(scheme, reminder.priority),
+        ],
       ],
     );
 
@@ -132,6 +138,7 @@ class ReminderCard extends StatelessWidget {
     void toggle() => toggleReminderDoneWithUndo(context, reminder);
     void snooze() => snoozeReminderWithUndo(context, reminder);
     void delete() => deleteReminderWithUndo(context, reminder);
+    void togglePin() => togglePinnedWithUndo(context, reminder);
 
     return ReminderSwipe(
       done: done,
@@ -144,6 +151,9 @@ class ReminderCard extends StatelessWidget {
         customSemanticsActions: {
           CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
           if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
+          CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(reminder.pinned),
+          ): togglePin,
           const CustomSemanticsAction(label: 'Düzenle'): () =>
               showReminderEditorSheet(context, existing: reminder),
           const CustomSemanticsAction(label: 'Sil'): delete,
@@ -169,6 +179,10 @@ class ReminderCard extends StatelessWidget {
                           color: category.fg,
                           onColor: category.onFg,
                           onTap: toggle,
+                          ring: PriorityPinVisuals.checkboxRing(
+                            context,
+                            reminder,
+                          ),
                         ),
                         const SizedBox(width: KorSpacing.s3),
                         Expanded(
@@ -177,8 +191,14 @@ class ReminderCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  reminder.title,
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      if (reminder.pinned)
+                                        PriorityPinVisuals.titlePin(scheme),
+                                      TextSpan(text: reminder.title),
+                                    ],
+                                  ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(
@@ -260,12 +280,17 @@ class _CompleteToggle extends StatelessWidget {
     required this.color,
     required this.onColor,
     required this.onTap,
+    this.ring,
   });
 
   final bool done;
   final Color color;
   final Color onColor;
   final VoidCallback onTap;
+
+  /// Outline replacing the default 2 px category ring, e.g. the 2.5 px
+  /// primary high-priority ring (F3.4, `PriorityPinVisuals.checkboxRing`).
+  final BorderSide? ring;
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +315,9 @@ class _CompleteToggle extends StatelessWidget {
               height: KorSizes.checkboxVisual,
               decoration: ShapeDecoration(
                 color: done ? color : null,
-                shape: CircleBorder(side: BorderSide(color: color, width: 2)),
+                shape: CircleBorder(
+                  side: ring ?? BorderSide(color: color, width: 2),
+                ),
               ),
               child: done
                   ? Icon(Icons.check_rounded, size: 18, color: onColor)

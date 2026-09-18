@@ -10,6 +10,7 @@ import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/subtask_progress.dart';
@@ -45,6 +46,7 @@ String agendaReminderLabel(ReminderOccurrence o, DateTime now) {
     if (r.isRecurring) 'tekrar: ${r.recurrence.summary}',
     if (place != null) 'konum: $place',
     if (r.hasSubtasks) SubtaskProgressText.spoken(r.subtasks),
+    ...PriorityPinVisuals.spokenParts(r),
     if (o.isStored) 'tamamlanmadı' else 'serinin sonraki tekrarı',
   ].join(', ');
 }
@@ -94,6 +96,7 @@ class _AgendaReminderRowState extends State<AgendaReminderRow> {
     void edit() => showReminderEditorSheet(context, existing: r);
     void delete() => deleteReminderWithUndo(context, r);
     void move() => pickDayAndReschedule(context, r);
+    void togglePin() => togglePinnedWithUndo(context, r);
 
     final card = ReminderCard(
       reminder: r,
@@ -109,6 +112,8 @@ class _AgendaReminderRowState extends State<AgendaReminderRow> {
       customSemanticsActions: {
         CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
         if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
+        CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(r.pinned)): togglePin,
         const CustomSemanticsAction(label: 'Düzenle'): edit,
         const CustomSemanticsAction(label: AgendaRowKeys.moveAction): move,
         const CustomSemanticsAction(label: 'Sil'): delete,
@@ -187,7 +192,7 @@ class _DragFeedback extends StatelessWidget {
   }
 }
 
-enum _CalendarMenuAction { move, toggleDone, snooze, edit, delete }
+enum _CalendarMenuAction { move, toggleDone, snooze, togglePin, edit, delete }
 
 /// Long-press menu of an agenda row: "Taşı…" first, then the card actions
 /// (Tamamla / Geri aç, Ertele, Düzenle, Sil). Anchored to [context]'s widget.
@@ -222,7 +227,12 @@ Future<void> showCalendarReminderMenu(
           children: [
             Icon(icon, color: color),
             const SizedBox(width: KorSpacing.s4),
-            Text(label, style: color == null ? null : TextStyle(color: color)),
+            Flexible(
+              child: Text(
+                label,
+                style: color == null ? null : TextStyle(color: color),
+              ),
+            ),
           ],
         ),
       );
@@ -247,6 +257,11 @@ Future<void> showCalendarReminderMenu(
             ),
       if (!done)
         item(_CalendarMenuAction.snooze, Icons.snooze_rounded, 'Ertele'),
+      item(
+        _CalendarMenuAction.togglePin,
+        PriorityPinVisuals.pinIcon(reminder.pinned),
+        PriorityPinVisuals.pinActionLabel(reminder.pinned),
+      ),
       item(_CalendarMenuAction.edit, Icons.edit_rounded, 'Düzenle'),
       item(
         _CalendarMenuAction.delete,
@@ -264,6 +279,8 @@ Future<void> showCalendarReminderMenu(
       await toggleReminderDoneWithUndo(context, reminder);
     case _CalendarMenuAction.snooze:
       await snoozeReminderWithUndo(context, reminder);
+    case _CalendarMenuAction.togglePin:
+      await togglePinnedWithUndo(context, reminder);
     case _CalendarMenuAction.edit:
       await showReminderEditorSheet(context, existing: reminder);
     case _CalendarMenuAction.delete:

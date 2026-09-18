@@ -321,7 +321,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final node = _cardNode(tester, 'Vitamin iç');
-      expect(_customActionLabels(node), ['Geri aç', 'Düzenle', 'Sil']);
+      expect(
+          _customActionLabels(node), ['Geri aç', 'Sabitle', 'Düzenle', 'Sil']);
       _performCustomAction(node, 'Geri aç');
       await tester.pumpAndSettle();
       expect(h.cubit.state.reminders.single.isDone, isFalse);

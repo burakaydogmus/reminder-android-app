@@ -2,9 +2,11 @@ import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
@@ -69,6 +71,7 @@ class ReminderCompactCard extends StatelessWidget {
       if (_isOverdue) 'gecikti',
       if (place != null) 'konum: $place',
       if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
+      ...PriorityPinVisuals.spokenParts(reminder),
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
   }
@@ -108,6 +111,7 @@ class ReminderCompactCard extends StatelessWidget {
     void snooze() => snoozeReminderWithUndo(context, reminder);
     void delete() => deleteReminderWithUndo(context, reminder);
     void edit() => showReminderEditorSheet(context, existing: reminder);
+    void togglePin() => togglePinnedWithUndo(context, reminder);
 
     final titleStyle = theme.textTheme.titleSmall?.copyWith(
       color: done ? scheme.onSurfaceVariant : scheme.onSurface,
@@ -128,6 +132,9 @@ class ReminderCompactCard extends StatelessWidget {
         customSemanticsActions: {
           CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
           if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
+          CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(reminder.pinned),
+          ): togglePin,
           const CustomSemanticsAction(label: 'Düzenle'): edit,
           const CustomSemanticsAction(label: 'Sil'): delete,
         },
@@ -168,7 +175,16 @@ class ReminderCompactCard extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text.rich(
-                                  title ?? TextSpan(text: reminder.title),
+                                  TextSpan(
+                                    children: [
+                                      if (reminder.pinned)
+                                        PriorityPinVisuals.titlePin(
+                                          scheme,
+                                          size: 14,
+                                        ),
+                                      title ?? TextSpan(text: reminder.title),
+                                    ],
+                                  ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: titleStyle,
@@ -196,6 +212,26 @@ class ReminderCompactCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (reminder.hasPriority)
+                          // Trailing "!!" marker (§3.3.2); spoken through
+                          // the row label.
+                          ExcludeSemantics(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: KorSpacing.s2,
+                              ),
+                              child: Text(
+                                ReminderPriority.marker(reminder.priority),
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: PriorityPinVisuals.markerColor(
+                                    scheme,
+                                    reminder.priority,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

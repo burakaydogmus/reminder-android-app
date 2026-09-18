@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/snooze_options.dart';
@@ -136,10 +137,39 @@ Future<void> deleteReminderWithUndo(
   await deleted;
 }
 
-enum _ReminderMenuAction { toggleDone, snooze, edit, delete }
+/// Sabitle / Sabitlemeyi kaldır (F3.4), then "“…” sabitlendi · Geri al".
+/// The list re-sorts right away (pinned first, `compareReminders`).
+Future<void> togglePinnedWithUndo(
+  BuildContext context,
+  Reminder reminder,
+) async {
+  final cubit = context.read<ReminderCubit>();
+  final messenger = ScaffoldMessenger.of(context);
+  final current = _find(cubit, reminder.id) ?? reminder;
+  final pinning = !current.pinned;
+
+  final updated = cubit.updateReminder(current.copyWith(pinned: pinning));
+  UndoSnackBar.show(
+    messenger,
+    message: pinning
+        ? '${_quoted(current)} sabitlendi'
+        : '${_quoted(current)} sabitlemesi kaldırıldı',
+    onUndo: () {
+      unawaited(_haptics.undo());
+      final latest = _find(cubit, reminder.id);
+      if (latest != null && latest.pinned == pinning) {
+        unawaited(cubit.updateReminder(latest.copyWith(pinned: !pinning)));
+      }
+    },
+  );
+  await updated;
+}
+
+enum _ReminderMenuAction { toggleDone, snooze, togglePin, edit, delete }
 
 /// Long-press menu for a reminder card: Tamamla / Geri aç, Ertele (open
-/// reminders), Düzenle, Sil. Anchored to the widget of [context].
+/// reminders), Sabitle / Sabitlemeyi kaldır, Düzenle, Sil. Anchored to the
+/// widget of [context].
 Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
   final scheme = Theme.of(context).colorScheme;
   final box = context.findRenderObject() as RenderBox?;
@@ -168,7 +198,12 @@ Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
           children: [
             Icon(icon, color: color),
             const SizedBox(width: 12),
-            Text(label, style: color == null ? null : TextStyle(color: color)),
+            Flexible(
+              child: Text(
+                label,
+                style: color == null ? null : TextStyle(color: color),
+              ),
+            ),
           ],
         ),
       );
@@ -186,6 +221,11 @@ Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
             ),
       if (!reminder.isDone)
         item(_ReminderMenuAction.snooze, Icons.snooze_rounded, 'Ertele'),
+      item(
+        _ReminderMenuAction.togglePin,
+        PriorityPinVisuals.pinIcon(reminder.pinned),
+        PriorityPinVisuals.pinActionLabel(reminder.pinned),
+      ),
       item(_ReminderMenuAction.edit, Icons.edit_rounded, 'Düzenle'),
       item(
         _ReminderMenuAction.delete,
@@ -201,6 +241,8 @@ Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
       await toggleReminderDoneWithUndo(context, reminder);
     case _ReminderMenuAction.snooze:
       await snoozeReminderWithUndo(context, reminder);
+    case _ReminderMenuAction.togglePin:
+      await togglePinnedWithUndo(context, reminder);
     case _ReminderMenuAction.edit:
       await showReminderEditorSheet(context, existing: reminder);
     case _ReminderMenuAction.delete:
