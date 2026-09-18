@@ -85,7 +85,8 @@ Diğer tüm fazların temeli.
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [x] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.
-- [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
+- [x] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
+  Öncelik (Yok / Düşük / Orta / Yüksek, "!!!" işareti + yüksekte checkbox halkası) ve sabitleme (📌, en üstte); sıralama pinned → saat → öncelik (zamansız: pinned → öncelik → oluşturulma); şema v4.
 - [x] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
   Kaydırarak tamamla (sağa) / ertele (sola kısa) / sil (sola uzun) + "Geri al" snackbar; her aksiyonun menü ve ekran okuyucu karşılığı.
 - [x] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*

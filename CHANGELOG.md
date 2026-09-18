@@ -28,6 +28,12 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
   tamamlanır. (F4.7)
 - **MIT lisansı eklendi** (kökte `LICENSE`, "Copyright (c) 2026 Burak Aydoğmuş"); üçüncü taraf
   atıfları `docs/store/licensing.md`'de. (#27)
+- **Öncelik ve sabitleme:** editörde "Öncelik" seçimi (Yok / Düşük / Orta / Yüksek) ve üst
+  çubukta 📌 sabitleme düğmesi. Sabitlenen hatırlatıcılar listelerin en üstünde; aynı saatteki
+  ve zamansız hatırlatıcılar önceliğe göre sıralanır. Kartta sabitleme simgesi ve "!!! Yüksek"
+  işareti, yüksek öncelikte onay dairesinde halka; uzun basma menüsünde ve ekran okuyucu
+  eylemlerinde "Sabitle / Sabitlemeyi kaldır". Veritabanı şeması v4'e geçti (otomatik taşıma);
+  yedekler iki alanı da içerir, eski yedekler öncelik yok / sabitlenmemiş olarak yüklenir. (F3.4)
 - **Alt görevler (maddeler):** hatırlatıcıya madde listesi (ör. market listesi); editörde
   "Maddeler" kartı: ilerleme çubuğu, satır içi düzenleme, sürükleyerek veya menüden sıralama,
   çok satırlı yapıştırmayla toplu ekleme, "Tamamlanan N madde" bölümü. Kartta "2/6" ilerlemesi,

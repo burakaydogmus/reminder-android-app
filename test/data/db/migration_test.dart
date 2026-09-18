@@ -5,17 +5,20 @@
 //     drift_schemas/ test/data/db/generated/
 // Regenerate after exporting a new schema version (see CLAUDE.md, Data).
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/db/row_mapping.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -26,35 +29,38 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('upgrade from v1 to v2 yields the v2 schema', () async {
-    final connection = await verifier.startAt(1);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 2);
+  // `AppDatabase` always migrates to its current `schemaVersion`, so every
+  // older version is validated against the latest exported schema; the
+  // data tests below read the migrated rows through the latest generated
+  // classes (a database file at vN cannot be reopened with an older
+  // version's classes) and the app mapping.
+  const latest = 4;
+
+  test('the app schema version is the latest exported one', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    expect(db.schemaVersion, latest);
+    expect(GeneratedHelper.versions.last, latest);
     await db.close();
   });
 
-  test('upgrade from v2 to v3 yields the v3 schema', () async {
-    final connection = await verifier.startAt(2);
+  for (final from in [1, 2, 3]) {
+    test('upgrade from v$from to v$latest yields the v$latest schema',
+        () async {
+      final connection = await verifier.startAt(from);
+      final db = AppDatabase(connection);
+      await verifier.migrateAndValidate(db, latest);
+      await db.close();
+    });
+  }
+
+  test('a fresh database matches the exported v$latest schema', () async {
+    final connection = await verifier.startAt(latest);
     final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 3);
+    await verifier.migrateAndValidate(db, latest);
     await db.close();
   });
 
-  test('upgrade from v1 to v3 runs every step', () async {
-    final connection = await verifier.startAt(1);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 3);
-    await db.close();
-  });
-
-  test('a fresh database matches the exported v3 schema', () async {
-    final connection = await verifier.startAt(3);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 3);
-    await db.close();
-  });
-
-  test('v1 → v2 keeps reminders, birthdays, settings and meta', () async {
+  test('v1 → latest keeps reminders, birthdays, settings and meta', () async {
     const reminder = v1.RemindersData(
       id: 'r1',
       title: 'Ekmek al',
@@ -117,17 +123,24 @@ void main() {
     await oldDb.close();
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v2.DatabaseAtV2(schema.newConnection());
+    final migrated = v4.DatabaseAtV4(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
-    expect(rows.map((r) => r.toJson()..remove('recurrence')).toList(), [
-      reminder.toJson(),
-      deleted.toJson(),
-    ]);
+    expect(
+        rows
+            .map((r) => r.toJson()
+              ..remove('recurrence')
+              ..remove('priority')
+              ..remove('pinned'))
+            .toList(),
+        [
+          reminder.toJson(),
+          deleted.toJson(),
+        ]);
     expect(rows.map((r) => r.recurrence), [null, null]);
     expect(
       (await migrated.select(migrated.birthdays).getSingle()).toJson(),
@@ -153,7 +166,7 @@ void main() {
     await app.close();
   });
 
-  test('v2 → v3 keeps rows and adds an empty subtasks table', () async {
+  test('v2 → latest keeps rows and adds an empty subtasks table', () async {
     const reminder = v2.RemindersData(
       id: 'r1',
       title: 'Market',
@@ -198,12 +211,14 @@ void main() {
     await oldDb.close();
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 3);
+    await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v3.DatabaseAtV3(schema.newConnection());
+    final migrated = v4.DatabaseAtV4(schema.newConnection());
     expect(
-      (await migrated.select(migrated.reminders).getSingle()).toJson(),
+      (await migrated.select(migrated.reminders).getSingle()).toJson()
+        ..remove('priority')
+        ..remove('pinned'),
       reminder.toJson(),
     );
     expect(
@@ -222,7 +237,7 @@ void main() {
 
     // The new table accepts rows for existing reminders.
     await migrated.into(migrated.subtasks).insert(
-          const v3.SubtasksData(
+          const v4.SubtasksData(
             reminderId: 'r1',
             id: 's1',
             title: 'Süt',
@@ -242,6 +257,157 @@ void main() {
       subtaskRows.map(subtaskFromRow).toList(),
       const [Subtask(id: 's1', title: 'Süt', isDone: true)],
     );
+    await app.close();
+  });
+
+  test('v3 → v4 keeps rows and subtasks, defaults priority and pinned',
+      () async {
+    const reminder = v3.RemindersData(
+      id: 'r1',
+      title: 'Market',
+      note: 'kart puanı',
+      isDone: 0,
+      createdAt: '2026-09-01T10:00:00.000',
+      remindAt: '2026-09-13T18:30:00.000',
+      categoryId: 'shopping',
+      locationTriggerEnabled: 0,
+      locationRadiusMeters: 150.0,
+      position: 0,
+      updatedAt: 1000,
+      recurrence: '{"frequency":"weekly","interval":1,"weekdays":[6]}',
+    );
+    const deleted = v3.RemindersData(
+      id: 'gone',
+      title: 'Silindi',
+      isDone: 1,
+      createdAt: '2026-08-01T10:00:00.000',
+      categoryId: 'other',
+      locationTriggerEnabled: 0,
+      locationRadiusMeters: 150.0,
+      position: 1,
+      updatedAt: 2000,
+      deletedAt: 2000,
+    );
+    const subtasks = [
+      v3.SubtasksData(
+        reminderId: 'r1',
+        id: 's1',
+        title: 'Süt',
+        isDone: 1,
+        position: 0,
+        updatedAt: 1000,
+      ),
+      v3.SubtasksData(
+        reminderId: 'r1',
+        id: 's2',
+        title: 'Ekmek',
+        isDone: 0,
+        position: 1,
+        updatedAt: 1000,
+      ),
+      v3.SubtasksData(
+        reminderId: 'r1',
+        id: 's3',
+        title: 'Silinen madde',
+        isDone: 0,
+        position: 2,
+        updatedAt: 1500,
+        deletedAt: 1500,
+      ),
+    ];
+    const birthday = v3.BirthdaysData(
+      id: 'b1',
+      name: 'Ayşe',
+      date: '1990-05-10T00:00:00.000',
+      notifyHour: 9,
+      notifyMinute: 0,
+      advanceOffsetsMinutes: '[0]',
+      createdAt: '2026-01-01T12:00:00.000',
+      position: 0,
+      updatedAt: 1000,
+    );
+    const settings = v3.SettingsData(
+      id: 1,
+      notificationsEnabled: 1,
+      themeMode: 'light',
+      updatedAt: 1000,
+    );
+    const meta = v3.AppMetaData(key: 'prefs_migration_v1', value: '1');
+
+    final schema = await verifier.schemaAt(3);
+    final oldDb = v3.DatabaseAtV3(schema.newConnection());
+    await oldDb.batch((batch) {
+      batch
+        ..insert(oldDb.reminders, reminder)
+        ..insert(oldDb.reminders, deleted)
+        ..insertAll(oldDb.subtasks, subtasks)
+        ..insert(oldDb.birthdays, birthday)
+        ..insert(oldDb.settings, settings)
+        ..insert(oldDb.appMeta, meta);
+    });
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 4);
+    await db.close();
+
+    final migrated = v4.DatabaseAtV4(schema.newConnection());
+    final rows = await (migrated.select(migrated.reminders)
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    // Every v3 column is unchanged; the new columns have their defaults.
+    expect(
+      rows.map((r) => r.toJson()
+        ..remove('priority')
+        ..remove('pinned')),
+      [reminder.toJson(), deleted.toJson()],
+    );
+    expect(rows.map((r) => r.priority), [0, 0]);
+    expect(rows.map((r) => r.pinned), [0, 0]);
+    final subtaskRows = await (migrated.select(migrated.subtasks)
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    expect(
+      subtaskRows.map((r) => r.toJson()).toList(),
+      subtasks.map((s) => s.toJson()).toList(),
+    );
+    expect(
+      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+      birthday.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.settings).getSingle()).toJson(),
+      settings.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.appMeta).getSingle()).toJson(),
+      meta.toJson(),
+    );
+
+    // The new columns accept values.
+    await (migrated.update(migrated.reminders)
+          ..where((t) => t.id.equals('gone')))
+        .write(
+            const v4.RemindersCompanion(priority: Value(3), pinned: Value(1)));
+    await migrated.close();
+
+    // The app reads migrated rows with no priority and not pinned.
+    final app = AppDatabase(schema.newConnection());
+    final appRows = await app.select(app.reminders).get();
+    final loaded = reminderFromRow(
+      appRows.firstWhere((r) => r.id == 'r1'),
+      subtasks: (await app.select(app.subtasks).get())
+          .where((s) => s.deletedAt == null)
+          .toList(),
+    );
+    expect(loaded.priority, ReminderPriority.none);
+    expect(loaded.pinned, isFalse);
+    expect(loaded.recurrence, RecurrenceRule.weekly(const [DateTime.saturday]));
+    expect(loaded.note, 'kart puanı');
+    expect(loaded.subtasks.map((s) => s.title), ['Süt', 'Ekmek']);
+    final updated = reminderFromRow(appRows.firstWhere((r) => r.id == 'gone'));
+    expect(updated.priority, ReminderPriority.high);
+    expect(updated.pinned, isTrue);
     await app.close();
   });
 }
