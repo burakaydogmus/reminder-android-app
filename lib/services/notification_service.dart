@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/notification_ids.dart';
 import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_fingerprint_store.dart';
@@ -100,7 +101,15 @@ class NotificationService implements NotificationSync {
     const channelName = 'Konum hatırlatmaları';
     const channelDescription = 'Seçtiğiniz yere geldiğinizde';
 
-    const android = AndroidNotificationDetails(
+    final place = r.locationPlaceLabel?.trim();
+    final body = reminderNotificationBody(
+      r,
+      context: (place != null && place.isNotEmpty) ? place : null,
+      fallback: 'Kayıtlı konuma girdiniz',
+    );
+    final bigText = reminderSubtaskBigText(r, body);
+
+    final android = AndroidNotificationDetails(
       channelId,
       channelName,
       channelDescription: channelDescription,
@@ -108,6 +117,8 @@ class NotificationService implements NotificationSync {
       priority: Priority.high,
       playSound: true,
       actions: androidReminderActions,
+      styleInformation:
+          bigText == null ? null : BigTextStyleInformation(bigText),
     );
 
     const darwin = DarwinNotificationDetails(
@@ -117,14 +128,7 @@ class NotificationService implements NotificationSync {
       categoryIdentifier: reminderNotificationCategoryId,
     );
 
-    const details = NotificationDetails(android: android, iOS: darwin);
-
-    final place = r.locationPlaceLabel?.trim();
-    final body = (r.note != null && r.note!.trim().isNotEmpty)
-        ? r.note!.trim()
-        : (place != null && place.isNotEmpty)
-            ? place
-            : 'Kayıtlı konuma girdiniz';
+    final details = NotificationDetails(android: android, iOS: darwin);
 
     await _plugin.show(
       id: r.geoNotificationId,
@@ -375,12 +379,52 @@ class NotificationService implements NotificationSync {
     };
   }
 
+  /// Android BigText görünümünde listelenen en fazla açık madde sayısı.
+  static const maxListedSubtasks = 5;
+
+  /// Hatırlatıcı bildirim gövdesi (F3.3): not, yoksa [context] (ör. konum
+  /// adı), o da yoksa [fallback]. Açık madde varsa "N madde kaldı" eklenir
+  /// ("Migros Kadıköy · 4 madde kaldı"); o durumda genel [fallback] metni
+  /// yerine yalnızca "4 madde kaldı" yazılır.
+  @visibleForTesting
+  static String reminderNotificationBody(
+    Reminder r, {
+    String? context,
+    String fallback = 'Hatırlatma zamanı',
+  }) {
+    final note = r.note?.trim();
+    final lead = (note != null && note.isNotEmpty) ? note : context;
+    final open = r.subtasks.openCount;
+    if (open == 0) return lead ?? fallback;
+    final remaining = '$open madde kaldı';
+    return lead == null ? remaining : '$lead · $remaining';
+  }
+
+  /// Android genişletilmiş metni (BigTextStyle): [body] ve altında ilk
+  /// [maxListedSubtasks] açık madde ("• Süt"), fazlası "… ve N madde daha".
+  /// Açık madde yoksa `null` (düz bildirim).
+  @visibleForTesting
+  static String? reminderSubtaskBigText(Reminder r, String body) {
+    final open = r.subtasks.open;
+    if (open.isEmpty) return null;
+    final lines = [
+      body,
+      for (final s in open.take(maxListedSubtasks)) '• ${s.title.trim()}',
+      if (open.length > maxListedSubtasks)
+        '… ve ${open.length - maxListedSubtasks} madde daha',
+    ];
+    return lines.join('\n');
+  }
+
   _ScheduleSpec _reminderSpec(Reminder r, tz.TZDateTime scheduled) {
     const channelId = 'reminders_channel_v1';
     const channelName = 'Hatırlatmalar';
     const channelDescription = 'Zamanlanmış hatırlatıcı bildirimleri';
 
-    const android = AndroidNotificationDetails(
+    final body = reminderNotificationBody(r);
+    final bigText = reminderSubtaskBigText(r, body);
+
+    final android = AndroidNotificationDetails(
       channelId,
       channelName,
       channelDescription: channelDescription,
@@ -388,6 +432,8 @@ class NotificationService implements NotificationSync {
       priority: Priority.defaultPriority,
       playSound: true,
       actions: androidReminderActions,
+      styleInformation:
+          bigText == null ? null : BigTextStyleInformation(bigText),
     );
 
     const darwin = DarwinNotificationDetails(
@@ -397,11 +443,7 @@ class NotificationService implements NotificationSync {
       categoryIdentifier: reminderNotificationCategoryId,
     );
 
-    const details = NotificationDetails(android: android, iOS: darwin);
-
-    final body = (r.note != null && r.note!.trim().isNotEmpty)
-        ? r.note!.trim()
-        : 'Hatırlatma zamanı';
+    final details = NotificationDetails(android: android, iOS: darwin);
 
     return _ScheduleSpec(
       id: r.notificationId,
@@ -413,6 +455,7 @@ class NotificationService implements NotificationSync {
       matchDateTimeComponents: reminderRepeatComponents(r.recurrence),
       payload: ReminderPayload(r.id).encode(),
       recurrence: jsonEncode(r.recurrence.toJson()),
+      subtasks: bigText,
     );
   }
 }
@@ -429,6 +472,7 @@ class _ScheduleSpec {
     this.matchDateTimeComponents,
     this.payload,
     this.recurrence,
+    this.subtasks,
   });
 
   /// Kurulum biçimi (kanal ayarları, zamanlama modu, aksiyonlar/kategori vb.)
@@ -438,7 +482,9 @@ class _ScheduleSpec {
   ///   eklendi; eski bildirimler aksiyonlarla yeniden kurulur.
   /// - v3 (F3.1): tekrar kuralı parmak izine girdi, tekrarlayan hatırlatıcılar
   ///   `matchDateTimeComponents` ile kurulur.
-  static const _version = 3;
+  /// - v4 (F3.3): gövdede "N madde kaldı", Android BigText açık maddeleri
+  ///   listeler; madde metni parmak izine girdi.
+  static const _version = 4;
 
   final int id;
   final String channelId;
@@ -452,6 +498,10 @@ class _ScheduleSpec {
   /// Hatırlatıcının tekrar kuralı (JSON); doğum günlerinde `null`. Kural
   /// değişince (aynı sonraki tarih olsa bile) bildirim yeniden kurulur.
   final String? recurrence;
+
+  /// Android BigText metni (açık maddeler, F3.3); madde yoksa `null`. Madde
+  /// eklenir, işaretlenir veya yeniden adlandırılırsa bildirim yeniden kurulur.
+  final String? subtasks;
 
   /// Bildirimin kurulduğu haliyle eşleşen kısa özet. Zaman hem an hem de
   /// saat dilimi olarak girer (`dateAndTime` tekrarı yerel saate bağlıdır).
@@ -467,6 +517,7 @@ class _ScheduleSpec {
       matchDateTimeComponents?.name ?? '-',
       payload ?? '-',
       recurrence ?? '-',
+      subtasks ?? '-',
     ]);
     final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
     return '$hash:${canonical.length}';

@@ -20,6 +20,12 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 - **MIT lisansı eklendi** (kökte `LICENSE`, "Copyright (c) 2026 Burak Aydoğmuş"); üçüncü taraf
   atıfları `docs/store/licensing.md`'de. (#27)
+- **Alt görevler (maddeler):** hatırlatıcıya madde listesi (ör. market listesi); editörde
+  "Maddeler" kartı: ilerleme çubuğu, satır içi düzenleme, sürükleyerek veya menüden sıralama,
+  çok satırlı yapıştırmayla toplu ekleme, "Tamamlanan N madde" bölümü. Kartta "2/6" ilerlemesi,
+  bildirimde "N madde kaldı" (Android'de açık maddeler listelenir). Tekrarlayan hatırlatıcı bir
+  sonraki tekrara geçerken maddeler sıfırlanır. Veritabanı şeması v3'e geçti (otomatik taşıma);
+  yedekler maddeleri içerir. (F3.3)
 - **Tekrarlayan hatırlatmalar:** günlük, haftalık (gün seçimiyle), aylık veya her N günde bir;
   isteğe bağlı bitiş tarihi. Tekrarlayan bir hatırlatıcı tamamlanınca bir sonraki tekrara geçer;
   kartta tekrar özeti görünür. Veritabanı şeması v2'ye geçti (otomatik taşıma). (#25)

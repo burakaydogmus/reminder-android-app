@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/subtask.dart';
 
 import '../helpers/factories.dart';
 
@@ -60,7 +61,11 @@ void main() {
         jsonDecode(encoded) as Map<String, dynamic>,
       );
       expect(again.recurrence, RecurrenceRule.none);
-      expect(again.toJson(), {...legacy, 'recurrence': null});
+      expect(again.toJson(), {
+        ...legacy,
+        'recurrence': null,
+        'subtasks': <Object?>[],
+      });
     });
 
     test('copyWith keeps or replaces the rule', () {
@@ -280,6 +285,7 @@ void main() {
         locationRadiusMeters: 400,
         locationPlaceLabel: () => 'Başka yer',
         recurrence: RecurrenceRule.daily(interval: 2),
+        subtasks: const [Subtask(id: 's1', title: 'Süt')],
       );
 
       expect(copy.toJson(), {
@@ -297,6 +303,9 @@ void main() {
         'locationRadiusMeters': 400.0,
         'locationPlaceLabel': 'Başka yer',
         'recurrence': {'frequency': 'daily', 'interval': 2},
+        'subtasks': [
+          {'id': 's1', 'title': 'Süt', 'isDone': false, 'position': 0},
+        ],
       });
     });
 

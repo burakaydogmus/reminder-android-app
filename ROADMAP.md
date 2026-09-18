@@ -83,7 +83,7 @@ Diğer tüm fazların temeli.
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
 - [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
-- [ ] **F3.3 Alt görevler / checklist** · `feat/subtasks`
+- [x] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.
 - [ ] **F3.4 Öncelik ve sabitleme** · `feat/priority-pin`
 - [x] **F3.5 Liste etkileşimleri** · `feat/swipe-actions` · *bağımlı: F4.1*
@@ -109,18 +109,20 @@ Diğer tüm fazların temeli.
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
 - [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
   Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.
-- [ ] **F4.6 Hızlı yakalama + Türkçe ayrıştırıcı** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4*
-  iOS yakalama çubuğu / Android FAB, token vurgulu alan, `TurkishDateParser` (saf Dart, 200+ örnek cümlelik test tablosu, İ/ı testleri), "maddelere böl" önerisi.
+- [x] **F4.6a Türkçe ayrıştırıcı (domain)** · `feat/turkish-capture-parser`
+  `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
+- [ ] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4, F4.6a*
+  iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
 - [ ] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
 ## Faz 5 — Widget ve platform
 
-- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6*
+- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6b*
   4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
 - [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
-- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6*
+- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
 - [ ] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
   Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.
@@ -131,8 +133,12 @@ Diğer tüm fazların temeli.
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
 - [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
   [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
+- [x] **F6.2b Mağaza uyumluluğu (atıf, gizlilik bağlantısı, lisanslar)** · `fix/store-compliance`
+  Haritada tıklanabilir "© OpenStreetMap contributors" (telif sayfası); Ayarlar › Diğer: "Gizlilik politikası" (`lib/config/app_links.dart`) ve "Lisanslar" (`showLicensePage`); Google Sans Flex OFL `LicenseRegistry`'de. §8 madde 4, 7 (atıf), 9.
+- [ ] **F6.2c Tam zamanlı alarm yedeği** · *bağımlı: F3.3*
+  İzin reddedilince inexact zamanlama + izin değişince yeniden senkron; sonra `USE_EXACT_ALARM` kaldırılır.
 - [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
-  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması + uygulama içi bağlantı, `USE_EXACT_ALARM` kaldırma + inexact fallback, OSM atfı ve lisans ekranı, arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
+  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması (+ `AppLinks.privacyPolicy` güncellemesi), arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
   Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
 
@@ -156,7 +162,7 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
                                    ↓
                           F2.1 → F2.2
                                    ↓
-          F3.1 → F3.2 → F3.3 → F3.4 → F4.6 (hızlı yakalama)
+          F3.1 → F3.2 → F3.3 → F3.4 → F4.6b (hızlı yakalama; F4.6a ayrıştırıcı hazır)
                                    ↓
           F3.5 · F3.6 → F4.4   ‖   F4.2 · F4.3 · F4.7 · F5.4
                                    ↓

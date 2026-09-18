@@ -75,12 +75,26 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `alignedTo(date)` adapts the rule when the whole series moves to another date.
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`.
+- `domain/model/subtask.dart` — `Subtask { id, title, isDone, position }` (F3.3) and
+  `Reminder.subtasks` (default empty; JSON key `subtasks`, missing → empty, unreadable
+  items skipped). Change lists only through the `SubtaskList` extension (`toggled`,
+  `renamed`, `added`/`addedAll`, `removed`, `reordered`, `moved`, `reset`,
+  `inOrder`, progress getters): every helper returns an unmodifiable list with
+  `position` = index. `splitSubtaskText` splits lines, `,` (not a decimal comma),
+  `;` and a separate-word " ve " (bullets/checkboxes stripped) — the editor's
+  "Maddelere böl" button; the quick-capture parser (F4.6a) has its own list
+  detection (`parsing/rules/list_rules.dart`) whose items become `Subtask`s when
+  capture is wired up. `splitSubtaskLines` splits line breaks only (paste, Enter). Completing a reminder never completes its subtasks and all
+  subtasks done never completes the reminder (the editor only suggests it).
+- `domain/parsing/` — Turkish quick-capture parser (F4.6a, see **Quick-capture
+  parser**).
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
   action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
   next occurrence after `max(now, remindAt)` (early completion skips this occurrence,
-  overdue ones skip missed occurrences); a finished series and one-off reminders get
-  `isDone = true`.
+  overdue ones skip missed occurrences) and its subtasks are **reset to open**
+  (F3.3); a finished series and one-off reminders get `isDone = true` with subtasks
+  untouched.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
   (active before done; timed by `remindAt` asc; timed before untimed; untimed by
   `createdAt` desc), used by the cubit and the home widget sync. `ReminderCubit`
@@ -119,6 +133,18 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (`home/widget_change_signal.dart`, `IsolateNameServer` port) so a running app
   reloads. See **App state reload** below.
 - `config/maps_config.dart` — reads `GOOGLE_MAPS_KEY` from `--dart-define`.
+- `config/app_links.dart` (F6.2b) — `AppLinks`: every external URL (privacy policy,
+  OSM copyright) in one place; the policy URL points to the GitHub file until the
+  hosted page exists (TODO). Widgets open links through an injected `LinkOpener`
+  (default `openExternalLink`, `url_launcher` `launchUrl` only — no `canLaunchUrl`,
+  so no `<queries>`/`LSApplicationQueriesSchemes`); tests pass a recording fake
+  (`SettingsPage(linkOpener:)`, `LocationPickerPage(linkOpener:)`).
+- `config/app_licenses.dart` (F6.2b) — `registerAppLicenses()` (called once in
+  `main()`) adds licences Flutter doesn't collect from packages to `LicenseRegistry`:
+  the Google Sans Flex OFL from the `fonts/GoogleSansFlex/OFL.txt` asset. Bundled
+  third-party assets (fonts, data) need an entry here; Settings › Diğer › Lisanslar
+  shows them via `showLicensePage`. The map must keep the visible, tappable
+  "© OpenStreetMap contributors" attribution (OSMF tile policy).
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
     minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
@@ -244,6 +270,12 @@ The sync is **diff-based** (F1.7):
   and rules with an end date are next-only: the OS cannot express them, the diff sync
   sets the following occurrence on the next load/change. The rule (JSON) is part of
   the fingerprint.
+- **Subtasks (F3.3):** with open subtasks the body is "`<note or place>` · N madde
+  kaldı" (`reminderNotificationBody`; just "N madde kaldı" without a note) and
+  Android uses `BigTextStyleInformation` listing up to 5 open items + "… ve N madde
+  daha" (`reminderSubtaskBigText`); that text is in the fingerprint (`subtasks`), so
+  ticking an item reschedules. Geofence notifications use the same helpers. iOS shows
+  the summary body only.
 
 `ScheduleSync.syncAll` runs one sync at a time per instance; calls arriving while
 one runs are coalesced (only the latest snapshot runs, all queued callers complete
@@ -277,13 +309,20 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v2** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json` and `drift_schema_v2.json`): `reminders` and
+- **Schema v3** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v3.json`): `reminders` and
   `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
   `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
   v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
   (`NULL` = no recurrence; unreadable text loads as none, the row is kept); the
-  `onUpgrade` step `from < 2` adds the column. **Model times**
+  `onUpgrade` step `from < 2` adds the column. v3 (F3.3) adds the `subtasks` table
+  (`reminder_id` → `reminders.id`, `id`, `title`, `is_done`, `position`,
+  `updated_at`, `deleted_at`; primary key `(reminder_id, id)`), created by the
+  `from < 3` step. `saveReminders` writes subtasks in the **same transaction** with
+  the same diff rule (unchanged rows untouched, missing ones soft-deleted — also all
+  subtasks of a deleted reminder; re-saving, e.g. undo, restores them);
+  `loadReminders` reads both tables in one transaction; `clearAll` deletes subtasks
+  first. SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
   (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
@@ -378,7 +417,7 @@ does not recognise; keep that cleanup if the sync changes again.
   `NotificationService.initialize` with the F1.6 no-prompt flags; details set
   `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
   ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
-  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint).
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint, v4 = F3.3 subtasks body/BigText).
 - **Handling** (`services/notification_actions.dart`): non-foreground actions always run
   in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
   `@pragma('vm:entry-point')`), even while the app is open. It reloads the
@@ -399,6 +438,34 @@ does not recognise; keep that cleanup if the sync changes again.
   after its first frame): a reminder payload opens `showReminderEditorSheet` once the
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
+## Quick-capture parser (F4.6a)
+
+- `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
+  `ReminderCategoryIds`. Entry point `CaptureParser.parse(input, now:, config:)` in
+  `turkish_capture_parser.dart`; the rules are `part` files in `rules/` (scanner,
+  tags, dates, times, recurrence, resolution, list split); `turkish_text.dart` does
+  Turkish casing/folding (İ↔i, I↔ı) **without shifting string offsets**.
+- Result types (`capture_parse_result.dart`) are **neutral**: `CaptureToken` (kind,
+  exact `start`/`end` in the original input, `confidence`), `RecurrenceSpec`
+  (daily / weekly / monthly / everyNDays), `CaptureParseResult` (title, tokens,
+  `dateTime` + `hasExplicitTime`, `isPast`, recurrence, `categoryKey`/`categoryId`,
+  priority 0–3, `placeKey`, `splitSuggestion`), `CaptureParserConfig` (day-part hours
+  for "Ayarlar › sabah saati", category aliases, list categories).
+- Rules: high-confidence matches only, first match per slot wins (later ones stay in
+  the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
+  `pazar` with a suffix is the market, a time without a date is today if still
+  ahead, else tomorrow. Details in each rule file's doc comment.
+- **F4.6b maps the results; don't add model mapping here.** `RecurrenceSpec` →
+  `RecurrenceRule` (`lib/domain/model/recurrence.dart`): daily → `daily()`,
+  everyNDays → `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
+  `monthly(dayOfMonth:)`. `RecurrenceRule` clamps day 31 to short months while the
+  parser's first occurrence skips them, so compute the first `remindAt` with the
+  rule when they differ. `isPast` → the F1.8b past-time warning; `categoryId == null`
+  with a `categoryKey` → "Yeni kategori oluştur?"; priority → F3.4.
+- Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
+  clock (`kNow`, 13 Eylül 2026 14:32; the table must keep ≥ 200 sentences), plus
+  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config.
 
 ## Workflow rules (from ROADMAP.md)
 
@@ -544,7 +611,24 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   bu sefer" (B7) is not built yet. Turning scheduling off clears the rule. The card
   meta line shows a repeat icon + `summary`; completing a recurring reminder keeps
   the card and `toggleReminderDoneWithUndo` shows "Sonraki: Cmt 20 Eyl 16:00" in the
-  single undo snackbar, whose undo restores the previous `remindAt`.
+  single undo snackbar, whose undo restores the previous `remindAt` (and the
+  subtasks the advance reset).
+- **Subtasks UI (F3.3):** the editor's "Maddeler" card is
+  `reminders/subtasks_card.dart` (`SubtasksCard`, below "Nerede"): "2/6" + 6 px bar in
+  the category `fg` (`reminders/subtask_progress.dart`), open rows (48 dp circle
+  toggle labelled with the title, inline title field, ⋮ menu Yukarı taşı / Aşağı
+  taşı / Sil, drag handle), "+ Madde ekle" (Enter adds and keeps focus; a multi-line
+  paste adds one item per line; a "Maddelere böl" button splits commas/" ve "),
+  collapsible "Tamamlanan N madde". Reorder = `ReorderableListView` with
+  `buildDefaultDragHandles: false` (handle only) — its items already expose the
+  localized "Yukarı taşı / Aşağı taşı" semantics actions; the row menu is the
+  single-pointer alternative. No swipe delete. Changes are kept in the editor and
+  saved with "Kaydet" (empty titles dropped). When all items are done the card
+  suggests "Tümü tamam — hatırlatıcıyı tamamla?": it saves, then runs
+  `toggleReminderDoneWithUndo`. `ReminderCard` meta shows ☑ icon + "2/6" and a 3 px
+  bar; `ReminderCompactCard`'s default subtitle adds "☑ 2/6"; both add
+  "maddeler: 2/6 tamamlandı" to the semantics label. Liste detayı checklist mode
+  (§3.3.6) is not built yet.
 - **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
   once. The flag `onboarding_completed_v1` lives in SharedPreferences through
   `OnboardingStore` (UI-only; never in the repository/database). Users who already
@@ -614,7 +698,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
 - Exact alarms: the manifest keeps `SCHEDULE_EXACT_ALARM` + `USE_EXACT_ALARM`; the Play
-  policy decision is F6.2, an inexact fallback when exact alarms are denied follows F1.7.
+  policy decision is F6.2; the inexact fallback when exact alarms are denied (then
+  dropping `USE_EXACT_ALARM`) is F6.2c.
 
 ## Platform notes
 

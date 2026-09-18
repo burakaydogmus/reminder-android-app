@@ -52,6 +52,22 @@ class PrefsMigration {
           ],
           mode: InsertMode.insertOrIgnore,
         );
+        // Maddeler (F3.3): yalnızca geçiş, veritabanı açılamadığı bir oturumda
+        // eski anahtarlara yazılmış maddeli hatırlatıcılar içeriyorsa dolu.
+        b.insertAll(
+          db.subtasks,
+          [
+            for (final r in reminders)
+              for (var i = 0; i < r.subtasks.length; i++)
+                subtaskToRow(
+                  r.subtasks[i],
+                  reminderId: r.id,
+                  position: i,
+                  updatedAt: now,
+                ),
+          ],
+          mode: InsertMode.insertOrIgnore,
+        );
         b.insertAll(
           db.birthdays,
           [
