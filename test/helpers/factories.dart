@@ -2,6 +2,7 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/subtask.dart';
 
 /// Test verisi üretmek için kısa fabrikalar. Yalnızca testin önemsediği
 /// alanları geçin; geri kalanı makul varsayılanlarla doldurulur.
@@ -20,9 +21,11 @@ Reminder buildReminder({
   double locationRadiusMeters = 150,
   String? locationPlaceLabel,
   RecurrenceRule recurrence = RecurrenceRule.none,
+  List<Subtask> subtasks = const [],
 }) {
   return Reminder(
     recurrence: recurrence,
+    subtasks: subtasks,
     id: id,
     title: title,
     note: note,
@@ -59,4 +62,18 @@ Birthday buildBirthday({
     advanceOffsetsMinutes: advanceOffsetsMinutes,
     createdAt: createdAt ?? DateTime(2026, 1, 1, 12),
   );
+}
+
+/// [titles] sırasıyla maddeler (`s1`, `s2`, … kimlikleri); [done] içindeki
+/// sıra numaraları (0 tabanlı) tamamlanmış.
+List<Subtask> buildSubtasks(List<String> titles, {Set<int> done = const {}}) {
+  return [
+    for (var i = 0; i < titles.length; i++)
+      Subtask(
+        id: 's${i + 1}',
+        title: titles[i],
+        isDone: done.contains(i),
+        position: i,
+      ),
+  ];
 }

@@ -1,5 +1,6 @@
 ﻿import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/notification_ids.dart';
 
 class Reminder {
@@ -30,6 +31,13 @@ class Reminder {
   /// [remindAt] varken anlamlıdır, bkz. [isRecurring].
   final RecurrenceRule recurrence;
 
+  /// Maddeler (F3.3), [Subtask.position] sırasında; varsayılan boş. JSON
+  /// anahtarı `subtasks` (eksik → boş, bkz. [Subtask.listFromJson]).
+  /// Hatırlatıcıyı tamamlamak maddeleri tamamlamaz (ve tersi); tekrarlayan
+  /// hatırlatıcı bir sonraki tekrara ilerlerken maddeler sıfırlanır
+  /// (`completeReminder`).
+  final List<Subtask> subtasks;
+
   const Reminder({
     required this.id,
     required this.title,
@@ -45,6 +53,7 @@ class Reminder {
     this.locationRadiusMeters = 150,
     this.locationPlaceLabel,
     this.recurrence = RecurrenceRule.none,
+    this.subtasks = const [],
   });
 
   /// Belirtilen alanları değiştirilmiş bir kopya döndürür.
@@ -67,6 +76,7 @@ class Reminder {
     double? locationRadiusMeters,
     String? Function()? locationPlaceLabel,
     RecurrenceRule? recurrence,
+    List<Subtask>? subtasks,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -91,11 +101,15 @@ class Reminder {
           ? locationPlaceLabel()
           : this.locationPlaceLabel,
       recurrence: recurrence ?? this.recurrence,
+      subtasks: subtasks ?? this.subtasks,
     );
   }
 
   /// Zamanlı ve tekrar kuralı olan hatırlatıcı. Tamamlanınca bitmez, bir
   /// sonraki tekrara ilerler (`completeReminder`).
+  /// Madde var mı (F3.3).
+  bool get hasSubtasks => subtasks.isNotEmpty;
+
   bool get isRecurring => !recurrence.isNone && remindAt != null;
 
   /// Zamanlı bildirim kimliği; kararlı FNV-1a (`reminder:<id>`), bkz.
@@ -129,6 +143,7 @@ class Reminder {
         'locationRadiusMeters': locationRadiusMeters,
         'locationPlaceLabel': locationPlaceLabel,
         'recurrence': recurrence.toJson(),
+        'subtasks': [for (final s in subtasks) s.toJson()],
       };
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -150,6 +165,7 @@ class Reminder {
           (json['locationRadiusMeters'] as num?)?.toDouble() ?? 150,
       locationPlaceLabel: json['locationPlaceLabel'] as String?,
       recurrence: RecurrenceRule.fromJson(json['recurrence']),
+      subtasks: Subtask.listFromJson(json['subtasks']),
     );
   }
 }
