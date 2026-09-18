@@ -576,3 +576,5 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
 - Widget and geofence behaviour differs per platform; the home widget is Android-only today.
+- Store readiness (privacy policy, data safety answers, permissions/policy review, listing drafts,
+  licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change.

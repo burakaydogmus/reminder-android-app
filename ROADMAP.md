@@ -129,8 +129,10 @@ Diğer tüm fazların temeli.
 
 - [ ] **F6.1 Yerelleştirme** · `feat/i18n`
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
-- [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness`
-  Gizlilik politikası, mağaza görselleri, iOS izin metinleri, sürümleme + `CHANGELOG.md`.
+- [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
+  [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
+- [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
+  Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması + uygulama içi bağlantı, `USE_EXACT_ALARM` kaldırma + inexact fallback, OSM atfı ve lisans ekranı, arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
   Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
 
