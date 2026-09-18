@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_completion.dart';
+import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
@@ -427,6 +428,8 @@ void main() {
       final topLeft = tester.getTopLeft(card());
       final height = tester.getSize(card()).height;
       await tester.tapAt(topLeft + Offset(28, height / 2));
+      // KorCheckbox commits after its 900 ms hold (F4.7).
+      await tester.pump(KorCheckbox.hold);
       await tester.pumpAndSettle();
 
       final updated = h.cubit.state.reminders.single;

@@ -232,6 +232,7 @@ class _KorCheckboxState extends State<KorCheckbox>
       enabled: widget.onToggle != null,
       label: widget.semanticLabel ?? (widget.value ? 'Geri aç' : 'Tamamla'),
       excludeSemantics: true,
+      onTap: widget.onToggle == null ? null : _handleTap,
       child: InkResponse(
         onTap: widget.onToggle == null ? null : _handleTap,
         radius: KorSizes.minTouch / 2,
