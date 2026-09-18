@@ -56,6 +56,8 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
   kurulumlarda varsayılan) hatırlatmalar yine gelir, yalnızca birkaç dakika gecikebilir; izin
   verilince bildirimler kendiliğinden tam zamanlıya geçer. Google Play'in kısıtladığı
   `USE_EXACT_ALARM` izni kaldırıldı. (F6.2c)
+- iOS'ta cam efekti (Liquid Glass) gölgelendiricileri açılışta önceden yükleniyor; sekme
+  çubuğu ilk karede boş görünmüyor. (F5.4 takip)
 - **Depolama Drift (SQLite) veritabanına taşındı;** eski SharedPreferences verisi ilk açılışta
   bir kez, bozuk kayıtlar atlanıp yedeklenerek aktarılır. Taşıma başarısız olursa uygulama eski
   veriyle çalışmaya devam eder ve bir sonraki açılışta yeniden dener. (#20)
@@ -70,6 +72,11 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Düzeltildi
 
+- iOS'ta arama iki kez sunulmuyor: Bugün ve Listeler başlığındaki arama simgesi kaldırıldı,
+  arama cam sekme çubuğundaki "Ara" dairesinden açılıyor (akıllı listelerde simge duruyor).
+  Android değişmedi. (F3.6 takip)
+- Ayarlar → Lisanslar: `liquid_glass_widgets` içine gömülü `liquid_glass_renderer` ve `motor`
+  kodunun MIT bildirimleri de listeleniyor. (F6.2b takip)
 - Konum hatırlatmaları uygulama kapalıyken ve cihaz yeniden başladıktan sonra da çalışıyor. (#7)
 - Tek bir bozuk kayıt yüzünden tüm hatırlatıcıların silinmesi engellendi; bozuk veri yedekleniyor. (#6)
 - Ana ekran aracından hatırlatıcı tamamlamak doğum günü bildirimlerini silmiyor. (#11)

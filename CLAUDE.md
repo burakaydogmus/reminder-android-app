@@ -141,8 +141,11 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (`SettingsPage(linkOpener:)`, `LocationPickerPage(linkOpener:)`).
 - `config/app_licenses.dart` (F6.2b) — `registerAppLicenses()` (called once in
   `main()`) adds licences Flutter doesn't collect from packages to `LicenseRegistry`:
-  the Google Sans Flex OFL from the `fonts/GoogleSansFlex/OFL.txt` asset. Bundled
-  third-party assets (fonts, data) need an entry here; Settings › Diğer › Lisanslar
+  the Google Sans Flex OFL from the `fonts/GoogleSansFlex/OFL.txt` asset and the
+  `liquid_glass_renderer` / `motor` notices vendored in `liquid_glass_widgets`
+  (`assets/licenses/*.txt`, verbatim from its `THIRD_PARTY_NOTICES`; refresh them when
+  the package is upgraded). Bundled third-party assets (fonts, data) and vendored code
+  whose notice is not in a package `LICENSE` need an entry here; Settings › Diğer › Lisanslar
   shows them via `showLicensePage`. The map must keep the visible, tappable
   "© OpenStreetMap contributors" attribution (OSMF tile policy).
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
@@ -548,8 +551,10 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   the `GlassAdaptiveScope` drops to `minimal`. The native side is
   `ios/Runner/AppDelegate.swift` (`com.burakaydogmus.reminder/a11y_prefs`: `get`,
   `changed`). Sizes live in `KorGlass` (`kor_elevation.dart`). Tab labels clamp text
-  scale at 1.3 (fixed capsule height; full label in semantics). The Bugün/Listeler
-  header search icon still shows on iOS too (F3.6 lane).
+  scale at 1.3 (fixed capsule height; full label in semantics). `SearchIconButton`
+  hides itself on iOS on the shell's (first) route, so Bugün/Listeler only have the
+  glass circle; pushed pages (smart lists) keep it. `main()` pre-warms the shaders with
+  `LiquidGlassWidgets.initialize()` on iOS only (started early, awaited before `runApp`).
 - **Date logic in the UI layer:** groupings are pure functions of cubit state and a
   clock (`TodaySections.from`, `buildAgenda`); screens read the clock from `NowScope`
   (the shell ticks it every minute; pushed routes use `NowScope.carry`). Do not add

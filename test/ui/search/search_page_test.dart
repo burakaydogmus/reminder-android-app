@@ -3,12 +3,18 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/home/home_shell.dart';
+import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
+import 'package:reminder/ui/lists/lists_page.dart';
+import 'package:reminder/ui/lists/smart_list_page.dart';
+import 'package:reminder/ui/lists/smart_lists.dart';
 import 'package:reminder/ui/search/recent_search_store.dart';
 import 'package:reminder/ui/search/search_page.dart';
+import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/factories.dart';
+import '../home/ios_platform.dart';
 import '../ui_harness.dart';
 
 // 13 Sep 2026 is a Sunday.
@@ -264,5 +270,73 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SearchPage), findsNothing);
     expect(find.text('Kategorilerim'), findsOneWidget);
+  });
+
+  group('header Ara icon per platform', () {
+    // The visible header button; the glass circle is found by its key.
+    final headerSearch = find.descendant(
+      of: find.byType(SearchIconButton),
+      matching: find.byTooltip('Ara'),
+    );
+
+    testWidgets('Android: Bugün and Listeler headers show it', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final h = await UiHarness.create(reminders: _reminders());
+      await tester.pumpWidget(h.app(home: const HomeShell(clock: _clock)));
+      await tester.pumpAndSettle();
+      expect(headerSearch, findsOneWidget);
+      expect(find.byKey(KorGlassTabBar.searchKey), findsNothing);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(KorPillNavigation),
+          matching: find.bySemanticsLabel('Listeler'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(headerSearch, findsOneWidget);
+    });
+
+    iosTestWidgets(
+        'iOS: only the glass circle on Bugün and Listeler; '
+        'pushed smart lists keep the header icon', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final h = await UiHarness.create(reminders: _reminders());
+      final a11y = A11yPrefs();
+      addTearDown(a11y.dispose);
+      await tester.pumpWidget(
+        h.app(
+          home: HomeShell(
+            clock: _clock,
+            enableGlassScope: false,
+            a11yPrefs: a11y,
+          ),
+          platform: TargetPlatform.iOS,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchIconButton), findsOneWidget);
+      expect(headerSearch, findsNothing);
+      expect(find.byKey(KorGlassTabBar.searchKey), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(KorGlassTabBar.capsuleKey),
+          matching: find.bySemanticsLabel('Listeler'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Kategorilerim'), findsOneWidget);
+      expect(headerSearch, findsNothing);
+
+      // A pushed page covers the tab bar, so its header keeps Ara.
+      await tester.tap(find.byKey(ListsPageKeys.smartTile(SmartList.today)));
+      await tester.pumpAndSettle();
+      expect(find.byType(SmartListPage), findsOneWidget);
+      expect(headerSearch, findsOneWidget);
+      await tester.tap(headerSearch);
+      await tester.pumpAndSettle();
+      expect(find.byType(SearchPage), findsOneWidget);
+    });
   });
 }
