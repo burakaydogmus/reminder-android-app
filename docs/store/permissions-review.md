@@ -20,8 +20,8 @@ burada **yok**; release derlemesinden sonra
 | `RECEIVE_BOOT_COMPLETED` | Normal | `ScheduledNotificationBootReceiver` (bildirimleri yeniden kurar), `NativeGeofenceRebootBroadcastReceiver` (bölgeleri yeniden kaydeder) | Beyan yok; Android dokümanı yeniden başlatmada alarmların silindiğini ve bu yolla kurulmasını öneriyor | Tut |
 | `VIBRATE` | Normal | Bildirim titreşimi | Beyan yok | Tut (kodda `KorHaptics` sistem haptiği kullanıyor; bildirim kanalı için gerekli olup olmadığı *doğrulanmalı*) |
 | `POST_NOTIFICATIONS` | Tehlikeli (API 33+) | Tüm hatırlatmalar | Beyan yok; bağlamsal isteme önerilir (§4) | Tut — zaten bağlamsal |
-| `SCHEDULE_EXACT_ALARM` | Özel erişim (kullanıcı verir) | `AndroidScheduleMode.exactAllowWhileIdle` | Beyan yok; Android 14+'da yeni kurulumlarda **varsayılan kapalı** | Tut + inexact fallback ekle (§3) |
-| `USE_EXACT_ALARM` | Normal ama **Play kısıtlı** | Aynı | Yalnızca çalar saat/zamanlayıcı veya etkinlik bildirimi gösteren takvim uygulamaları | **Kaldır** (§3) |
+| `SCHEDULE_EXACT_ALARM` | Özel erişim (kullanıcı verir) | İzin varsa `AndroidScheduleMode.exactAllowWhileIdle`, yoksa `inexactAllowWhileIdle` (F6.2c) | Beyan yok; Android 14+'da yeni kurulumlarda **varsayılan kapalı** | Tut — inexact yedeği var (§3) |
+| ~~`USE_EXACT_ALARM`~~ | Normal ama **Play kısıtlı** | — | Yalnızca çalar saat/zamanlayıcı veya etkinlik bildirimi gösteren takvim uygulamaları | **Kaldırıldı** (F6.2c, §3) |
 
 Diğer gözlemler:
 
@@ -106,13 +106,20 @@ verilmez; kullanıcı *Ayarlar → Özel uygulama erişimi → Alarmlar ve hatı
 kapatabilir. İzin yokken `setExactAndAllowWhileIdle` `SecurityException` fırlatır. Önerilen
 alternatifler `setAndAllowWhileIdle` / `setWindow` (inexact).
 
-**Mevcut kod:** `NotificationService._androidScheduleMode = AndroidScheduleMode.exactAllowWhileIdle`
-sabit; `PermissionService.canScheduleExact()` ve "Tam zamanında hatırlatma" açıklama sayfası var,
-ancak izin yokken **inexact moda geçiş yok**. Şu anda `USE_EXACT_ALARM` sayesinde sorun görünmüyor;
-yalnızca `USE_EXACT_ALARM` kaldırılırsa izin vermeyen Android 14+ kullanıcılarında zamanlama hata
-verebilir (`flutter_local_notifications`'ın bu durumda ne yaptığı *doğrulanmalı*).
+**Mevcut kod (F6.2c ile uygulandı):** `USE_EXACT_ALARM` manifestten **kaldırıldı**, yalnızca
+`SCHEDULE_EXACT_ALARM` var. `NotificationService.syncSchedules` modu her senkronda bir kez
+`canScheduleExactNotifications()` ile seçer: izin varsa `exactAllowWhileIdle`, yoksa
+`inexactAllowWhileIdle` (`setAndAllowWhileIdle`; izin gerektirmez, birkaç dakika gecikebilir).
+Doğrulandı: `flutter_local_notifications` 22.3.1 izin yokken exact modda
+`exact_alarms_not_permitted` `PlatformException`'ı fırlatır; senkron bunu bildirim başına yakalar,
+inexact'a düşer ve devam eder. Mod parmak izine girer (`_ScheduleSpec._version` 5), böylece izin
+verilince/geri alınınca bir sonraki senkron (uygulama ön plana dönünce `AppStateReloader` →
+`ReminderCubit.load`, ya da Ayarlar'daki "Ayarları aç"tan dönüşte durum değiştiyse) bildirimleri
+yeni modla yeniden kurar. Birleştirilmiş manifest: eklentilerden yalnızca
+`flutter_local_notifications` izin ekliyor (`POST_NOTIFICATIONS`, `VIBRATE`); hiçbiri
+`USE_EXACT_ALARM`/`SCHEDULE_EXACT_ALARM` bildirmiyor (pub cache manifestleri, 19 Eylül 2026).
 
-**Öneri (sıra önemli):**
+**Öneri (sıra önemli; 1–3 F6.2c ile yapıldı):**
 
 1. **Önce kod (takip maddesi):** zamanlamadan önce `canScheduleExactNotifications()` kontrolü;
    `false` ise `AndroidScheduleMode.inexactAllowWhileIdle`. Mod değişince `_ScheduleSpec._version`
@@ -120,8 +127,9 @@ verebilir (`flutter_local_notifications`'ın bu durumda ne yaptığı *doğrulan
    moda yeniden kurulsun (izin değişimi `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` /
    resume'da yeniden senkron). Test: sahte eklentiyle iki mod.
 2. **Sonra manifest:** `USE_EXACT_ALARM` satırını kaldır, `SCHEDULE_EXACT_ALARM`'ı tut.
-3. Ayarlar → İzinler'deki "Alarmlar ve hatırlatıcılar" satırı ve açıklama metni ("Kapalıyken
-   hatırlatmalar gecikebilir") zaten bu davranışı anlatıyor.
+3. Ayarlar → İzinler'deki "Tam zamanlı alarmlar" satırı ve "Tam zamanında hatırlatma" açıklama
+   sayfası bu davranışı anlatıyor ("İzin olmadan hatırlatmalar birkaç dakika gecikebilir");
+   izin hiçbir şeyi engellemez.
 
 **Alternatif (önerilmez):** `USE_EXACT_ALARM`'ı tutup beyanda "takvim gündemi olan hatırlatıcı"
 olarak başvurmak. Reddedilirse yine 1–2 yapılmak zorunda.
@@ -208,8 +216,8 @@ Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar ol
 
 | # | Öncelik | İş | Tür | Not |
 |---|---|---|---|---|
-| 1 | Engelleyici | Exact alarm izni yokken `inexactAllowWhileIdle`'a düşen zamanlama + izin değişiminde yeniden senkron | Kod (`notification_service.dart`, `permission_service.dart`) | F1.7 notuyla aynı iş |
-| 2 | Engelleyici | Manifestten `USE_EXACT_ALARM` kaldır (1'den sonra) | Kod (manifest) | |
+| 1 | ~~Engelleyici~~ | ~~Exact alarm izni yokken `inexactAllowWhileIdle`'a düşen zamanlama + izin değişiminde yeniden senkron~~ | Kod (`notification_service.dart`, `permission_flows.dart`) | **Yapıldı** (F6.2c) |
+| 2 | ~~Engelleyici~~ | ~~Manifestten `USE_EXACT_ALARM` kaldır (1'den sonra)~~ | Kod (manifest) | **Yapıldı** (F6.2c) |
 | 3 | Engelleyici | Gizlilik politikasını herkese açık URL'de yayınla, iletişim adresini doldur | Repo ayarı + doküman | GitHub Pages önerisi politika dosyasında |
 | 4 | Engelleyici | Ayarlar'a "Gizlilik politikası" bağlantısı (Play + App Store §5.1.1 zorunlu) | Kod (`settings_page.dart`) | `url_launcher` gerekebilir |
 | 5 | Engelleyici | Release'i `GOOGLE_MAPS_KEY` olmadan derle (F6.3 pipeline'ında sabitle) | CI/süreç | Places koşulları + gizlilik formu |

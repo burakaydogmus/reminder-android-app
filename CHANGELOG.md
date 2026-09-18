@@ -52,6 +52,10 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Değişti
 
+- **"Alarmlar ve hatırlatıcılar" izni artık isteğe bağlı:** izin yoksa (Android 14+'da yeni
+  kurulumlarda varsayılan) hatırlatmalar yine gelir, yalnızca birkaç dakika gecikebilir; izin
+  verilince bildirimler kendiliğinden tam zamanlıya geçer. Google Play'in kısıtladığı
+  `USE_EXACT_ALARM` izni kaldırıldı. (F6.2c)
 - **Depolama Drift (SQLite) veritabanına taşındı;** eski SharedPreferences verisi ilk açılışta
   bir kez, bozuk kayıtlar atlanıp yedeklenerek aktarılır. Taşıma başarısız olursa uygulama eski
   veriyle çalışmaya devam eder ve bir sonraki açılışta yeniden dener. (#20)
