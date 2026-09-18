@@ -7,7 +7,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -150,6 +152,40 @@ void main() {
       ).captured.single as List<Reminder>;
       expect(geo.firstWhere((r) => r.id == 'first').isDone, isTrue);
       expect(widgetIds(), ['first', 'second', 'finished']);
+    });
+
+    test('a recurring reminder advances with the shared rule (F3.1)', () async {
+      final now = DateTime(2026, 9, 13, 12);
+      final weekly = buildReminder(
+        id: 'weekly',
+        remindAt: DateTime(2026, 9, 12, 16),
+        recurrence: RecurrenceRule.weekly([DateTime.saturday]),
+      );
+      await repository.saveReminders([first, second, finished, weekly]);
+      repository.reminderSaves = 0;
+
+      await handleReminderHomeWidgetToggle(
+        'weekly',
+        repository: repository,
+        schedules: schedules,
+        now: () => now,
+      );
+
+      final stored = (await repository.loadReminders())
+          .firstWhere((r) => r.id == 'weekly');
+      final expected = completeReminder(weekly, now);
+      expect(stored.isDone, isFalse);
+      expect(stored.remindAt, expected.remindAt);
+      expect(stored.remindAt, DateTime(2026, 9, 19, 16));
+      expect(stored.recurrence, weekly.recurrence);
+      expect(repository.reminderSaves, 1);
+      final geo = verify(
+        () => geofence.syncWithReminders(
+          captureAny(),
+          notificationsEnabled: true,
+        ),
+      ).captured.single as List<Reminder>;
+      expect(geo.firstWhere((r) => r.id == 'weekly').isDone, isFalse);
     });
 
     for (final id in ['missing', 'finished']) {

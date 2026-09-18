@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/common/kor_format.dart';
@@ -12,6 +13,7 @@ import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
+import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
@@ -21,6 +23,7 @@ import 'package:reminder/ui/permissions/permission_scope.dart';
 abstract final class ReminderEditorKeys {
   static const title = Key('reminderEditor.title');
   static const save = Key('reminderEditor.save');
+  static const recurrence = Key('reminderEditor.recurrence');
 }
 
 /// Reminder editor sheet (§3.3.4, reduced to today's data): title first with
@@ -75,6 +78,10 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   DateTime? _date;
   TimeOfDay? _time;
 
+  /// Tekrar kuralı (F3.1). Tarih değişince "tüm seri" olarak uyarlanır
+  /// ([RecurrenceRule.alignedTo]); "yalnızca bu sefer" henüz yok.
+  late RecurrenceRule _recurrence;
+
   /// Existing reminder's time at minute precision; an unchanged overdue time
   /// may still be saved (F1.8b).
   DateTime? _originalRemindAt;
@@ -114,6 +121,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute);
       }
     }
+    _recurrence = remindAt != null
+        ? (e?.recurrence ?? RecurrenceRule.none)
+        : RecurrenceRule.none;
     _locationTrigger = e?.locationTriggerEnabled ?? false;
     _locLat = e?.locationLatitude;
     _locLng = e?.locationLongitude;
@@ -142,9 +152,56 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     if (picked != null) {
       setState(() {
         _date = picked;
+        _recurrence = _recurrence.alignedTo(picked);
         _pastTimeBlocked = false;
       });
     }
+  }
+
+  /// Default date/time when scheduling is turned on: today, one hour later.
+  (DateTime, TimeOfDay) _defaultSchedule() {
+    final n = widget.clock();
+    return (
+      DateTime(n.year, n.month, n.day),
+      TimeOfDay.fromDateTime(n.add(const Duration(hours: 1))),
+    );
+  }
+
+  /// Opens the Tekrar sheet. Tekrar needs a time: without one the sheet
+  /// starts from today + one hour, applied only when a rule is chosen.
+  Future<void> _openRecurrence() async {
+    final (defaultDate, defaultTime) = _defaultSchedule();
+    final hasSchedule = _schedule && _date != null;
+    final date = hasSchedule ? _date! : defaultDate;
+    final time = hasSchedule
+        ? (_time ?? TimeOfDay.fromDateTime(widget.clock()))
+        : defaultTime;
+    final anchor =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+    final rule = await showRecurrenceSheet(
+      context,
+      initial: _recurrence,
+      anchor: anchor,
+      now: widget.clock(),
+    );
+    if (rule == null || !mounted) return;
+    setState(() {
+      _recurrence = rule;
+      if (rule.isNone) return;
+      if (!hasSchedule) {
+        _schedule = true;
+        _date = date;
+        _time = time;
+      }
+      // A weekly rule whose days exclude the chosen date starts on the first
+      // matching day (shown in the sheet preview and the date chip).
+      final first = rule.firstOnOrAfter(from: anchor, anchor: anchor);
+      if (first != null && !KorFormat.isSameDay(first, anchor)) {
+        _date = DateTime(first.year, first.month, first.day);
+        _pastTimeBlocked = false;
+      }
+    });
   }
 
   Future<void> _pickTime() async {
@@ -303,6 +360,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       locationLongitude: _locationTrigger ? _locLng : null,
       locationRadiusMeters: _locRadius,
       locationPlaceLabel: _locationTrigger ? _locLabel : null,
+      recurrence: remindAt == null ? RecurrenceRule.none : _recurrence,
     );
 
     if (existing == null) {
@@ -437,12 +495,11 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                   onChanged: (v) => setState(() {
                     _schedule = v;
                     _pastTimeBlocked = false;
+                    if (!v) _recurrence = RecurrenceRule.none;
                     if (v && _date == null) {
-                      final n = widget.clock();
-                      _date = DateTime(n.year, n.month, n.day);
-                      _time = TimeOfDay.fromDateTime(
-                        n.add(const Duration(hours: 1)),
-                      );
+                      final (date, time) = _defaultSchedule();
+                      _date = date;
+                      _time = time;
                     }
                   }),
                 ),
@@ -509,6 +566,15 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                     ),
                 ] else
                   Text('Seçtiğin tarih ve saatte bildirim.', style: mutedBody),
+                Padding(
+                  padding: const EdgeInsets.only(top: KorSpacing.s3),
+                  child: _RecurrenceRow(
+                    summary: _schedule
+                        ? _recurrence.summary
+                        : RecurrenceRule.none.summary,
+                    onTap: _openRecurrence,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: KorSpacing.s4),
@@ -595,6 +661,53 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
               child: const Text('Kaydet'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "↻ Tekrar · Her Cumartesi ›" row in the "Ne zaman" card (§3.3.4).
+class _RecurrenceRow extends StatelessWidget {
+  const _RecurrenceRow({required this.summary, required this.onTap});
+
+  final String summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Semantics(
+      button: true,
+      label: 'Tekrar: $summary',
+      excludeSemantics: true,
+      child: InkWell(
+        key: ReminderEditorKeys.recurrence,
+        borderRadius: const BorderRadius.all(Radius.circular(KorSpacing.s4)),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: KorSizes.minTouch),
+          child: Row(
+            children: [
+              Icon(Icons.repeat_rounded, color: scheme.onSurfaceVariant),
+              const SizedBox(width: KorSpacing.s4),
+              Text('Tekrar', style: theme.textTheme.titleMedium),
+              const SizedBox(width: KorSpacing.s4),
+              Expanded(
+                child: Text(
+                  summary,
+                  textAlign: TextAlign.end,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );

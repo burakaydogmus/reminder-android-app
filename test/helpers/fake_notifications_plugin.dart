@@ -11,6 +11,7 @@ class FakePendingNotification {
     this.body,
     this.payload,
     this.matchDateTimeComponents,
+    this.details,
   });
 
   final int id;
@@ -19,6 +20,7 @@ class FakePendingNotification {
   final tz.TZDateTime scheduledDate;
   final String? payload;
   final DateTimeComponents? matchDateTimeComponents;
+  final NotificationDetails? details;
 }
 
 /// Platform kanalına dokunmayan, bekleyen bildirimleri bellekte tutan
@@ -33,10 +35,22 @@ class FakeNotificationsPlugin extends Fake
   /// Android'deki gibi `cancel`/`cancelAll` bunları da kaldırır.
   final Set<int> shown = {};
 
+  /// Gösterilen bildirimlerin ayrıntıları ve payload'ları (id → değer).
+  final Map<int, NotificationDetails?> shownDetails = {};
+  final Map<int, String?> shownPayloads = {};
+
   int initializeCalls = 0;
   int cancelAllCalls = 0;
   int cancelCalls = 0;
   int scheduleCalls = 0;
+
+  /// Son `initialize` çağrısının ayarları ve işleyicileri.
+  InitializationSettings? initializeSettings;
+  DidReceiveNotificationResponseCallback? foregroundCallback;
+  DidReceiveBackgroundNotificationResponseCallback? backgroundCallback;
+
+  /// `getNotificationAppLaunchDetails` sonucu.
+  NotificationAppLaunchDetails? launchDetails;
 
   /// Sırasıyla `cancel` edilen ve `zonedSchedule` edilen id'ler.
   final List<int> cancelledIds = [];
@@ -62,8 +76,15 @@ class FakeNotificationsPlugin extends Fake
         onDidReceiveBackgroundNotificationResponse,
   }) async {
     initializeCalls++;
+    initializeSettings = settings;
+    foregroundCallback = onDidReceiveNotificationResponse;
+    backgroundCallback = onDidReceiveBackgroundNotificationResponse;
     return true;
   }
+
+  @override
+  Future<NotificationAppLaunchDetails?>
+      getNotificationAppLaunchDetails() async => launchDetails;
 
   @override
   Future<void> cancel({required int id, String? tag}) async {
@@ -89,6 +110,8 @@ class FakeNotificationsPlugin extends Fake
     String? payload,
   }) async {
     shown.add(id);
+    shownDetails[id] = notificationDetails;
+    shownPayloads[id] = payload;
   }
 
   @override
@@ -119,6 +142,7 @@ class FakeNotificationsPlugin extends Fake
       scheduledDate: scheduledDate,
       payload: payload,
       matchDateTimeComponents: matchDateTimeComponents,
+      details: notificationDetails,
     );
   }
 }

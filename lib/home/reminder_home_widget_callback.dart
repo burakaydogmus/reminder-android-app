@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -61,21 +62,25 @@ String? reminderIdFromWidgetUri(Uri? uri) {
 ///
 /// Hatırlatıcı bulunamazsa veya zaten tamamlanmışsa hiçbir şey kaydedilmez ve
 /// zamanlamalara dokunulmaz; yalnızca widget depodaki listeyle yenilenir.
-/// Aksi halde hatırlatıcı tamamlanır, kaydedilir ve doğum günleri ile ayarlar
-/// depodan okunarak **tüm** zamanlamalar [ScheduleSync.syncAll] ile
-/// eşitlenir (F1.2: doğum günü bildirimleri silinmez).
+/// Aksi halde hatırlatıcı uygulamadaki gibi [completeReminder] ile tamamlanır
+/// (tekrarlayan hatırlatıcı bir sonraki tekrara ilerler, F3.1), kaydedilir ve
+/// doğum günleri ile ayarlar depodan okunarak **tüm** zamanlamalar
+/// [ScheduleSync.syncAll] ile eşitlenir (F1.2: doğum günü bildirimleri
+/// silinmez). [now] testlerde sabitlenir.
 @visibleForTesting
 Future<void> handleReminderHomeWidgetToggle(
   String reminderId, {
   required ReminderRepository repository,
   required ScheduleSync schedules,
+  DateTime Function() now = DateTime.now,
 }) async {
   final reminders = await repository.loadReminders();
+  final at = now();
   var changed = false;
   final updated = reminders.map((r) {
     if (r.id != reminderId || r.isDone) return r;
     changed = true;
-    return r.copyWith(isDone: true);
+    return completeReminder(r, at);
   }).toList();
 
   if (!changed) {

@@ -12,6 +12,8 @@ Hatırlatıcı uygulamasının geliştirme planı. Her madde ayrı bir branch + 
 - **Navigasyon:** Bugün / Takvim / Listeler sekmeleri; Ayarlar dişli ikonunda
 - **Dinamik renk:** Uygulama içinde isteğe bağlı ayar (varsayılan kapalı); Android widget'ları sistem renklerini kullanır
 - **Cihaz içi yapay zekâ:** Şimdilik yok; hızlı yakalama kural tabanlı Türkçe ayrıştırıcıyla
+- **Lisans:** MIT (`LICENSE`, repo public)
+- **Kor kategori metni:** Açık temada "kor" renk anahtarlı kategori, kendi açık turuncu zemininde (`#FFDCC8`) metin olarak koyu kahve (`#4A1A00`, `onContainer`) kullanır; kor turuncusu (`#B8430F`) o zeminde yalnızca ikondur (4.24:1)
 - **Takip:** Bu dosya; her PR ilgili maddeyi `[x]` yapar
 
 **Durum işaretleri:** `[ ]` bekliyor · `[~]` devam ediyor · `[x]` tamamlandı
@@ -77,9 +79,9 @@ Diğer tüm fazların temeli.
 
 *F3.1–F3.3 veri modeline dokunur, sıralı ilerler.*
 
-- [ ] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
+- [x] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
-- [ ] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
+- [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [ ] **F3.3 Alt görevler / checklist** · `feat/subtasks`
   Market listesi gibi kullanım için madde listesi; ilerleme göstergesi.
@@ -102,7 +104,7 @@ Diğer tüm fazların temeli.
 - [x] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
 - [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
-  Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; mevcut "Diğer + özel ad" yapısının migration'ı.
+  Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; zemin üzerindeki kategori metni `CategoryColors.onContainer`, ikon `fg` kullanır (kor anahtarı için zorunlu); mevcut "Diğer + özel ad" yapısının migration'ı.
 - [ ] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
 - [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
