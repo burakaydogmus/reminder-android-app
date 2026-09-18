@@ -153,6 +153,14 @@ void main() {
       expect(loaded.map((r) => r.subtasks.single.title), ['A1', 'B1']);
     });
 
+    test('the one-time prefs migration also imports subtasks', () async {
+      SharedPreferences.setMockInitialValues({
+        'reminders_v1': jsonEncode([market.toJson()]),
+      });
+      final loaded = await repository.loadReminders();
+      expect(loaded.single.subtasks, market.subtasks);
+    });
+
     test('clearAll removes subtask rows', () async {
       await repository.saveReminders([market]);
       await repository.clearAll();
