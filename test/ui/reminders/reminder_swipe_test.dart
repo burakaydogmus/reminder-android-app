@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
+import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/reminders/snooze_options.dart';
 import 'package:reminder/ui/reminders/snooze_sheet.dart';
@@ -95,8 +96,14 @@ void main() {
           tester.widget<SnackBar>(find.byType(SnackBar)).duration,
           UndoSnackBar.duration,
         );
-        // The completed card leaves "Bugün" (Tamamlananlar is collapsed).
-        expect(find.text(_aliTitle), findsNothing);
+        // A completed timed card stays on the Bugün ribbon as a compact row.
+        expect(
+          find.ancestor(
+            of: find.text(_aliTitle),
+            matching: find.byType(ReminderCompactCard),
+          ),
+          findsOneWidget,
+        );
 
         await _tapUndo(tester);
         expect(_byId(h, 'ali')!.isDone, isFalse);

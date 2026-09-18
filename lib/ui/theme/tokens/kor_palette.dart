@@ -144,13 +144,22 @@ enum KorColorKey {
 
 /// A category colour pair for one brightness.
 class KorCategoryTone {
-  const KorCategoryTone({required this.fg, required this.container});
+  const KorCategoryTone({
+    required this.fg,
+    required this.container,
+    Color? onContainer,
+  }) : onContainer = onContainer ?? fg;
 
   /// Icon, text and filled backgrounds.
   final Color fg;
 
   /// Light tonal background.
   final Color container;
+
+  /// Text drawn on [container]. Defaults to [fg]; set only where [fg] on
+  /// [container] is below 4.5:1 (then [fg] stays icon-only on that
+  /// background).
+  final Color onContainer;
 }
 
 /// Category colour tokens per brightness.
@@ -170,8 +179,13 @@ abstract final class KorCategoryPalette {
         KorCategoryTone(fg: Color(0xFF6546C8), container: Color(0xFFE7E0FA)),
     KorColorKey.dogumGunu:
         KorCategoryTone(fg: Color(0xFF9A2A8A), container: Color(0xFFF6DDF1)),
-    KorColorKey.kor:
-        KorCategoryTone(fg: Color(0xFFB8430F), container: Color(0xFFFFDCC8)),
+    // #B8430F on #FFDCC8 is 4.24:1, so Kor stays icon-only on its container
+    // and text there uses dark brown (owner decision, 2026-09-13).
+    KorColorKey.kor: KorCategoryTone(
+      fg: Color(0xFFB8430F),
+      container: Color(0xFFFFDCC8),
+      onContainer: Color(0xFF4A1A00),
+    ),
     KorColorKey.lacivert:
         KorCategoryTone(fg: Color(0xFF3A4A9C), container: Color(0xFFDFE2F7)),
     KorColorKey.zeytin:

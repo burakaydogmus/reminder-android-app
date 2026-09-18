@@ -19,6 +19,9 @@ enum ReminderTimeStyle {
 
   /// Always `18:30` (the day is given by a surrounding header).
   timeOnly,
+
+  /// No trailing time (the Bugün ribbon shows it in its gutter).
+  hidden,
 }
 
 /// Reminder card (§3.3.2, `components.ReminderCard`).
@@ -113,7 +116,7 @@ class ReminderCard extends StatelessWidget {
       ],
     );
 
-    final timeText = at == null
+    final timeText = at == null || timeStyle == ReminderTimeStyle.hidden
         ? null
         : (timeStyle == ReminderTimeStyle.timeOnly
             ? KorFormat.time(at)
