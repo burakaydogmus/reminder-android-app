@@ -19,8 +19,7 @@ import 'package:reminder/ui/theme/haptics.dart';
 // completed card leaves its section), so everything needed later is
 // captured up front.
 
-// The haptics setting arrives with F4.7; until then haptics are on.
-const _haptics = KorHaptics();
+// Haptics follow Ayarlar › "Titreşim geri bildirimi" (KorHaptics.of, F4.7).
 
 Reminder? _find(ReminderCubit cubit, String id) =>
     cubit.state.reminders.where((r) => r.id == id).firstOrNull;
@@ -36,46 +35,63 @@ Future<void> toggleReminderDoneWithUndo(
   BuildContext context,
   Reminder reminder, {
   DateTime Function()? now,
-}) async {
+}) =>
+    prepareToggleReminderDone(context, reminder, now: now)();
+
+/// [toggleReminderDoneWithUndo] in two steps, for the `KorCheckbox`
+/// completion sequence (F4.7): captures the cubit, messenger, clock and
+/// haptics from [context] now and returns the toggle, which may run later
+/// (after the 900 ms hold) without a mounted context. With
+/// [hapticPlayed] the completion haptic is skipped (the checkbox already
+/// played it at 0 ms).
+Future<void> Function() prepareToggleReminderDone(
+  BuildContext context,
+  Reminder reminder, {
+  DateTime Function()? now,
+  bool hapticPlayed = false,
+}) {
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
   final clock = now ?? NowScope.clockOf(context);
-  final current = _find(cubit, reminder.id) ?? reminder;
-  final completing = !current.isDone;
-  if (completing) unawaited(_haptics.complete());
+  final haptics = KorHaptics.of(context);
+  return () async {
+    final current = _find(cubit, reminder.id) ?? reminder;
+    final completing = !current.isDone;
+    if (completing && !hapticPlayed) unawaited(haptics.complete());
 
-  final done = cubit.toggleDone(reminder.id);
-  // toggleDone emits synchronously; the new state is readable right away.
-  final after = _find(cubit, reminder.id);
-  final advancedTo =
-      completing && after != null && !after.isDone ? after.remindAt : null;
-  UndoSnackBar.show(
-    messenger,
-    message: advancedTo != null
-        ? RecurrenceFormat.next(advancedTo, clock())
-        : completing
-            ? '${_quoted(current)} tamamlandı'
-            : '${_quoted(current)} geri açıldı',
-    onUndo: () {
-      unawaited(_haptics.undo());
-      final latest = _find(cubit, reminder.id);
-      if (latest == null) return;
-      if (advancedTo != null) {
-        if (!latest.isDone && latest.remindAt == advancedTo) {
-          // Also brings back the subtasks the advance reset (F3.3).
-          unawaited(cubit.updateReminder(
-            latest.copyWith(
-              remindAt: () => current.remindAt,
-              subtasks: current.subtasks,
-            ),
-          ));
+    final done = cubit.toggleDone(reminder.id);
+    // toggleDone emits synchronously; the new state is readable right away.
+    final after = _find(cubit, reminder.id);
+    final advancedTo =
+        completing && after != null && !after.isDone ? after.remindAt : null;
+    UndoSnackBar.show(
+      messenger,
+      message: advancedTo != null
+          ? RecurrenceFormat.next(advancedTo, clock())
+          : completing
+              ? '${_quoted(current)} tamamlandı'
+              : '${_quoted(current)} geri açıldı',
+      onUndo: () {
+        unawaited(haptics.undo());
+        final latest = _find(cubit, reminder.id);
+        if (latest == null) return;
+        if (advancedTo != null) {
+          if (!latest.isDone && latest.remindAt == advancedTo) {
+            // Also brings back the subtasks the advance reset (F3.3).
+            unawaited(cubit.updateReminder(
+              latest.copyWith(
+                remindAt: () => current.remindAt,
+                subtasks: current.subtasks,
+              ),
+            ));
+          }
+        } else if (latest.isDone == completing) {
+          unawaited(cubit.toggleDone(reminder.id));
         }
-      } else if (latest.isDone == completing) {
-        unawaited(cubit.toggleDone(reminder.id));
-      }
-    },
-  );
-  await done;
+      },
+    );
+    await done;
+  };
 }
 
 /// Opens the Ertele sheet; applying sets `remindAt` (untimed reminders get a
@@ -88,6 +104,7 @@ Future<void> snoozeReminderWithUndo(
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
   final clock = now ?? NowScope.clockOf(context);
+  final haptics = KorHaptics.of(context);
   final at = await showSnoozeSheet(context, reminder: reminder, now: clock);
   if (at == null) return;
   final current = _find(cubit, reminder.id);
@@ -99,7 +116,7 @@ Future<void> snoozeReminderWithUndo(
     messenger,
     message: SnoozeOptions.snoozedMessage(at, clock()),
     onUndo: () {
-      unawaited(_haptics.undo());
+      unawaited(haptics.undo());
       final latest = _find(cubit, reminder.id);
       if (latest != null && latest.remindAt == at) {
         unawaited(
@@ -120,14 +137,15 @@ Future<void> deleteReminderWithUndo(
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
   final original = _find(cubit, reminder.id) ?? reminder;
-  unawaited(_haptics.delete());
+  final haptics = KorHaptics.of(context);
+  unawaited(haptics.delete());
 
   final deleted = cubit.deleteReminder(original.id);
   UndoSnackBar.show(
     messenger,
     message: '${_quoted(original)} silindi',
     onUndo: () {
-      unawaited(_haptics.undo());
+      unawaited(haptics.undo());
       if (_find(cubit, original.id) == null) {
         unawaited(cubit.addReminder(original));
       }

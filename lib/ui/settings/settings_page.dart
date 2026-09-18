@@ -16,6 +16,7 @@ import 'package:reminder/ui/settings/backup_actions.dart';
 import 'package:reminder/ui/settings/permissions_group.dart';
 import 'package:reminder/ui/settings/reset_data_dialog.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
+import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// Keys for tests.
@@ -24,6 +25,7 @@ abstract final class SettingsPageKeys {
   static const backupImport = Key('settings.backupImport');
   static const privacyPolicy = Key('settings.privacyPolicy');
   static const licenses = Key('settings.licenses');
+  static const haptics = Key('settings.haptics');
 }
 
 /// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
@@ -128,6 +130,17 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Açık veya koyu temayı seç ya da sistemi takip et.',
                     style: muted,
                   ),
+                  if (HapticsScope.maybeOf(context) case final haptics?) ...[
+                    const SizedBox(height: KorSpacing.s3),
+                    _SwitchRow(
+                      key: SettingsPageKeys.haptics,
+                      title: 'Titreşim geri bildirimi',
+                      subtitle: 'Tamamlama, silme ve kaydırma gibi '
+                          'aksiyonlarda kısa titreşim.',
+                      value: haptics.enabled,
+                      onChanged: haptics.setEnabled,
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: KorSpacing.s5),
@@ -332,6 +345,7 @@ class _SettingsPageState extends State<SettingsPage> {
 /// toggles.
 class _SwitchRow extends StatelessWidget {
   const _SwitchRow({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.value,

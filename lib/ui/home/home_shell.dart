@@ -12,6 +12,7 @@ import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/components/fade_through_indexed_stack.dart';
 import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/lists/lists_page.dart';
@@ -209,7 +210,7 @@ class _HomeShellState extends State<HomeShell> {
     final pages = NowScope(
       clock: widget.clock,
       tick: _tick,
-      child: IndexedStack(
+      child: FadeThroughIndexedStack(
         index: _index,
         children: const [TodayPage(), CalendarPage(), ListsPage()],
       ),
