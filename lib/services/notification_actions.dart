@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_payload.dart';
@@ -196,7 +197,8 @@ DateTime? snoozedRemindAt(String actionId, DateTime now) {
 
 /// Bir bildirim aksiyonunu uygular.
 ///
-/// - Tamamla → `isDone: true`; ertele → `remindAt` yeni zamana ayarlanır
+/// - Tamamla → [completeReminder] (tekrarsızda `isDone: true`, tekrarlayanda
+///   bir sonraki tekrar); ertele → `remindAt` yeni zamana ayarlanır
 ///   (hatırlatıcı zamansız veya gecikmiş olsa da).
 /// - Kaydeder, doğum günleri ve ayarları depodan okuyarak **tüm**
 ///   zamanlamaları [ScheduleSync.syncAll] ile eşitler (F1.2) ve açık
@@ -226,8 +228,10 @@ Future<bool> handleNotificationAction(
         () {
           changed = true;
           final snoozed = snoozedRemindAt(actionId, now);
+          // Tamamla: uygulama içiyle aynı kural; tekrarlayan hatırlatıcı
+          // bir sonraki tekrara ilerler (F3.1).
           return snoozed == null
-              ? r.copyWith(isDone: true)
+              ? completeReminder(r, now)
               : r.copyWith(remindAt: () => snoozed);
         }(),
   ];
