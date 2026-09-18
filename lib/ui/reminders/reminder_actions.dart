@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/snooze_options.dart';
 import 'package:reminder/ui/reminders/snooze_sheet.dart';
@@ -27,26 +28,45 @@ Reminder? _find(ReminderCubit cubit, String id) =>
 String _quoted(Reminder r) => '“${r.title.trim()}”';
 
 /// Tamamla / Geri aç, then "“…” tamamlandı · Geri al".
+///
+/// A recurring reminder is not done after completing: it moves to its next
+/// occurrence (F3.1), the snackbar reads "Sonraki: Cmt 20 Eyl 16:00 · Geri
+/// al" and undo restores the previous `remindAt`.
 Future<void> toggleReminderDoneWithUndo(
   BuildContext context,
-  Reminder reminder,
-) async {
+  Reminder reminder, {
+  DateTime Function()? now,
+}) async {
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
+  final clock = now ?? NowScope.clockOf(context);
   final current = _find(cubit, reminder.id) ?? reminder;
   final completing = !current.isDone;
   if (completing) unawaited(_haptics.complete());
 
   final done = cubit.toggleDone(reminder.id);
+  // toggleDone emits synchronously; the new state is readable right away.
+  final after = _find(cubit, reminder.id);
+  final advancedTo =
+      completing && after != null && !after.isDone ? after.remindAt : null;
   UndoSnackBar.show(
     messenger,
-    message: completing
-        ? '${_quoted(current)} tamamlandı'
-        : '${_quoted(current)} geri açıldı',
+    message: advancedTo != null
+        ? RecurrenceFormat.next(advancedTo, clock())
+        : completing
+            ? '${_quoted(current)} tamamlandı'
+            : '${_quoted(current)} geri açıldı',
     onUndo: () {
       unawaited(_haptics.undo());
       final latest = _find(cubit, reminder.id);
-      if (latest != null && latest.isDone == completing) {
+      if (latest == null) return;
+      if (advancedTo != null) {
+        if (!latest.isDone && latest.remindAt == advancedTo) {
+          unawaited(cubit.updateReminder(
+            latest.copyWith(remindAt: () => current.remindAt),
+          ));
+        }
+      } else if (latest.isDone == completing) {
         unawaited(cubit.toggleDone(reminder.id));
       }
     },

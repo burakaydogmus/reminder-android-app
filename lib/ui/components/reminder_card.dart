@@ -19,6 +19,9 @@ enum ReminderTimeStyle {
 
   /// Always `18:30` (the day is given by a surrounding header).
   timeOnly,
+
+  /// No trailing time (the Bugün ribbon shows it in its gutter).
+  hidden,
 }
 
 /// Reminder card (§3.3.2, `components.ReminderCard`).
@@ -59,6 +62,7 @@ class ReminderCard extends StatelessWidget {
       if (at != null)
         '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
       if (_isOverdue) 'gecikti',
+      if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
       if (_placeLabel != null) 'konum: $_placeLabel',
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
@@ -99,6 +103,11 @@ class ReminderCard extends StatelessWidget {
           metaIcon(Icons.schedule_rounded, scheme.primary),
           TextSpan(text: 'Gecikti', style: TextStyle(color: scheme.primary)),
         ],
+        if (reminder.isRecurring) ...[
+          separator,
+          metaIcon(Icons.repeat_rounded, scheme.onSurfaceVariant),
+          TextSpan(text: reminder.recurrence.summary),
+        ],
         if (_placeLabel != null) ...[
           separator,
           metaIcon(Icons.place_rounded, scheme.onSurfaceVariant),
@@ -107,7 +116,7 @@ class ReminderCard extends StatelessWidget {
       ],
     );
 
-    final timeText = at == null
+    final timeText = at == null || timeStyle == ReminderTimeStyle.hidden
         ? null
         : (timeStyle == ReminderTimeStyle.timeOnly
             ? KorFormat.time(at)

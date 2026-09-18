@@ -60,6 +60,24 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
   **Feb 28 in non-leap years** (`occurrenceInYear`, used by `nextOccurrence`,
   `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests.
+- `domain/model/recurrence.dart` — `RecurrenceRule` (F3.1): none / daily / weekly
+  (sorted Mon-first weekdays) / monthly (day of month, clamped to the month end:
+  31 → 30/28/29), `interval` (every N days/weeks/months; "Özel" = daily N ≥ 2),
+  optional `until` (inclusive date). `nextOccurrence(after:, anchor:)` returns the
+  first occurrence strictly after `after`; the **time comes from `anchor`** (the
+  reminder's `remindAt`) and dates are built from calendar fields
+  (`DateTime(y, m, d + n, h, min)`), never `Duration` adds, so the wall-clock time
+  survives DST. Interval grids start at the anchor's day/week/month. `summary` is the
+  Turkish label ("Her gün", "2 haftada bir Pzt, Çar", "Her ayın 17'si");
+  `alignedTo(date)` adapts the rule when the whole series moves to another date.
+  `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
+  none); `Reminder.isRecurring` also needs a `remindAt`.
+- `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
+  "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
+  action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
+  next occurrence after `max(now, remindAt)` (early completion skips this occurrence,
+  overdue ones skip missed occurrences); a finished series and one-off reminders get
+  `isDone = true`.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
   (active before done; timed by `remindAt` asc; timed before untimed; untimed by
   `createdAt` desc), used by the cubit and the home widget sync. `ReminderCubit`
@@ -103,8 +121,12 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     minute tick) and `kor_navigation.dart` (Android `KorPillNavigation`, iOS
     `KorTabBar`, `NewItemFab`).
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
-    grouping, pure). `calendar/` — `CalendarPage` + `buildAgenda` (30-day agenda,
-    `BirthdayOccurrence`). `lists/` — `ListsPage`, `ReminderFilterPage`.
+    grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
+    `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
+    `CalendarPage` + `buildAgenda` (30-day agenda, `BirthdayOccurrence`). `lists/` —
+    `ListsPage` (smart-list bento + categories), `SmartList` (pure membership),
+    `SmartListPage`, `ReminderFilterPage`. `search/` — `SearchPage`,
+    `ReminderSearch` (pure ranking/grouping), `RecentSearchStore`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
     `KorColorKey`/icon mapping), `reminder_actions.dart` (complete / snooze / delete
     handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
@@ -133,7 +155,11 @@ Tests mirror `lib/`:
   plus `SharedPreferences.setMockInitialValues` for the legacy keys: round trips, soft
   delete / `updated_at`, `clearAll`, migration (valid, corrupt + backup, idempotent,
   failure fallback). No extra setup: `sqlite3` 3.x ships SQLite via build hooks, so
-  `flutter test` works on Windows and the Ubuntu CI runner.
+  `flutter test` works on Windows and the Ubuntu CI runner. `test/data/db/` holds
+  the schema migration tests (`SchemaVerifier` from
+  `package:drift_dev/api/migrations_native.dart`) over generated helpers in
+  `test/data/db/generated/` (see **Data** → Schema changes); every new schema version
+  needs a `vN-1 → vN` test that also checks existing rows survive.
 - `test/bloc/` — `ReminderCubit` with `bloc_test` + `mocktail` mocks.
 - `test/services/` — geofence rules, `GeofenceService` sync against a fake
   `GeofencePlatform` (no platform channels), background entry handling;
@@ -203,6 +229,16 @@ The sync is **diff-based** (F1.7):
   before reading); they are written after scheduling. Missing/corrupt store → all
   desired entries are rescheduled. Changing how notifications are built (channel
   settings, schedule mode) → bump `_ScheduleSpec._version`.
+- **Recurring reminders (F3.1):** only the **next** occurrence is scheduled per
+  reminder (`NotificationService.reminderFireTime`: a future `remindAt`, or for an
+  overdue recurring reminder the rule's next occurrence after now, so it keeps
+  notifying). Simple rules also repeat without the app through
+  `matchDateTimeComponents` (`reminderRepeatComponents`): every day → `time`, every
+  week on one day → `dayOfWeekAndTime`, every month on day 1–28 →
+  `dayOfMonthAndTime`. Intervals > 1, several weekdays, days 29–31 (month-end clamp)
+  and rules with an end date are next-only: the OS cannot express them, the diff sync
+  sets the following occurrence on the next load/change. The rule (JSON) is part of
+  the fingerprint.
 
 `ScheduleSync.syncAll` runs one sync at a time per instance; calls arriving while
 one runs are coalesced (only the latest snapshot runs, all queued callers complete
@@ -236,10 +272,13 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v1** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json`): `reminders` and `birthdays` (every model field
-  as a column + `position`, `updated_at`, `deleted_at`), `settings` (single row,
-  `id = 1`), `app_meta` (key/value, e.g. the migration marker). **Model times**
+- **Schema v2** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` and `drift_schema_v2.json`): `reminders` and
+  `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
+  `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
+  v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
+  (`NULL` = no recurrence; unreadable text loads as none, the row is kept); the
+  `onUpgrade` step `from < 2` adds the column. **Model times**
   (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
@@ -276,18 +315,38 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   reference-counted database from `AppDatabaseHost` lazily; background entry points call
   `repository.close()` in `finally`; the app's repository stays open. Stream queries
   don't cross engines (the app doesn't use them; the cubit reloads).
+- **Backup (F2.2)** — `lib/data/backup/`: `BackupFormat` is a versioned JSON document
+  (`format: "hatirlatici-backup"`, `version: 1`, `exportedAt` UTC, `app.version`,
+  `reminders`/`birthdays` as the models' `toJson`, `settings`). New model fields travel
+  automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
+  changes an older reader would misread — a newer file is rejected with "update the
+  app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
+  id → skipped and counted); a non-JSON file, wrong `format`, bad/newer `version` or a
+  non-list `reminders`/`birthdays` throws `BackupFormatException` and **nothing is
+  applied**. `BackupService` exports from and applies to the repository's public API:
+  **merge** = upsert by id (backup wins, local-only items kept, settings unchanged),
+  **replace** = the backup's lists (others soft-deleted) plus its settings when
+  readable; the caller then runs `ReminderCubit.load()` so schedules resync. The three
+  `saveX` calls are separate transactions (a failure mid-way can leave earlier lists
+  applied; re-importing repairs it). Plugins (`share_plus` share sheet,
+  `file_selector` picker, `package_info_plus`) sit behind `BackupIo`; widget tests pass
+  a fake via `SettingsPage(backupIo:, backupService:)`.
 - **Schema changes:** edit the tables, bump `schemaVersion`, add the step in
   `MigrationStrategy.onUpgrade`, then regenerate and export:
 
   ```bash
   dart run build_runner build
   dart run drift_dev schema dump lib/data/db/app_database.dart drift_schemas/
+  dart run drift_dev schema generate --data-classes --companions \
+    drift_schemas/ test/data/db/generated/
   dart format lib test
   ```
 
-  Generated `*.g.dart` files are committed (CI doesn't run `build_runner`) and formatted.
-  On Windows with a non-ASCII project path, run these in an ASCII-path copy and copy
-  `app_database.g.dart` / the schema JSON back. Tests use `openTestDatabase()`.
+  Then add the `vN-1 → vN` case to `test/data/db/migration_test.dart`. Generated
+  `*.g.dart` files and schema helpers are committed (CI doesn't run `build_runner`)
+  and formatted. On Windows with a non-ASCII project path, run these in an ASCII-path
+  copy and copy `app_database.g.dart`, the schema JSON and `test/data/db/generated/`
+  back. Tests use `openTestDatabase()`.
 
 ### Notification ids
 
@@ -301,6 +360,40 @@ contract (hard-coded in `test/domain/notification_ids_test.dart`); changing the
 algorithm or key format requires clearing old-id notifications. The F1.5 migration
 relies on every `syncSchedules` (run on each app load) cancelling all pending ids it
 does not recognise; keep that cleanup if the sync changes again.
+
+### Notification actions (F3.2)
+
+- **Payload** (`services/notification_payload.dart`): timed and geofence reminder
+  notifications carry `reminder:<id>`, birthdays `birthday:<id>`; `NotificationPayload.parse`
+  also accepts a bare id (geofence notifications shown before F3.2).
+- **Actions:** reminder and geofence notifications only (birthdays: tap only). Android
+  `androidReminderActions` — Tamamla · 10 dk · 1 saat (`showsUserInterface: false`,
+  `cancelNotification: true`, needs `ActionBroadcastReceiver` in the manifest). iOS
+  category `reminder_actions` (`darwinNotificationCategories`, registered in
+  `NotificationService.initialize` with the F1.6 no-prompt flags; details set
+  `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
+  ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint).
+- **Handling** (`services/notification_actions.dart`): non-foreground actions always run
+  in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
+  `@pragma('vm:entry-point')`), even while the app is open. It reloads the
+  SharedPreferences cache, builds real services, closes its repository in `finally` and
+  delegates to `handleNotificationAction(response, repository:, schedules:, now:)`:
+  complete → `completeReminder` (done, or the next occurrence for recurring reminders);
+  snooze → `remindAt` from `snoozedRemindAt`, which reuses the
+  Ertele sheet's `SnoozeOptions.from(now)` (10 dk, 1 saat, Yarın sabah 09:00), also for
+  untimed/overdue reminders; then save →
+  `ScheduleSync.syncAll` (birthdays + settings from the repository) →
+  `notifyAppOfWidgetChange()`. Unknown action, non-reminder payload, missing or done
+  reminder → no-op. Keep "Tamamla" in that one function, delegating to the shared
+  `completeReminder` (F3.1). `NotificationService.initialize` always passes both handlers, also in
+  background isolates.
+- **Tap:** `onNotificationResponse` (main isolate) and, for cold starts, `main.dart`
+  (`NotificationTapRouter.instance.openFromLaunch(NotificationService.instance.appLaunchDetails)`)
+  queue the target in `NotificationTapRouter`. `HomeShell` listens (and checks once
+  after its first frame): a reminder payload opens `showReminderEditorSheet` once the
+  reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
+  a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
 
 ## Workflow rules (from ROADMAP.md)
 
@@ -381,6 +474,26 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `addReminder`. Confirm dialogs stay for irreversible bulk actions ("Tüm verileri
   sıfırla"). Snooze times come only from `SnoozeOptions.from(now)` (pure, injected
   clock); the Ertele sheet never accepts a past custom time.
+- **Bugün, Listeler, Arama (F3.6):** Bugün = Kaçanlar ("Hepsini yarına al": all
+  overdue to tomorrow at the same wall-clock time via `updateReminder`, one undo
+  that restores all; recurring reminders are skipped in `movableOverdue`, the
+  button hides when nothing is movable) → time ribbon
+  (`TodaySections.timeline`: chronological, ŞİMDİ marker before the first item due
+  after now; 56 px gutter, rail, nodes filled when done, open cards with
+  `ReminderTimeStyle.hidden`, completed rows as `ReminderCompactCard`, toggle
+  "Tamamlananları gizle"; above text scale 1.3 gutter and rail go away and the
+  time is shown in the card) → Bugün bir ara (untimed) → Tamamlananlar (completed
+  untimed). `NowLine` moves on the shell's minute tick without animation, glows
+  once (1.2 s) on first build unless Reduce Motion. `ReminderCompactCard` keeps
+  every `ReminderCard` contract (one semantics node, F3.5 actions, swipe, menu);
+  use it where a row needs custom spans. Listeler: bento of `SmartList`
+  (Gecikmiş / Bugün / Planlı / Zamansız / Doğum günleri / Konumlu, open reminders
+  only). Arama (`TabHeader.actions` → `SearchIconButton`): matching goes through
+  `domain/text_search.dart` only (`TextSearch.fold` is 1:1 per code unit, so match
+  ranges index the original text; İ/I/ı→i, ş→s, ğ→g, ç→c, ö→o, ü→u, â/î/û); every
+  query word must hit title, note, category or place label; rank title word start
+  < title < category/place < note; note-only matches go to "Notlarda". Recent
+  searches: SharedPreferences `search_recent_v1`, max 8, newest first.
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
@@ -393,6 +506,17 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   "Yarın HH:mm mı?" suggestion) and `_save` blocks it inline. Only an existing
   reminder's unchanged overdue time saves (original `remindAt` kept).
   `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
+- **Recurrence UI (F3.1):** the "Ne zaman" card has a Tekrar row that opens
+  `reminders/recurrence_sheet.dart` (segments Yok / Günlük / Haftalık / Aylık / Özel,
+  48 dp weekday circles, "Her [N] …" stepper, Bitiş, "Sonraki 3: …" preview via
+  `RecurrenceFormat`). A rule needs a time: without one, choosing a rule schedules
+  today + 1 hour (dismissing changes nothing). A weekly rule whose days exclude the
+  date moves the date to the first chosen day (visible in the date chip); changing the
+  date of a recurring reminder moves the **whole series** (`alignedTo`). "Yalnızca
+  bu sefer" (B7) is not built yet. Turning scheduling off clears the rule. The card
+  meta line shows a repeat icon + `summary`; completing a recurring reminder keeps
+  the card and `toggleReminderDoneWithUndo` shows "Sonraki: Cmt 20 Eyl 16:00" in the
+  single undo snackbar, whose undo restores the previous `remindAt`.
 - **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
   once. The flag `onboarding_completed_v1` lives in SharedPreferences through
   `OnboardingStore` (UI-only; never in the repository/database). Users who already
@@ -476,3 +600,5 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
 - Widget and geofence behaviour differs per platform; the home widget is Android-only today.
+- Store readiness (privacy policy, data safety answers, permissions/policy review, listing drafts,
+  licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change.

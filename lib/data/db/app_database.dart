@@ -39,6 +39,10 @@ class Reminders extends Table {
   IntColumn get updatedAt => integer()();
   IntColumn get deletedAt => integer().nullable()();
 
+  /// Tekrar kuralı (v2, F3.1): `RecurrenceRule.toJson()` JSON metni;
+  /// `NULL` = tekrar yok (v1 satırları).
+  TextColumn get recurrence => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -106,7 +110,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -114,7 +118,14 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (m, from, to) async {
           // Şema değişikliğinde: schemaVersion'ı artır, `drift_schemas/`
           // altına yeni dökümü al ve adımları buraya ekle (bkz. CLAUDE.md).
-          throw UnsupportedError('No migration from v$from to v$to');
+          // Adımlar sırayla çalışır; her biri yalnızca kendi sürümünü ekler.
+          if (from < 2) {
+            // v2 (F3.1): tekrar kuralı. Eski satırlar NULL = tekrar yok.
+            await m.addColumn(reminders, reminders.recurrence);
+          }
+          if (to > 2) {
+            throw UnsupportedError('No migration from v$from to v$to');
+          }
         },
       );
 

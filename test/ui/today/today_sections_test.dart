@@ -80,6 +80,62 @@ void main() {
     expect(sections.birthdays.last.age, 30);
   });
 
+  test('completed split into timed (ribbon) and untimed', () {
+    expect(ids(sections.completedTimed), ['done-today']);
+    expect(ids(sections.completedUntimed), ['done-untimed']);
+  });
+
+  test('timeline: chronological with the now marker before later items', () {
+    String label(TimelineEntry e) => switch (e) {
+          TimelineNow() => 'NOW',
+          TimelineReminder(:final reminder) => reminder.id,
+        };
+    expect(
+      sections.timeline(now: now).map(label),
+      ['done-today', 'NOW', 'today-16', 'today-20'],
+    );
+    expect(
+      sections.timeline(now: now, includeCompleted: false).map(label),
+      ['NOW', 'today-16', 'today-20'],
+    );
+
+    final late = TodaySections.from(
+      reminders: [
+        buildReminder(
+          id: 'done-morning',
+          isDone: true,
+          remindAt: DateTime(2026, 9, 13, 8),
+        ),
+        buildReminder(
+          id: 'done-at-now',
+          isDone: true,
+          remindAt: DateTime(2026, 9, 13, 22),
+        ),
+      ],
+      birthdays: const [],
+      now: DateTime(2026, 9, 13, 22),
+    );
+    // Items due exactly at now come before the marker; marker is last.
+    expect(
+      late.timeline(now: DateTime(2026, 9, 13, 22)).map(label),
+      ['done-morning', 'done-at-now', 'NOW'],
+    );
+  });
+
+  test('tomorrowAtSameTime keeps the wall-clock time, across months', () {
+    expect(
+      TodaySections.tomorrowAtSameTime(DateTime(2026, 9, 10, 18, 5), now),
+      DateTime(2026, 9, 14, 18, 5),
+    );
+    expect(
+      TodaySections.tomorrowAtSameTime(
+        DateTime(2026, 9, 29, 7),
+        DateTime(2026, 9, 30, 12),
+      ),
+      DateTime(2026, 10, 1, 7),
+    );
+  });
+
   test('empty and all-done states', () {
     final empty = TodaySections.from(
       reminders: const [],
