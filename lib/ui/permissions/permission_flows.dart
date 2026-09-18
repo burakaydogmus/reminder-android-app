@@ -1,5 +1,7 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/permissions/permission_sheet.dart';
@@ -129,10 +131,23 @@ abstract final class PermissionFlows {
     await controller.refresh();
   }
 
+  /// Exact alarms are optional (F6.2c): without them reminders are scheduled
+  /// inexact and may arrive a few minutes late.
+  static const exactAlarmTradeOff =
+      'İzin olmadan hatırlatmalar birkaç dakika gecikebilir.';
+
+  /// "Ayarları aç" for exact alarms (Settings). When the user comes back with
+  /// a different state, schedules are recomputed right away (F6.2c) so a
+  /// granted permission upgrades pending notifications to exact alarms; the
+  /// resume reload (`AppStateReloader`) does the same, the diff sync makes the
+  /// second pass a no-op.
   static Future<void> fixExactAlarms(BuildContext context) async {
     final controller = PermissionScope.read(context);
+    final cubit = context.read<ReminderCubit>();
+    final before = controller.snapshot?.exactAlarms;
     await controller.service.openExactAlarmSettings();
-    await controller.refresh();
+    final after = (await controller.refresh()).exactAlarms;
+    if (after != before) await cubit.load();
   }
 
   static Future<bool> _showExactAlarmSheet(BuildContext context) {
@@ -141,8 +156,8 @@ abstract final class PermissionFlows {
       icon: Icons.alarm_rounded,
       title: 'Tam zamanında hatırlatma',
       body: 'Bildirimlerin dakikası dakikasına gelmesi için “Alarmlar ve '
-          'hatırlatıcılar” iznini açman gerekiyor. Kapalıyken hatırlatmalar '
-          'gecikebilir.',
+          'hatırlatıcılar” iznini açabilirsin. $exactAlarmTradeOff '
+          'Hatırlatmaların yine de gelir.',
       confirmLabel: 'Ayarları aç',
       dismissLabel: 'Sonra',
     );

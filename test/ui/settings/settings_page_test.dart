@@ -152,6 +152,70 @@ void main() {
         expect(h.permissions.calls, contains('openExactAlarmSettings'));
       });
 
+      group('exact alarms (F6.2c)', () {
+        Future<UiHarness> pumpDenied(WidgetTester tester) async {
+          final h = await UiHarness.create();
+          h.permissions.snapshot = PermissionSnapshot.allGranted.copyWith(
+            exactAlarms: ExactAlarmState.denied,
+          );
+          await tester.pumpWidget(
+            h.app(home: const SettingsPage(), theme: theme),
+          );
+          await tester.pumpAndSettle();
+          return h;
+        }
+
+        testWidgets('denied row explains the delay, nothing is blocked',
+            (tester) async {
+          await pumpDenied(tester);
+
+          expect(
+            _inRow(
+              PermissionsGroupKeys.exactAlarms,
+              'Kapalı — izin olmadan hatırlatmalar birkaç dakika gecikebilir',
+            ),
+            findsOneWidget,
+          );
+          expect(
+            _inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'),
+            findsOneWidget,
+          );
+          // Notifications stay "Açık": exact alarms are optional.
+          expect(
+            _inRow(PermissionsGroupKeys.notifications, 'Açık'),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('granting in settings resyncs schedules', (tester) async {
+          final h = await pumpDenied(tester);
+          h.permissions.exactAlarmSettingsResult = ExactAlarmState.granted;
+          clearInteractions(h.repository);
+
+          await tester
+              .tap(_inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'));
+          await tester.pumpAndSettle();
+
+          expect(h.permissions.calls, ['openExactAlarmSettings']);
+          expect(
+              _inRow(PermissionsGroupKeys.exactAlarms, 'Açık'), findsOneWidget);
+          // ReminderCubit.load → ScheduleSync.syncAll recomputes the mode.
+          verify(() => h.repository.loadReminders()).called(1);
+        });
+
+        testWidgets('returning unchanged does not reload', (tester) async {
+          final h = await pumpDenied(tester);
+          clearInteractions(h.repository);
+
+          await tester
+              .tap(_inRow(PermissionsGroupKeys.exactAlarms, 'Ayarları aç'));
+          await tester.pumpAndSettle();
+
+          expect(h.permissions.calls, ['openExactAlarmSettings']);
+          verifyNever(() => h.repository.loadReminders());
+        });
+      });
+
       testWidgets('not yet requested offers "İzin ver"', (tester) async {
         final h = await UiHarness.create();
         h.permissions.snapshot = const PermissionSnapshot(

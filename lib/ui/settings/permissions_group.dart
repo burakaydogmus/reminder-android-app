@@ -120,8 +120,10 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
       key: PermissionsGroupKeys.exactAlarms,
       icon: Icons.alarm_rounded,
       title: 'Tam zamanlı alarmlar',
-      status:
-          granted ? 'Açık' : 'Kapalı — hatırlatmalar birkaç dakika gecikebilir',
+      // Optional (F6.2c): reminders fall back to inexact alarms.
+      status: granted
+          ? 'Açık'
+          : 'Kapalı — izin olmadan hatırlatmalar birkaç dakika gecikebilir',
       level: granted ? _Level.ok : _Level.warning,
       actionLabel:
           exactAlarmFix(state) == PermissionFix.none ? null : 'Ayarları aç',

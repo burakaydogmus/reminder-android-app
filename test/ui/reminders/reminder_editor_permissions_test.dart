@@ -187,6 +187,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tam zamanında hatırlatma'), findsOneWidget);
+      // F6.2c: the trade-off is explained; the permission is optional.
+      expect(
+        find.textContaining(
+          'İzin olmadan hatırlatmalar birkaç dakika gecikebilir.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Sonra'), findsOneWidget);
       await tester.tap(find.text('Ayarları aç'));
       await tester.pumpAndSettle();
       expect(h.permissions.calls, ['openExactAlarmSettings']);
