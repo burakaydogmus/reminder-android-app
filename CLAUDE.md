@@ -72,6 +72,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `alignedTo(date)` adapts the rule when the whole series moves to another date.
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`.
+- `domain/parsing/` — Turkish quick-capture parser (F4.6a, see **Quick-capture
+  parser**).
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
   action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
@@ -394,6 +396,34 @@ does not recognise; keep that cleanup if the sync changes again.
   after its first frame): a reminder payload opens `showReminderEditorSheet` once the
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
+## Quick-capture parser (F4.6a)
+
+- `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
+  `ReminderCategoryIds`. Entry point `CaptureParser.parse(input, now:, config:)` in
+  `turkish_capture_parser.dart`; the rules are `part` files in `rules/` (scanner,
+  tags, dates, times, recurrence, resolution, list split); `turkish_text.dart` does
+  Turkish casing/folding (İ↔i, I↔ı) **without shifting string offsets**.
+- Result types (`capture_parse_result.dart`) are **neutral**: `CaptureToken` (kind,
+  exact `start`/`end` in the original input, `confidence`), `RecurrenceSpec`
+  (daily / weekly / monthly / everyNDays), `CaptureParseResult` (title, tokens,
+  `dateTime` + `hasExplicitTime`, `isPast`, recurrence, `categoryKey`/`categoryId`,
+  priority 0–3, `placeKey`, `splitSuggestion`), `CaptureParserConfig` (day-part hours
+  for "Ayarlar › sabah saati", category aliases, list categories).
+- Rules: high-confidence matches only, first match per slot wins (later ones stay in
+  the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
+  `pazar` with a suffix is the market, a time without a date is today if still
+  ahead, else tomorrow. Details in each rule file's doc comment.
+- **F4.6b maps the results; don't add model mapping here.** `RecurrenceSpec` →
+  `RecurrenceRule` (`lib/domain/model/recurrence.dart`): daily → `daily()`,
+  everyNDays → `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
+  `monthly(dayOfMonth:)`. `RecurrenceRule` clamps day 31 to short months while the
+  parser's first occurrence skips them, so compute the first `remindAt` with the
+  rule when they differ. `isPast` → the F1.8b past-time warning; `categoryId == null`
+  with a `categoryKey` → "Yeni kategori oluştur?"; priority → F3.4.
+- Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
+  clock (`kNow`, 13 Eylül 2026 14:32; the table must keep ≥ 200 sentences), plus
+  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config.
 
 ## Workflow rules (from ROADMAP.md)
 
