@@ -74,8 +74,9 @@ flutter:
 
   assets:
     - assets/launcher/icon.png
-    # Shown on the Lisanslar page (LicenseRegistry, lib/config/licenses.dart).
+    # Shown on the Lisanslar page (LicenseRegistry, lib/config/app_licenses.dart).
     - fonts/GoogleSansFlex/OFL.txt
+    - assets/licenses/
 
   fonts:
     # Kor theme: variable font, axes wght/opsz/ROND, latin+latin-ext.
