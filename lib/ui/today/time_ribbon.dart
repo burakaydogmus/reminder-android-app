@@ -250,7 +250,7 @@ class _NowLineState extends State<NowLine> with SingleTickerProviderStateMixin {
 
     return Semantics(
       container: true,
-      label: 'Şimdi $time',
+      label: 'Şimdi, ${KorFormat.spokenTime(widget.now)}',
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.only(bottom: KorSpacing.cardGap),

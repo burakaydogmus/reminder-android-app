@@ -130,7 +130,7 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.bySemanticsLabel('Şimdi 14:32'), findsOneWidget);
+        expect(find.bySemanticsLabel('Şimdi, saat 14:32'), findsOneWidget);
         // The open card on the ribbon does not repeat the time.
         expect(find.text('16:00'), findsOneWidget);
         semantics.dispose();

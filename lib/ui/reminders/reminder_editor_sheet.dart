@@ -617,6 +617,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                         ),
                         label: Text(
                           timeLabel,
+                          // "saat 16:00" for screen readers (§3.6 rule 11).
+                          semanticsLabel:
+                              _time != null ? 'saat $timeLabel' : null,
                           style: const TextStyle(
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
