@@ -7,6 +7,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/haptics_store.dart';
@@ -34,6 +35,7 @@ class UiHarness {
   static Future<UiHarness> create({
     List<Reminder> reminders = const [],
     List<Birthday> birthdays = const [],
+    List<ReminderCategory> categories = const [],
     DateTime Function() now = DateTime.now,
   }) async {
     if (!_fallbacksRegistered) {
@@ -56,6 +58,8 @@ class UiHarness {
         .thenAnswer((_) async => [...birthdays]);
     when(() => repository.loadSettings())
         .thenAnswer((_) async => const AppSettings());
+    when(() => repository.loadCategories())
+        .thenAnswer((_) async => [...categories]);
 
     final cubit = ReminderCubit(
       repository,

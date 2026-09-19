@@ -4,6 +4,7 @@ import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -15,6 +16,13 @@ class ReminderState {
   final List<Birthday> birthdays;
   final AppSettings settings;
 
+  /// Kategoriler (F4.3), görüntüleme sırasıyla. Yalnızca kategoriler
+  /// değişince yeni bir nesne olur, böylece `context.select` ile okuyan
+  /// arayüz diğer değişikliklerde yeniden çizilmez. Verilmezse yalnızca
+  /// yerleşikler ([CategoryCatalog.builtIns]).
+  CategoryCatalog get categories => _categories ?? CategoryCatalog.builtIns;
+  final CategoryCatalog? _categories;
+
   /// Tarihe bağlı getter'ların (ör. [upcomingBirthdays]) kullandığı saat.
   /// Testlerde sabit bir zaman verilebilir; varsayılan `DateTime.now`.
   final DateTime Function() clock;
@@ -23,8 +31,9 @@ class ReminderState {
     required this.reminders,
     required this.birthdays,
     required this.settings,
+    CategoryCatalog? categories,
     this.clock = DateTime.now,
-  });
+  }) : _categories = categories;
 
   List<Reminder> get active =>
       reminders.where((r) => !r.isDone).toList(growable: false);
@@ -51,11 +60,13 @@ class ReminderState {
     List<Reminder>? reminders,
     List<Birthday>? birthdays,
     AppSettings? settings,
+    CategoryCatalog? categories,
   }) {
     return ReminderState(
       reminders: reminders ?? this.reminders,
       birthdays: birthdays ?? this.birthdays,
       settings: settings ?? this.settings,
+      categories: categories ?? this.categories,
       clock: clock,
     );
   }
@@ -104,10 +115,13 @@ class ReminderCubit extends Cubit<ReminderState> {
     final reminders = _sorted(await _repository.loadReminders());
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
+    final loaded = CategoryCatalog(await _repository.loadCategories());
     emit(ReminderState(
       reminders: reminders,
       birthdays: birthdays,
       settings: settings,
+      // Aynı içerik → aynı nesne (select ile okuyanlar yeniden çizilmez).
+      categories: loaded == state.categories ? state.categories : loaded,
       clock: _now,
     ));
     await _schedules.syncAll(
@@ -205,6 +219,76 @@ class ReminderCubit extends Cubit<ReminderState> {
     await _persistAndSync();
   }
 
+  /// Kullanıcı kategorisi ekler (yeni kimlik, listenin sonuna) veya aynı
+  /// kimlikli kategoriyi günceller (sırası korunur). Yerleşik kategoriler
+  /// düzenlenemez; onlar için hiçbir şey yapmaz.
+  Future<void> saveCategory(ReminderCategory category) async {
+    if (category.isBuiltIn) return;
+    final current = state.categories.ordered;
+    final exists = state.categories.contains(category.id);
+    final next = exists
+        ? [
+            for (final c in current)
+              c.id == category.id ? category.copyWith(position: c.position) : c
+          ]
+        : [...current, category.copyWith(position: current.length)];
+    await _saveCategories(next);
+  }
+
+  /// Kategorileri [orderedIds] sırasına dizer (yerleşikler dahil). Listede
+  /// olmayan kategoriler mevcut sıralarıyla sona eklenir, bilinmeyen
+  /// kimlikler yok sayılır.
+  Future<void> reorderCategories(List<String> orderedIds) async {
+    final byId = {for (final c in state.categories.ordered) c.id: c};
+    final next = <ReminderCategory>[
+      for (final id in orderedIds)
+        if (byId.remove(id) case final c?) c,
+      ...state.categories.ordered.where((c) => byId.containsKey(c.id)),
+    ];
+    await _saveCategories([
+      for (var i = 0; i < next.length; i++) next[i].copyWith(position: i),
+    ]);
+  }
+
+  /// [from] konumundaki kategoriyi [to] konumuna taşır (0 tabanlı, taşıma
+  /// sonrası dizin).
+  Future<void> moveCategory(int from, int to) async {
+    final ids = [for (final c in state.categories.ordered) c.id];
+    if (from < 0 || from >= ids.length) return;
+    final id = ids.removeAt(from);
+    ids.insert(to.clamp(0, ids.length), id);
+    await reorderCategories(ids);
+  }
+
+  /// Kullanıcı kategorisini siler (depoda yumuşak silme); hatırlatıcıları
+  /// "Diğer"e taşınır. Taşınan hatırlatıcı sayısını döndürür. Yerleşik veya
+  /// bilinmeyen kimlik → 0, değişiklik yok.
+  Future<int> deleteCategory(String id) async {
+    if (ReminderCategoryIds.isBuiltIn(id) || !state.categories.contains(id)) {
+      return 0;
+    }
+    var moved = 0;
+    final reminders = _sorted(state.reminders.map((r) {
+      if (r.categoryId != id) return r;
+      moved++;
+      return r.copyWith(categoryId: ReminderCategoryIds.other);
+    }));
+    final categories = CategoryCatalog(
+      state.categories.ordered.where((c) => c.id != id),
+    );
+    emit(state.copyWith(reminders: reminders, categories: categories));
+    await _repository.saveCategories(categories.ordered);
+    if (moved > 0) await _persistAndSync();
+    return moved;
+  }
+
+  Future<void> _saveCategories(List<ReminderCategory> categories) async {
+    final next = CategoryCatalog(categories);
+    if (next == state.categories) return;
+    emit(state.copyWith(categories: next));
+    await _repository.saveCategories(next.ordered);
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     emit(state.copyWith(
       settings: state.settings.copyWith(notificationsEnabled: enabled),
@@ -231,6 +315,7 @@ class ReminderCubit extends Cubit<ReminderState> {
       reminders: const [],
       birthdays: const [],
       settings: const AppSettings(),
+      categories: CategoryCatalog.builtIns,
       clock: _now,
     ));
     await _homeWidget.sync(const []);

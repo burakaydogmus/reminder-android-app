@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
@@ -118,6 +119,34 @@ Subtask subtaskFromRow(SubtaskRow row) {
     id: row.id,
     title: row.title,
     isDone: row.isDone,
+    position: row.position,
+  );
+}
+
+/// Kategori satırı (v5, F4.3); `position` katalogdaki sıra.
+CategoryRow categoryToRow(
+  ReminderCategory c, {
+  required int position,
+  required int updatedAt,
+  int? deletedAt,
+}) {
+  return CategoryRow(
+    id: c.id,
+    name: c.name,
+    colorKey: c.colorKey,
+    iconKey: c.iconKey,
+    position: position,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+  );
+}
+
+ReminderCategory categoryFromRow(CategoryRow row) {
+  return ReminderCategory(
+    id: row.id,
+    name: row.name,
+    colorKey: row.colorKey,
+    iconKey: row.iconKey,
     position: row.position,
   );
 }
