@@ -1,4 +1,5 @@
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/domain/text_search.dart';
 
@@ -50,6 +51,7 @@ class ReminderSearchResults {
 ///   (2) < note (3); results sort by the summed rank, then by
 ///   [compareReminders].
 /// - [statuses] empty means both; [categoryId] null means every category.
+/// - Category labels come from [categories] (F4.3; default: built-ins).
 abstract final class ReminderSearch {
   static const int _titleWordStart = 0;
   static const int _title = 1;
@@ -61,7 +63,9 @@ abstract final class ReminderSearch {
     String query, {
     Set<SearchStatus> statuses = const {SearchStatus.open},
     String? categoryId,
+    CategoryCatalog? categories,
   }) {
+    final catalog = categories ?? CategoryCatalog.builtIns;
     final tokens = TextSearch.tokens(query);
     if (tokens.isEmpty) return ReminderSearchResults.empty;
 
@@ -76,7 +80,7 @@ abstract final class ReminderSearch {
 
       final title = TextSearch.fold(r.title);
       final note = TextSearch.fold(r.note ?? '');
-      final category = TextSearch.fold(r.categoryDisplayLabel);
+      final category = TextSearch.fold(catalog.labelOf(r.categoryId));
       final place = TextSearch.fold(r.locationPlaceLabel ?? '');
 
       var score = 0;

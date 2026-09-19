@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/calendar/reschedule.dart';
 import 'package:reminder/ui/common/kor_format.dart';
@@ -29,7 +30,11 @@ abstract final class AgendaRowKeys {
 
 /// Spoken label of an agenda reminder row (same wording as `ReminderCard`,
 /// plus the series note for later occurrences).
-String agendaReminderLabel(ReminderOccurrence o, DateTime now) {
+String agendaReminderLabel(
+  ReminderOccurrence o,
+  DateTime now, {
+  String? categoryLabel,
+}) {
   final r = o.reminder;
   final at = o.at;
   final overdue = o.isStored && at.isBefore(now);
@@ -40,7 +45,7 @@ String agendaReminderLabel(ReminderOccurrence o, DateTime now) {
       : null;
   return [
     r.title,
-    r.categoryDisplayLabel,
+    categoryLabel ?? CategoryCatalog.builtIns.labelOf(r.categoryId),
     '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
     if (overdue) 'gecikti',
     if (r.isRecurring) 'tekrar: ${r.recurrence.summary}',
@@ -107,7 +112,11 @@ class _AgendaReminderRowState extends State<AgendaReminderRow> {
     return Semantics(
       key: AgendaRowKeys.reminder(r.id),
       container: true,
-      label: agendaReminderLabel(widget.occurrence, widget.now),
+      label: agendaReminderLabel(
+        widget.occurrence,
+        widget.now,
+        categoryLabel: CategoryVisuals.labelOf(context, r.categoryId),
+      ),
       onTap: edit,
       customSemanticsActions: {
         CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
@@ -169,7 +178,7 @@ class _DragFeedback extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(CategoryVisuals.iconFor(reminder.categoryId),
+              Icon(CategoryVisuals.iconFor(context, reminder.categoryId),
                   color: colors.fg),
               const SizedBox(width: KorSpacing.s3),
               Flexible(
@@ -323,7 +332,11 @@ class AgendaOccurrenceRow extends StatelessWidget {
       key: AgendaRowKeys.occurrence(r.id, occurrence.at),
       container: true,
       button: true,
-      label: agendaReminderLabel(occurrence, now),
+      label: agendaReminderLabel(
+        occurrence,
+        now,
+        categoryLabel: CategoryVisuals.labelOf(context, r.categoryId),
+      ),
       hint: 'Seriyi düzenle',
       excludeSemantics: true,
       child: DecoratedBox(
@@ -367,11 +380,15 @@ class AgendaOccurrenceRow extends StatelessWidget {
                               style: metaStyle,
                               children: [
                                 metaIcon(
-                                  CategoryVisuals.iconFor(r.categoryId),
+                                  CategoryVisuals.iconFor(
+                                      context, r.categoryId),
                                   category.fg,
                                 ),
                                 TextSpan(
-                                  text: r.categoryDisplayLabel,
+                                  text: CategoryVisuals.labelOf(
+                                    context,
+                                    r.categoryId,
+                                  ),
                                   style: TextStyle(color: category.fg),
                                 ),
                                 const TextSpan(text: '  ·  '),

@@ -77,7 +77,7 @@ class TimeRibbonRow extends StatelessWidget {
                 ),
               ),
             TextSpan(
-              text: reminder.categoryDisplayLabel,
+              text: CategoryVisuals.labelOf(context, reminder.categoryId),
               style: TextStyle(color: category.fg),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/recurrence_expansion.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -213,6 +214,7 @@ Map<DateTime, List<KorColorKey>> calendarDayMarkers({
   required DateTime to,
   CalendarFilter filter = CalendarFilter.all,
   int maxDots = 3,
+  CategoryCatalog? categories,
 }) {
   final start = CalendarDates.dateOnly(from);
   final end = CalendarDates.dateOnly(to);
@@ -232,7 +234,7 @@ Map<DateTime, List<KorColorKey>> calendarDayMarkers({
   for (final o in occurrences) {
     add(
       CalendarDates.dateOnly(o.at),
-      CategoryVisuals.colorKeyFor(o.reminder.categoryId),
+      CategoryVisuals.colorKeyFor(o.reminder.categoryId, categories),
     );
   }
   return {
