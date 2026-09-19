@@ -10,7 +10,6 @@ import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/today/today_sections.dart';
 
 import '../../helpers/factories.dart';
@@ -370,7 +369,7 @@ void main() {
       expect(_byId(h, 'r').pinned, isTrue);
       expect(find.text('“Faturayı öde” sabitlendi'), findsOneWidget);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(_byId(h, 'r').pinned, isFalse);
 

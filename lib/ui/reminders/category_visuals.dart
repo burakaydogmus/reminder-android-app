@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
@@ -31,51 +32,49 @@ abstract final class CategoryIcons {
     CategoryIconKeys.book: Icons.menu_book_rounded,
   };
 
-  /// Turkish names for screen readers ("Spor, seçili").
-  static const Map<String, String> spokenNames = {
-    CategoryIconKeys.label: 'Etiket',
-    CategoryIconKeys.basket: 'Sepet',
-    CategoryIconKeys.home: 'Ev',
-    CategoryIconKeys.work: 'Çanta',
-    CategoryIconKeys.heart: 'Kalp',
-    CategoryIconKeys.sun: 'Güneş',
-    CategoryIconKeys.fitness: 'Spor',
-    CategoryIconKeys.school: 'Okul',
-    CategoryIconKeys.pets: 'Evcil hayvan',
-    CategoryIconKeys.car: 'Araba',
-    CategoryIconKeys.flight: 'Uçak',
-    CategoryIconKeys.restaurant: 'Yemek',
-    CategoryIconKeys.payments: 'Para',
-    CategoryIconKeys.medication: 'İlaç',
-    CategoryIconKeys.child: 'Çocuk',
-    CategoryIconKeys.flower: 'Çiçek',
-    CategoryIconKeys.build: 'Tamir',
-    CategoryIconKeys.book: 'Kitap',
-  };
+  /// Names for screen readers ("Spor, seçili").
+  static String spokenName(String key, AppLocalizations l10n) => switch (key) {
+        CategoryIconKeys.basket => l10n.categoryIconBasket,
+        CategoryIconKeys.home => l10n.categoryIconHome,
+        CategoryIconKeys.work => l10n.categoryIconWork,
+        CategoryIconKeys.heart => l10n.categoryIconHeart,
+        CategoryIconKeys.sun => l10n.categoryIconSun,
+        CategoryIconKeys.fitness => l10n.categoryIconFitness,
+        CategoryIconKeys.school => l10n.categoryIconSchool,
+        CategoryIconKeys.pets => l10n.categoryIconPets,
+        CategoryIconKeys.car => l10n.categoryIconCar,
+        CategoryIconKeys.flight => l10n.categoryIconFlight,
+        CategoryIconKeys.restaurant => l10n.categoryIconRestaurant,
+        CategoryIconKeys.payments => l10n.categoryIconPayments,
+        CategoryIconKeys.medication => l10n.categoryIconMedication,
+        CategoryIconKeys.child => l10n.categoryIconChild,
+        CategoryIconKeys.flower => l10n.categoryIconFlower,
+        CategoryIconKeys.build => l10n.categoryIconBuild,
+        CategoryIconKeys.book => l10n.categoryIconBook,
+        _ => l10n.categoryIconLabel,
+      };
 
   /// Unknown keys fall back to the label icon.
   static IconData of(String key) => byKey[key] ?? Icons.label_rounded;
 }
 
-/// Turkish names of the 12 category colours for screen readers
-/// ("Lacivert, seçili", §3.3.6).
+/// Names of the 12 category colours for screen readers ("Lacivert,
+/// seçili", §3.3.6).
 abstract final class CategoryColorNames {
-  static const Map<KorColorKey, String> _names = {
-    KorColorKey.market: 'Yeşil',
-    KorColorKey.ev: 'Turkuaz',
-    KorColorKey.is_: 'Mavi',
-    KorColorKey.saglik: 'Pembe',
-    KorColorKey.gunluk: 'Hardal',
-    KorColorKey.diger: 'Mor',
-    KorColorKey.dogumGunu: 'Eflatun',
-    KorColorKey.kor: 'Kor',
-    KorColorKey.lacivert: 'Lacivert',
-    KorColorKey.zeytin: 'Zeytin',
-    KorColorKey.kiremit: 'Kiremit',
-    KorColorKey.arduvaz: 'Arduvaz',
-  };
-
-  static String of(KorColorKey key) => _names[key]!;
+  static String of(KorColorKey key, AppLocalizations l10n) => switch (key) {
+        KorColorKey.market => l10n.colorMarket,
+        KorColorKey.ev => l10n.colorEv,
+        KorColorKey.is_ => l10n.colorIs,
+        KorColorKey.saglik => l10n.colorSaglik,
+        KorColorKey.gunluk => l10n.colorGunluk,
+        KorColorKey.diger => l10n.colorDiger,
+        KorColorKey.dogumGunu => l10n.colorDogumGunu,
+        KorColorKey.kor => l10n.colorKor,
+        KorColorKey.lacivert => l10n.colorLacivert,
+        KorColorKey.zeytin => l10n.colorZeytin,
+        KorColorKey.kiremit => l10n.colorKiremit,
+        KorColorKey.arduvaz => l10n.colorArduvaz,
+      };
 }
 
 /// The single mapping from category ids to Kor colour keys, icons and
@@ -112,9 +111,33 @@ abstract final class CategoryVisuals {
           ? ReminderCategory.builtIn(id)
           : catalogOf(context).resolve(id);
 
-  /// Display name of [id] ("Market", "Spor salonu", unknown → "Diğer").
+  /// Display name of [id] ("Market", "Spor salonu", unknown → "Diğer") in
+  /// the app language: built-ins are translated, user categories keep the
+  /// name the user typed.
   static String labelOf(BuildContext context, String id) =>
-      categoryOf(context, id).name;
+      nameOf(categoryOf(context, id), context.l10n);
+
+  /// Display name of [category] (see [labelOf]); also for pure code.
+  static String nameOf(ReminderCategory category, AppLocalizations l10n) =>
+      category.isBuiltIn ? builtInName(category.id, l10n) : category.name;
+
+  /// Localized name of a built-in category id (unknown → "Diğer").
+  static String builtInName(String id, AppLocalizations l10n) => switch (id) {
+        ReminderCategoryIds.market => l10n.categoryMarket,
+        ReminderCategoryIds.home => l10n.categoryHome,
+        ReminderCategoryIds.work => l10n.categoryWork,
+        ReminderCategoryIds.health => l10n.categoryHealth,
+        ReminderCategoryIds.errands => l10n.categoryErrands,
+        _ => l10n.categoryOther,
+      };
+
+  /// [labelOf] for pure code: [id] resolved in [catalog].
+  static String labelIn(
+    CategoryCatalog catalog,
+    String id,
+    AppLocalizations l10n,
+  ) =>
+      nameOf(catalog.resolve(id), l10n);
 
   static IconData iconFor(BuildContext context, String id) =>
       iconOf(categoryOf(context, id));

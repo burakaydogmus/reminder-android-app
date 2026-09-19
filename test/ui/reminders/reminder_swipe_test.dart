@@ -63,7 +63,7 @@ Future<void> _swipe(WidgetTester tester, String title, double fraction) async {
 }
 
 Future<void> _tapUndo(WidgetTester tester) async {
-  await tester.tap(find.text(UndoSnackBar.actionLabel));
+  await tester.tap(find.text('Geri al'));
   await tester.pumpAndSettle();
 }
 
@@ -432,10 +432,10 @@ void main() {
       // The dismiss timer starts once the entry animation has completed.
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 9));
-      expect(find.text(UndoSnackBar.actionLabel), findsOneWidget);
+      expect(find.text('Geri al'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 1100));
       await tester.pumpAndSettle();
-      expect(find.text(UndoSnackBar.actionLabel), findsNothing);
+      expect(find.text('Geri al'), findsNothing);
       semantics.dispose();
     });
 
@@ -443,12 +443,12 @@ void main() {
         (tester) async {
       await _pumpShell(tester);
       await _swipe(tester, _aliTitle, 0.5);
-      expect(find.text(UndoSnackBar.actionLabel), findsOneWidget);
+      expect(find.text('Geri al'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
-      expect(find.text(UndoSnackBar.actionLabel), findsOneWidget);
+      expect(find.text('Geri al'), findsOneWidget);
       await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
-      expect(find.text(UndoSnackBar.actionLabel), findsNothing);
+      expect(find.text('Geri al'), findsNothing);
     });
   });
 }

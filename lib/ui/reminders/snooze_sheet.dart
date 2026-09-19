@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/reminders/snooze_options.dart';
@@ -84,17 +85,20 @@ class _SnoozeSheetState extends State<_SnoozeSheet> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final now = widget.clock();
+    final l10n = context.l10n;
     final options = SnoozeOptions.from(now);
     final bottom = MediaQuery.paddingOf(context).bottom;
 
     Widget card(SnoozeOption o) => _OptionCard(
           key: SnoozeSheetKeys.option(o.kind),
           icon: _iconFor(o.kind),
-          label: o.label,
-          time: SnoozeOptions.timeLabel(o.at, now),
-          semanticLabel: '${o.label}, '
-              '${KorFormat.relativeDay(o.at, now).toLowerCase()} '
-              '${KorFormat.spokenTime(o.at)}',
+          label: o.labelIn(l10n),
+          time: SnoozeOptions.timeLabel(o.at, now, l10n),
+          semanticLabel: l10n.snoozeOptionSpoken(
+            o.labelIn(l10n),
+            KorFormat.relativeDay(o.at, now, l10n).toLowerCase(),
+            KorFormat.spokenTime(o.at, l10n),
+          ),
           onTap: () => Navigator.of(context).pop(o.at),
         );
 
@@ -122,7 +126,10 @@ class _SnoozeSheetState extends State<_SnoozeSheet> {
         children: [
           Semantics(
             header: true,
-            child: Text('Ertele', style: theme.textTheme.titleLarge),
+            child: Text(
+              l10n.snoozeSheetTitle,
+              style: theme.textTheme.titleLarge,
+            ),
           ),
           Text(
             widget.reminder.title,
@@ -151,7 +158,7 @@ class _SnoozeSheetState extends State<_SnoozeSheet> {
                     const SizedBox(width: KorSpacing.s4),
                     Expanded(
                       child: Text(
-                        'Tarih ve saat seç…',
+                        l10n.snoozeCustom,
                         style: theme.textTheme.labelLarge,
                       ),
                     ),
@@ -178,7 +185,7 @@ class _SnoozeSheetState extends State<_SnoozeSheet> {
                   const SizedBox(width: KorSpacing.s3),
                   Expanded(
                     child: Text(
-                      'Bu saat geçti. Daha ileri bir zaman seç.',
+                      l10n.snoozePastError,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.error,
                       ),

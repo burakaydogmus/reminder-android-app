@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
@@ -74,16 +75,25 @@ class CategoryEditorSheet extends StatefulWidget {
 
   /// Validation message for [name], `null` when it can be saved: not empty
   /// and no other category with the same folded name (case and Turkish
-  /// diacritics ignored, built-ins included).
+  /// diacritics ignored, built-ins included — by their stored Turkish name
+  /// and by their name in [l10n]).
   static String? validateName(
     String name,
-    CategoryCatalog catalog, {
+    CategoryCatalog catalog,
+    AppLocalizations l10n, {
     String? exceptId,
   }) {
     final normalized = ReminderCategory.normalizeName(name);
-    if (normalized.isEmpty) return 'Kategoriye bir ad ver';
-    if (catalog.byFoldedName(normalized, exceptId: exceptId) != null) {
-      return 'Bu adda bir kategori zaten var';
+    if (normalized.isEmpty) return l10n.categoryNameEmpty;
+    final folded = CategoryNames.fold(normalized);
+    final clashesWithBuiltIn = ReminderCategoryIds.orderedIds.any(
+      (id) =>
+          id != exceptId &&
+          CategoryNames.fold(CategoryVisuals.builtInName(id, l10n)) == folded,
+    );
+    if (clashesWithBuiltIn ||
+        catalog.byFoldedName(normalized, exceptId: exceptId) != null) {
+      return l10n.categoryNameTaken;
     }
     return null;
   }
@@ -132,6 +142,7 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
     final error = CategoryEditorSheet.validateName(
       _name.text,
       cubit.state.categories,
+      context.l10n,
       exceptId: widget.existing?.id,
     );
     if (error != null) {
@@ -149,14 +160,15 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
   Future<void> _delete() async {
     final existing = widget.existing!;
     final cubit = context.read<ReminderCubit>();
+    final l10n = context.l10n;
     final count =
         cubit.state.reminders.where((r) => r.categoryId == existing.id).length;
     final confirmed = await showConfirmationDialog(
       context,
-      title: '“${existing.name}” silinsin mi?',
+      title: l10n.categoryDeleteTitle(existing.name),
       content: count == 0
-          ? 'Bu kategoride hatırlatıcı yok.'
-          : "Bu kategorideki $count hatırlatıcı Diğer'e taşınacak.",
+          ? l10n.categoryDeleteEmpty
+          : l10n.categoryDeleteMoves(count, l10n.categoryOther),
     );
     if (!confirmed || !mounted) return;
     await cubit.deleteCategory(existing.id);
@@ -188,7 +200,7 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
             Semantics(
               header: true,
               child: Text(
-                isNew ? 'Yeni kategori' : 'Kategoriyi düzenle',
+                isNew ? context.l10n.categoryNew : context.l10n.categoryEdit,
                 style: theme.textTheme.titleLarge,
               ),
             ),
@@ -208,13 +220,16 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
               onChanged: (_) => setState(() => _nameError = null),
               onSubmitted: (_) => _save(),
               decoration: InputDecoration(
-                labelText: 'Ad',
-                hintText: 'Örn. Spor salonu',
+                labelText: context.l10n.categoryNameLabel,
+                hintText: context.l10n.categoryNameHint,
                 errorText: _nameError,
               ),
             ),
             const SizedBox(height: KorSpacing.s4),
-            const SectionHeader(title: 'Renk', icon: Icons.palette_outlined),
+            SectionHeader(
+              title: context.l10n.categoryColor,
+              icon: Icons.palette_outlined,
+            ),
             _Grid(
               children: [
                 for (final key in KorColorKey.values)
@@ -227,7 +242,10 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
               ],
             ),
             const SizedBox(height: KorSpacing.s5),
-            const SectionHeader(title: 'İkon', icon: Icons.category_outlined),
+            SectionHeader(
+              title: context.l10n.categoryIcon,
+              icon: Icons.category_outlined,
+            ),
             _Grid(
               children: [
                 for (final key in CategoryIconKeys.all)
@@ -255,7 +273,7 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
                     ),
                     onPressed: _delete,
                     icon: const Icon(Icons.delete_outline_rounded),
-                    label: const Text('Sil'),
+                    label: Text(context.l10n.actionDelete),
                   ),
                 const Spacer(),
                 FilledButton(
@@ -267,7 +285,7 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
                     ),
                   ),
                   onPressed: _save,
-                  child: const Text('Kaydet'),
+                  child: Text(context.l10n.actionSave),
                 ),
               ],
             ),
@@ -290,9 +308,12 @@ class CategoryPreview extends StatelessWidget {
     final theme = Theme.of(context);
     final colors =
         context.korColors.category(CategoryVisuals.colorKeyOf(category));
-    final name = category.name.isEmpty ? 'Yeni kategori' : category.name;
+    final l10n = context.l10n;
+    final name = category.name.isEmpty
+        ? l10n.categoryNew
+        : CategoryVisuals.nameOf(category, l10n);
     return Semantics(
-      label: 'Önizleme: $name',
+      label: l10n.categoryPreviewSpoken(name),
       excludeSemantics: true,
       child: Align(
         alignment: AlignmentDirectional.centerStart,
@@ -379,7 +400,7 @@ class ColorSwatchButton extends StatelessWidget {
       button: true,
       selected: selected,
       inMutuallyExclusiveGroup: true,
-      label: CategoryColorNames.of(colorKey),
+      label: CategoryColorNames.of(colorKey, context.l10n),
       excludeSemantics: true,
       onTap: onTap,
       child: InkResponse(
@@ -440,7 +461,7 @@ class _IconCell extends StatelessWidget {
       button: true,
       selected: selected,
       inMutuallyExclusiveGroup: true,
-      label: CategoryIcons.spokenNames[iconKey],
+      label: CategoryIcons.spokenName(iconKey, context.l10n),
       excludeSemantics: true,
       onTap: onTap,
       child: InkResponse(

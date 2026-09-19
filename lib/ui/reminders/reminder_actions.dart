@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
@@ -24,8 +25,6 @@ import 'package:reminder/ui/theme/haptics.dart';
 
 Reminder? _find(ReminderCubit cubit, String id) =>
     cubit.state.reminders.where((r) => r.id == id).firstOrNull;
-
-String _quoted(Reminder r) => '“${r.title.trim()}”';
 
 /// Tamamla / Geri aç, then "“…” tamamlandı · Geri al".
 ///
@@ -55,6 +54,7 @@ Future<void> Function() prepareToggleReminderDone(
   final messenger = ScaffoldMessenger.of(context);
   final clock = now ?? NowScope.clockOf(context);
   final haptics = KorHaptics.of(context);
+  final l10n = context.l10n;
   return () async {
     final current = _find(cubit, reminder.id) ?? reminder;
     final completing = !current.isDone;
@@ -68,10 +68,10 @@ Future<void> Function() prepareToggleReminderDone(
     UndoSnackBar.show(
       messenger,
       message: advancedTo != null
-          ? RecurrenceFormat.next(advancedTo, clock())
+          ? RecurrenceFormat.next(advancedTo, clock(), l10n)
           : completing
-              ? '${_quoted(current)} tamamlandı'
-              : '${_quoted(current)} geri açıldı',
+              ? l10n.undoCompleted(current.title.trim())
+              : l10n.undoReopened(current.title.trim()),
       onUndo: () {
         unawaited(haptics.undo());
         final latest = _find(cubit, reminder.id);
@@ -106,6 +106,7 @@ Future<void> snoozeReminderWithUndo(
   final messenger = ScaffoldMessenger.of(context);
   final clock = now ?? NowScope.clockOf(context);
   final haptics = KorHaptics.of(context);
+  final l10n = context.l10n;
   final at = await showSnoozeSheet(context, reminder: reminder, now: clock);
   if (at == null) return;
   final current = _find(cubit, reminder.id);
@@ -115,7 +116,7 @@ Future<void> snoozeReminderWithUndo(
   final updated = cubit.updateReminder(current.copyWith(remindAt: () => at));
   UndoSnackBar.show(
     messenger,
-    message: SnoozeOptions.snoozedMessage(at, clock()),
+    message: SnoozeOptions.snoozedMessage(at, clock(), l10n),
     onUndo: () {
       unawaited(haptics.undo());
       final latest = _find(cubit, reminder.id);
@@ -139,12 +140,13 @@ Future<void> deleteReminderWithUndo(
   final messenger = ScaffoldMessenger.of(context);
   final original = _find(cubit, reminder.id) ?? reminder;
   final haptics = KorHaptics.of(context);
+  final l10n = context.l10n;
   unawaited(haptics.delete());
 
   final deleted = cubit.deleteReminder(original.id);
   UndoSnackBar.show(
     messenger,
-    message: '${_quoted(original)} silindi',
+    message: l10n.undoDeleted(original.title.trim()),
     onUndo: () {
       unawaited(haptics.undo());
       if (_find(cubit, original.id) == null) {
@@ -164,6 +166,7 @@ Future<void> togglePinnedWithUndo(
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
   final haptics = KorHaptics.of(context);
+  final l10n = context.l10n;
   final current = _find(cubit, reminder.id) ?? reminder;
   final pinning = !current.pinned;
 
@@ -171,8 +174,8 @@ Future<void> togglePinnedWithUndo(
   UndoSnackBar.show(
     messenger,
     message: pinning
-        ? '${_quoted(current)} sabitlendi'
-        : '${_quoted(current)} sabitlemesi kaldırıldı',
+        ? l10n.undoPinned(current.title.trim())
+        : l10n.undoUnpinned(current.title.trim()),
     onUndo: () {
       unawaited(haptics.undo());
       final latest = _find(cubit, reminder.id);
@@ -191,6 +194,7 @@ enum _ReminderMenuAction { toggleDone, snooze, togglePin, edit, delete }
 /// widget of [context].
 Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
   final scheme = Theme.of(context).colorScheme;
+  final l10n = context.l10n;
   final box = context.findRenderObject() as RenderBox?;
   final overlay =
       Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
@@ -232,24 +236,32 @@ Future<void> showReminderMenu(BuildContext context, Reminder reminder) async {
     position: position,
     items: [
       reminder.isDone
-          ? item(_ReminderMenuAction.toggleDone, Icons.undo_rounded, 'Geri aç')
+          ? item(
+              _ReminderMenuAction.toggleDone,
+              Icons.undo_rounded,
+              l10n.actionReopen,
+            )
           : item(
               _ReminderMenuAction.toggleDone,
               Icons.check_circle_outline_rounded,
-              'Tamamla',
+              l10n.actionComplete,
             ),
       if (!reminder.isDone)
-        item(_ReminderMenuAction.snooze, Icons.snooze_rounded, 'Ertele'),
+        item(
+          _ReminderMenuAction.snooze,
+          Icons.snooze_rounded,
+          l10n.actionSnooze,
+        ),
       item(
         _ReminderMenuAction.togglePin,
         PriorityPinVisuals.pinIcon(reminder.pinned),
-        PriorityPinVisuals.pinActionLabel(reminder.pinned),
+        PriorityPinVisuals.pinActionLabel(reminder.pinned, l10n),
       ),
-      item(_ReminderMenuAction.edit, Icons.edit_rounded, 'Düzenle'),
+      item(_ReminderMenuAction.edit, Icons.edit_rounded, l10n.actionEdit),
       item(
         _ReminderMenuAction.delete,
         Icons.delete_outline_rounded,
-        'Sil',
+        l10n.actionDelete,
         color: scheme.error,
       ),
     ],

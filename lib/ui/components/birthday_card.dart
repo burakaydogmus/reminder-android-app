@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -34,21 +35,22 @@ class BirthdayCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final colors = CategoryVisuals.birthdayColorsOf(context);
+    final l10n = context.l10n;
     final b = occurrence.birthday;
     final age = occurrence.age;
-    final countdown = KorFormat.countdown(occurrence.daysUntil);
+    final countdown = KorFormat.countdown(occurrence.daysUntil, l10n);
 
     final subtitleParts = <String>[
       age != null
-          ? '$age yaşına giriyor'
-          : KorFormat.dayMonth(occurrence.date, now),
+          ? l10n.birthdayTurnsAge('$age')
+          : KorFormat.dayMonth(occurrence.date, now, l10n),
       if (b.note != null && b.note!.trim().isNotEmpty) b.note!.trim(),
     ];
     final subtitle = subtitleParts.join(' · ');
 
     return Semantics(
       button: onTap != null,
-      label: 'Doğum günü: ${b.name}, $countdown, $subtitle',
+      label: l10n.birthdaySpokenLabel(b.name, countdown, subtitle),
       excludeSemantics: true,
       child: Material(
         color: colors.container,

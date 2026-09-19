@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -57,23 +58,23 @@ class ReminderCompactCard extends StatelessWidget {
   }
 
   /// Same wording as [ReminderCard]'s label.
-  String semanticLabel(String categoryLabel) {
+  String semanticLabel(String categoryLabel, AppLocalizations l10n) {
     final at = reminder.remindAt?.toLocal();
     final place = reminder.locationTriggerEnabled
         ? ((reminder.locationPlaceLabel?.trim().isNotEmpty ?? false)
             ? reminder.locationPlaceLabel!.trim()
-            : 'Konum')
+            : l10n.reminderPlaceFallback)
         : null;
     return [
       reminder.title,
       categoryLabel,
-      if (at != null)
-        '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
-      if (_isOverdue) 'gecikti',
-      if (place != null) 'konum: $place',
-      if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
-      ...PriorityPinVisuals.spokenParts(reminder),
-      reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
+      if (at != null) KorFormat.spokenWhen(at, now, l10n),
+      if (_isOverdue) l10n.reminderSpokenOverdue,
+      if (place != null) l10n.reminderSpokenPlace(place),
+      if (reminder.hasSubtasks)
+        SubtaskProgressText.spoken(reminder.subtasks, l10n),
+      ...PriorityPinVisuals.spokenParts(reminder, l10n),
+      reminder.isDone ? l10n.reminderSpokenDone : l10n.reminderSpokenOpen,
     ].join(', ');
   }
 
@@ -109,6 +110,7 @@ class ReminderCompactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
     final categoryLabel = CategoryVisuals.labelOf(context, reminder.categoryId);
     final done = reminder.isDone;
@@ -134,15 +136,17 @@ class ReminderCompactCard extends StatelessWidget {
       onDelete: delete,
       child: Semantics(
         container: true,
-        label: semanticLabel(categoryLabel),
+        label: semanticLabel(categoryLabel, l10n),
         customSemanticsActions: {
-          CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
-          if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
           CustomSemanticsAction(
-            label: PriorityPinVisuals.pinActionLabel(reminder.pinned),
+            label: done ? l10n.actionReopen : l10n.actionComplete,
+          ): toggle,
+          if (!done) CustomSemanticsAction(label: l10n.actionSnooze): snooze,
+          CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(reminder.pinned, l10n),
           ): togglePin,
-          const CustomSemanticsAction(label: 'Düzenle'): edit,
-          const CustomSemanticsAction(label: 'Sil'): delete,
+          CustomSemanticsAction(label: l10n.actionEdit): edit,
+          CustomSemanticsAction(label: l10n.actionDelete): delete,
         },
         child: DecoratedBox(
           decoration: korCardDecoration(context, flat: done),

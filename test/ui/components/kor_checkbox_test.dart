@@ -5,7 +5,6 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/haptics_store.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
@@ -305,7 +304,7 @@ void main() {
       await tester.tap(checkboxOf('Kitabı iade et'));
       await tester.pump(const Duration(milliseconds: 600));
       expect(byId(h, 'book').isDone, isFalse);
-      expect(find.text(UndoSnackBar.actionLabel), findsNothing);
+      expect(find.text('Geri al'), findsNothing);
 
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
@@ -317,7 +316,7 @@ void main() {
         hasLength(1),
       );
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(byId(h, 'book').isDone, isFalse);
       expect(haptics.last, 'HapticFeedbackType.lightImpact');
@@ -350,7 +349,7 @@ void main() {
       await tester.pump(KorCheckbox.hold);
       await tester.pumpAndSettle();
       expect(byId(h, 'book').isDone, isTrue);
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(haptics, isEmpty);
     });

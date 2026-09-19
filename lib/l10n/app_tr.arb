@@ -36,5 +36,1586 @@
   "@settingsLanguageEnglish": {
     "description": "Language segment; always the endonym."
   },
-  "settingsLanguageHint": "Sistem, cihaz dili Türkçeyse Türkçe, değilse İngilizce kullanır."
+  "settingsLanguageHint": "Sistem, cihaz dili Türkçeyse Türkçe, değilse İngilizce kullanır.",
+  "timeSpoken": "saat {time}",
+  "@timeSpoken": {
+    "description": "Screen-reader time (§3.6 rule 11): every spoken time uses this.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dateFormatHeader": "EEEE, d MMMM",
+  "@dateFormatHeader": {
+    "description": "intl DateFormat pattern: Bugün header date."
+  },
+  "dateFormatDayMonth": "d MMMM",
+  "@dateFormatDayMonth": {
+    "description": "intl DateFormat pattern."
+  },
+  "dateFormatDayMonthYear": "d MMMM y",
+  "@dateFormatDayMonthYear": {
+    "description": "intl DateFormat pattern."
+  },
+  "dateFormatShort": "d MMM",
+  "@dateFormatShort": {
+    "description": "intl DateFormat pattern: short date on cards."
+  },
+  "dateFormatShortYear": "d MMM y",
+  "@dateFormatShortYear": {
+    "description": "intl DateFormat pattern."
+  },
+  "dateFormatAgenda": "EEEE d MMMM",
+  "@dateFormatAgenda": {
+    "description": "intl DateFormat pattern: agenda day header."
+  },
+  "dateFormatAgendaYear": "EEEE d MMMM y",
+  "@dateFormatAgendaYear": {
+    "description": "intl DateFormat pattern."
+  },
+  "dateFormatMonthYear": "MMMM y",
+  "@dateFormatMonthYear": {
+    "description": "intl DateFormat pattern: month title."
+  },
+  "dateFormatMonth": "MMMM",
+  "@dateFormatMonth": {
+    "description": "intl DateFormat pattern: month name."
+  },
+  "dateFormatDayMonthWeekday": "d MMMM EEEE",
+  "@dateFormatDayMonthWeekday": {
+    "description": "intl DateFormat pattern."
+  },
+  "dayToday": "Bugün",
+  "dayTomorrow": "Yarın",
+  "dayYesterday": "Dün",
+  "dayAndTime": "{day} {time}",
+  "@dayAndTime": {
+    "description": "\"Yarın 09:00\", \"14 Eyl saat 09:00\".",
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "agendaDayToday": "Bugün · {date}",
+  "@agendaDayToday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "agendaDayTomorrow": "Yarın · {date}",
+  "@agendaDayTomorrow": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceNone": "Tekrar yok",
+  "recurrenceWeekdays": "Hafta içi her gün",
+  "recurrenceUntil": "{base} · bitiş {date}",
+  "@recurrenceUntil": {
+    "placeholders": {
+      "base": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "actionComplete": "Tamamla",
+  "actionReopen": "Geri aç",
+  "actionSnooze": "Ertele",
+  "actionEdit": "Düzenle",
+  "actionDelete": "Sil",
+  "actionPin": "Sabitle",
+  "actionUnpin": "Sabitlemeyi kaldır",
+  "actionUndo": "Geri al",
+  "actionCancel": "İptal",
+  "actionSave": "Kaydet",
+  "actionConfirm": "Onayla",
+  "actionLater": "Sonra",
+  "priorityNone": "Yok",
+  "priorityLow": "Düşük",
+  "priorityMedium": "Orta",
+  "priorityHigh": "Yüksek",
+  "prioritySpoken": "{level} öncelik",
+  "@prioritySpoken": {
+    "description": "\"Yüksek öncelik\".",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "subtasksSpoken": "maddeler: {progress} tamamlandı",
+  "@subtasksSpoken": {
+    "description": "progress is \"2/6\".",
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderSpokenOverdue": "gecikti",
+  "reminderSpokenRecurring": "tekrar: {summary}",
+  "@reminderSpokenRecurring": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderSpokenPlace": "konum: {place}",
+  "@reminderSpokenPlace": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderSpokenPinned": "sabitlendi",
+  "reminderSpokenDone": "tamamlandı",
+  "reminderSpokenOpen": "tamamlanmadı",
+  "reminderOverdue": "Gecikti",
+  "reminderPlaceFallback": "Konum",
+  "@reminderPlaceFallback": {
+    "description": "Place label when a location reminder has no name."
+  },
+  "categoryMarket": "Market",
+  "@categoryMarket": {
+    "description": "Built-in category name."
+  },
+  "categoryHome": "Ev İşleri",
+  "@categoryHome": {
+    "description": "Built-in category name."
+  },
+  "categoryWork": "İş",
+  "@categoryWork": {
+    "description": "Built-in category name."
+  },
+  "categoryHealth": "Sağlık",
+  "@categoryHealth": {
+    "description": "Built-in category name."
+  },
+  "categoryErrands": "Günlük",
+  "@categoryErrands": {
+    "description": "Built-in category name."
+  },
+  "categoryOther": "Diğer",
+  "@categoryOther": {
+    "description": "Built-in category name."
+  },
+  "categoryIconLabel": "Etiket",
+  "@categoryIconLabel": {
+    "description": "Category icon name for screen readers."
+  },
+  "categoryIconBasket": "Sepet",
+  "categoryIconHome": "Ev",
+  "categoryIconWork": "Çanta",
+  "categoryIconHeart": "Kalp",
+  "categoryIconSun": "Güneş",
+  "categoryIconFitness": "Spor",
+  "categoryIconSchool": "Okul",
+  "categoryIconPets": "Evcil hayvan",
+  "categoryIconCar": "Araba",
+  "categoryIconFlight": "Uçak",
+  "categoryIconRestaurant": "Yemek",
+  "categoryIconPayments": "Para",
+  "categoryIconMedication": "İlaç",
+  "categoryIconChild": "Çocuk",
+  "categoryIconFlower": "Çiçek",
+  "categoryIconBuild": "Tamir",
+  "categoryIconBook": "Kitap",
+  "colorMarket": "Yeşil",
+  "@colorMarket": {
+    "description": "Category colour name for screen readers."
+  },
+  "colorEv": "Turkuaz",
+  "colorIs": "Mavi",
+  "colorSaglik": "Pembe",
+  "colorGunluk": "Hardal",
+  "colorDiger": "Mor",
+  "colorDogumGunu": "Eflatun",
+  "colorKor": "Kor",
+  "colorLacivert": "Lacivert",
+  "colorZeytin": "Zeytin",
+  "colorKiremit": "Kiremit",
+  "colorArduvaz": "Arduvaz",
+  "countdownDays": "{count, plural, other{{count} gün}}",
+  "@countdownDays": {
+    "description": "Birthday countdown (2+ days).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceDaily": "{count, plural, =1{Her gün} other{{count} günde bir}}",
+  "@recurrenceDaily": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceWeekly": "{count, plural, =1{Her hafta} other{{count} haftada bir}}",
+  "@recurrenceWeekly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceWeeklyOn": "{count, plural, =1{Her {day}} other{{count} haftada bir {day}}}",
+  "@recurrenceWeeklyOn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceWeeklyOnDays": "{count, plural, =1{Her hafta {days}} other{{count} haftada bir {days}}}",
+  "@recurrenceWeeklyOnDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceMonthly": "{count, plural, =1{Her ayın {day}} other{{count} ayda bir, ayın {day}}}",
+  "@recurrenceMonthly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayTurnsAge": "{age} yaşına giriyor",
+  "@birthdayTurnsAge": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdaySpokenLabel": "Doğum günü: {name}, {countdown}, {details}",
+  "@birthdaySpokenLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "countdown": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTooltip": "Ayarlar",
+  "@settingsTooltip": {
+    "description": "Gear button tooltip and Ayarlar page title."
+  },
+  "undoCompleted": "“{title}” tamamlandı",
+  "@undoCompleted": {
+    "description": "Undo snackbar.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "undoReopened": "“{title}” geri açıldı",
+  "@undoReopened": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "undoDeleted": "“{title}” silindi",
+  "@undoDeleted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "undoPinned": "“{title}” sabitlendi",
+  "@undoPinned": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "undoUnpinned": "“{title}” sabitlemesi kaldırıldı",
+  "@undoUnpinned": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "snoozeTenMinutes": "10 dakika",
+  "@snoozeTenMinutes": {
+    "description": "Snooze option."
+  },
+  "snoozeOneHour": "1 saat",
+  "snoozeThisEvening": "Bu akşam",
+  "snoozeTomorrowEvening": "Yarın akşam",
+  "snoozeTomorrowMorning": "Yarın sabah",
+  "snoozeWeekdayTime": "{weekday} {time}",
+  "@snoozeWeekdayTime": {
+    "description": "Snooze option time on another day: \"Pzt 09:00\".",
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "snoozeOptionSpoken": "{option}, {day} {time}",
+  "@snoozeOptionSpoken": {
+    "description": "\"10 dakika, bugün saat 14:42\".",
+    "placeholders": {
+      "option": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "snoozeSheetTitle": "Ertele",
+  "snoozeCustom": "Tarih ve saat seç…",
+  "snoozePastError": "Bu saat geçti. Daha ileri bir zaman seç.",
+  "pastTimeSuggestion": "{when} mı?",
+  "@pastTimeSuggestion": {
+    "description": "Past-time suggestion chip: \"Yarın 18:30 mı?\".",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "pastTimeSuggestionSpoken": "{when} olarak ayarla",
+  "@pastTimeSuggestionSpoken": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "pastTimeError": "Bu saat geçti",
+  "pastTimeErrorSpoken": "Hata: Bu saat geçti",
+  "recurrenceModeNone": "Yok",
+  "@recurrenceModeNone": {
+    "description": "Tekrar sheet segment."
+  },
+  "recurrenceModeDaily": "Günlük",
+  "recurrenceModeWeekly": "Haftalık",
+  "recurrenceModeMonthly": "Aylık",
+  "recurrenceModeCustom": "Özel",
+  "recurrenceNextDay": "{day} {time}",
+  "@recurrenceNextDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceNext": "Sonraki: {when}",
+  "@recurrenceNext": {
+    "description": "Snackbar after completing a recurring reminder.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrencePreviewEmpty": "Bu kuralla yaklaşan tekrar yok.",
+  "recurrenceSheetTitle": "Tekrar",
+  "recurrenceDays": "Günler",
+  "recurrenceMonthDay": "Ayın {day}.",
+  "@recurrenceMonthDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceMonthDayClamped": "Ayın {day}; kısa aylarda ayın son günü.",
+  "@recurrenceMonthDayClamped": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceUntilLabel": "Bitiş",
+  "recurrenceUntilNever": "Hiçbir zaman",
+  "recurrenceUntilPick": "Bitiş tarihi seç",
+  "recurrenceUntilClear": "Bitişi kaldır",
+  "recurrenceUntilHelp": "Bitiş tarihi",
+  "@recurrenceUntilHelp": {
+    "description": "Date picker title."
+  },
+  "recurrenceDecrease": "Azalt",
+  "recurrenceIncrease": "Artır",
+  "actionDismiss": "Vazgeç",
+  "@actionDismiss": {
+    "description": "Secondary sheet button."
+  },
+  "actionDone": "Tamam",
+  "dateFormatWeekdayDayMonth": "EEE d MMM",
+  "@dateFormatWeekdayDayMonth": {
+    "description": "intl DateFormat pattern: \"Cmt 20 Eyl\"."
+  },
+  "dateFormatWeekdayDayMonthYear": "EEE d MMM y",
+  "@dateFormatWeekdayDayMonthYear": {
+    "description": "intl DateFormat pattern."
+  },
+  "dateFormatWeekdayShort": "EEE",
+  "@dateFormatWeekdayShort": {
+    "description": "intl DateFormat pattern: short weekday."
+  },
+  "snoozedTo": "{when}'{suffix} ertelendi",
+  "@snoozedTo": {
+    "description": "Snackbar after snoozing. suffix is the Turkish dative ending (a/e/ya/ye) computed in code; unused in English.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "suffix": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceEveryMonth": "{count, plural, =1{Her ay} other{{count} ayda bir}}",
+  "@recurrenceEveryMonth": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrencePreview": "Sonraki {count}: {dates}",
+  "@recurrencePreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "dates": {
+        "type": "String"
+      }
+    }
+  },
+  "editorTitleEmpty": "Başlık boş olamaz.",
+  "editorDateMissing": "Tarih seçin.",
+  "editorLocationMissing": "Konum seçilmedi. Bir yer seç ya da «Nerede»yi kapat.",
+  "editorLocationPick": "Konum seç",
+  "editorLocationWithRadius": "{place} · {radius} m",
+  "@editorLocationWithRadius": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "radius": {
+        "type": "String"
+      }
+    }
+  },
+  "editorLocationChosen": "Seçilen konum",
+  "editorDatePick": "Tarih seç",
+  "editorTimePick": "Saat seç",
+  "editorNewTitle": "Yeni hatırlatıcı",
+  "editorEditTitle": "Hatırlatıcıyı düzenle",
+  "editorTitleLabel": "Başlık",
+  "editorTitleHint": "Ne hatırlatayım?",
+  "editorNoteLabel": "Not (isteğe bağlı)",
+  "editorCategory": "Kategori",
+  "editorNewCategoryChip": "Yeni",
+  "editorNewCategoryTooltip": "Yeni kategori",
+  "editorWhen": "Ne zaman",
+  "editorScheduleSwitch": "Zamanla ve bildir",
+  "editorWhenHint": "Seçtiğin tarih ve saatte bildirim.",
+  "editorWhere": "Nerede",
+  "editorLocationSwitch": "Konuma gelince hatırlat",
+  "editorLocationEnterHint": "Bölgeye girince bildirim.",
+  "editorWhereHint": "Bir yere varınca hatırlat.",
+  "editorRecurrenceSpoken": "Tekrar: {summary}",
+  "@editorRecurrenceSpoken": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "editorRecurrence": "Tekrar",
+  "editorLocationWhileInUse": "Konum izni yalnızca kullanırken açık. Uygulama kapalıyken bildirim gelmeyebilir.",
+  "editorLocationDenied": "Konum izni yok. Yeri haritadan seçebilirsin ama arka planda bildirim gelmeyebilir.",
+  "editorFix": "Düzelt",
+  "editorPriority": "Öncelik",
+  "subtasksTitle": "Maddeler",
+  "@subtasksTitle": {
+    "description": "Editor card with checklist items (subtasks)."
+  },
+  "subtasksAllDone": "Tümü tamam — hatırlatıcıyı tamamla?",
+  "subtaskFallback": "Madde",
+  "@subtaskFallback": {
+    "description": "Name of an untitled item; also the item field hint."
+  },
+  "subtaskOptions": "{title} seçenekleri",
+  "@subtaskOptions": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "subtaskMoveUp": "Yukarı taşı",
+  "subtaskMoveDown": "Aşağı taşı",
+  "subtaskHintReopen": "Geri açmak için dokun",
+  "subtaskHintComplete": "Tamamlamak için dokun",
+  "subtaskAdd": "Madde ekle",
+  "subtaskSplit": "Maddelere böl",
+  "subtasksDoneCount": "{count, plural, other{Tamamlanan {count} madde}}",
+  "@subtasksDoneCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "categoryNameEmpty": "Kategoriye bir ad ver",
+  "categoryNameTaken": "Bu adda bir kategori zaten var",
+  "categoryDeleteTitle": "“{name}” silinsin mi?",
+  "@categoryDeleteTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryDeleteEmpty": "Bu kategoride hatırlatıcı yok.",
+  "categoryDeleteMoves": "{count, plural, other{Bu kategorideki {count} hatırlatıcı {other}'e taşınacak.}}",
+  "@categoryDeleteMoves": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "other": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryNew": "Yeni kategori",
+  "categoryEdit": "Kategoriyi düzenle",
+  "categoryNameLabel": "Ad",
+  "categoryNameHint": "Örn. Spor salonu",
+  "categoryColor": "Renk",
+  "categoryIcon": "İkon",
+  "categoryPreviewSpoken": "Önizleme: {name}",
+  "@categoryPreviewSpoken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryListTitle": "Kategorilerim",
+  "actionFinish": "Bitti",
+  "categoryRowSpoken": "{name}, {count} açık",
+  "@categoryRowSpoken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "categoryEditTooltip": "{name} düzenle",
+  "@categoryEditTooltip": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryMoveSpoken": "{name} taşı",
+  "@categoryMoveSpoken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "todaySummary": "{open} açık · {overdue} gecikmiş · {done} tamam",
+  "@todaySummary": {
+    "placeholders": {
+      "open": {
+        "type": "int"
+      },
+      "overdue": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "todayTitle": "Bugün",
+  "@todayTitle": {
+    "description": "Bugün tab title."
+  },
+  "todayNotificationsOffTitle": "Bildirimler kapalı",
+  "todayNotificationsOffBody": "Hatırlatmalar zamanında gelmeyecek.",
+  "permissionAllow": "İzin ver",
+  "permissionOpenSettings": "Ayarları aç",
+  "todayEmptyTitle": "Bugün boş",
+  "todayEmptyBody": "Keyfine bak ya da aklındakini aşağıya yaz.",
+  "todayEmptyAction": "Yarını planla",
+  "todayAllDoneTitle": "Hepsi tamam.",
+  "todayAllDoneBody": "{count, plural, other{Bugünkü {count} hatırlatmanın hepsini bitirdin.}}",
+  "@todayAllDoneBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayShowCompleted": "Tamamlananları göster",
+  "todayHideCompleted": "Tamamlananları gizle",
+  "todayUntimed": "Bugün bir ara",
+  "todayOverdue": "Kaçanlar",
+  "todayMoveOverdue": "Hepsini yarına al",
+  "todayTimeline": "Zaman çizelgesi",
+  "todayProgressSpoken": "İlerleme: {done} / {total} tamamlandı",
+  "@todayProgressSpoken": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "todayCompleted": "Tamamlananlar",
+  "todayCompletedSpokenShow": "Tamamlananlar, {count}, göster",
+  "@todayCompletedSpokenShow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayCompletedSpokenHide": "Tamamlananlar, {count}, gizle",
+  "@todayCompletedSpokenHide": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayNowSpoken": "Şimdi, {time}",
+  "@todayNowSpoken": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueMovedOne": "“{title}” yarına alındı",
+  "@overdueMovedOne": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueMovedMany": "{count, plural, other{{count} hatırlatıcı yarına alındı}}",
+  "@overdueMovedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarFilterAll": "Tümü",
+  "calendarFilterReminders": "Hatırlatıcılar",
+  "calendarFilterBirthdays": "Doğum günleri",
+  "calendarFilterLocated": "Konumlu",
+  "calendarMove": "Taşı…",
+  "@calendarMove": {
+    "description": "Agenda action: pick another day."
+  },
+  "calendarSeriesNext": "serinin sonraki tekrarı",
+  "calendarEditSeries": "Seriyi düzenle",
+  "calendarEmptyDay": "{date} — boş gün",
+  "@calendarEmptyDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarEmptyDaySpoken": "{date}, boş gün",
+  "@calendarEmptyDaySpoken": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarEmptyDayHint": "Bu güne hatırlatıcı ekle",
+  "calendarTitle": "Takvim",
+  "calendarToday": "Bugün",
+  "@calendarToday": {
+    "description": "Button: jump to today."
+  },
+  "calendarWeekView": "Hafta görünümüne geç",
+  "calendarMonthView": "Ay görünümüne geç",
+  "calendarPreviousMonth": "Önceki ay",
+  "calendarPreviousWeek": "Önceki hafta",
+  "calendarNextMonth": "Sonraki ay",
+  "calendarNextWeek": "Sonraki hafta",
+  "calendarEmptyTitle": "Yaklaşan bir şey yok",
+  "calendarEmptyBody": "Önümüzdeki {days} günde planlı hatırlatma ya da doğum günü yok.",
+  "@calendarEmptyBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarEmptyFilteredBody": "Bu filtreyle önümüzdeki {days} günde bir şey yok.",
+  "@calendarEmptyFilteredBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarAddReminder": "Hatırlatıcı ekle",
+  "calendarMoved": "“{title}” taşındı · {when}",
+  "@calendarMoved": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarMovePickerTitle": "Hangi güne taşınsın?",
+  "calendarMoveConfirm": "Taşı",
+  "calendarMovePast": "Bu saat geçti; başka bir gün seç.",
+  "calendarDayToday": "bugün",
+  "calendarDayHasEntries": "planlı kayıt var",
+  "listsTitle": "Listeler",
+  "@listsTitle": {
+    "description": "Listeler tab title."
+  },
+  "listsCompleted": "Tamamlananlar",
+  "listsCompletedCountSpoken": "{title}, {count} tamamlandı",
+  "@listsCompletedCountSpoken": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listsBirthdayCountSpoken": "{title}, {count} doğum günü",
+  "@listsBirthdayCountSpoken": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "listsReminderCountSpoken": "{title}, {count} hatırlatıcı",
+  "@listsReminderCountSpoken": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "smartListOverdue": "Gecikmiş",
+  "smartListToday": "Bugün",
+  "smartListScheduled": "Planlı",
+  "smartListUntimed": "Zamansız",
+  "smartListBirthdays": "Doğum günleri",
+  "smartListLocated": "Konumlu",
+  "smartListOpenCount": "{count} açık",
+  "@smartListOpenCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "smartListOverdueEmptyTitle": "Gecikmiş bir şey yok",
+  "smartListOverdueEmptyBody": "Her şey zamanında, böyle devam.",
+  "smartListTodayEmptyTitle": "Bugün için saatli bir şey yok",
+  "smartListTodayEmptyBody": "Bugüne saat verdiğin hatırlatmalar burada görünür.",
+  "smartListScheduledEmptyTitle": "Planlı hatırlatma yok",
+  "smartListScheduledEmptyBody": "Saat verdiğin hatırlatmalar burada birikir.",
+  "smartListUntimedEmptyTitle": "Zamansız hatırlatma yok",
+  "smartListUntimedEmptyBody": "Saati olmayan hatırlatmalar burada durur.",
+  "smartListBirthdaysEmptyTitle": "Henüz doğum günü yok",
+  "smartListBirthdaysEmptyBody": "Sevdiklerinin gününü kaçırma.",
+  "smartListLocatedEmptyTitle": "Konumlu hatırlatma yok",
+  "smartListLocatedEmptyBody": "Bir yere varınca hatırlatmak için hatırlatıcıda 'Nerede'yi aç.",
+  "filterEditCategory": "Kategoriyi düzenle",
+  "filterCompletedSummary": "{count} tamamlandı",
+  "@filterCompletedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterCategorySummary": "{open} açık · {done} tamam",
+  "@filterCategorySummary": {
+    "placeholders": {
+      "open": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
+  "filterNoCompletedTitle": "Henüz tamamlanan yok",
+  "filterNoCompletedBody": "Tamamladığın hatırlatmalar burada birikir.",
+  "filterListEmptyTitle": "{title} listesi boş",
+  "@filterListEmptyTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "filterListEmptyBody": "Eklemek için aşağıdaki düğmeye dokun.",
+  "filterAddToList": "Bu listeye ekle",
+  "searchTooltip": "Ara",
+  "searchAllCategories": "Tüm kategoriler",
+  "actionBack": "Geri",
+  "searchHint": "Hatırlatıcılarda ara",
+  "actionClear": "Temizle",
+  "searchCategoryChip": "Kategori",
+  "searchOpenChip": "Açık",
+  "searchCompletedChip": "Tamamlanan",
+  "searchPickCategory": "Kategori seç",
+  "searchEmptyTitle": "Hatırlatıcılarında ara",
+  "searchEmptyBody": "Başlık, not, kategori ya da yer adıyla bulabilirsin.",
+  "searchRecent": "Son aramalar",
+  "searchRecentSpoken": "Son arama: {query}",
+  "@searchRecentSpoken": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchNoResults": "“{query}” için sonuç yok",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchNoResultsWiden": "Yazımı kontrol et veya tamamlananlarda ara.",
+  "searchNoResultsBody": "Yazımı kontrol et.",
+  "searchInCompleted": "Tamamlananlarda ara",
+  "searchResultCount": "{count} sonuç",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchGroupReminders": "Hatırlatıcılar",
+  "searchGroupNotes": "Notlarda",
+  "searchGroupHeader": "{title} · {count}",
+  "@searchGroupHeader": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchUntimed": "Zamansız",
+  "searchOverdueWhen": "Gecikti · {when}",
+  "@searchOverdueWhen": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayRowAge": "{date} · {age} yaşına",
+  "@birthdayRowAge": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayRowNoAge": "{date} · yaş bilinmiyor",
+  "@birthdayRowNoAge": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayLeapNote": "Artık yıl değil: 28 Şubat'ta hatırlatılır",
+  "birthdayHeroAge": "{when} · {age} yaşına giriyor",
+  "@birthdayHeroAge": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayAddTooltip": "Doğum günü ekle",
+  "birthdaysTitle": "Doğum günleri",
+  "birthdaysEmptyTitle": "Henüz doğum günü yok",
+  "birthdaysEmptyBody": "Sevdiklerinin gününü kaçırma. Rehberden içe aktarma yakında.",
+  "birthdayHeroDaysUnit": "{count, plural, other{gün}}",
+  "@birthdayHeroDaysUnit": {
+    "description": "Unit under the large countdown number.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayHeroSpoken": "Sıradaki doğum günü: {name}",
+  "@birthdayHeroSpoken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayDaysLeft": "{count, plural, other{{count} gün kaldı}}",
+  "@birthdayDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayHeroOverline": "SIRADAKİ",
+  "birthdayDatePickerTitle": "Doğum tarihi",
+  "birthdayTimePickerTitle": "Bildirim saati",
+  "birthdayNameEmpty": "İsim boş olamaz.",
+  "birthdayOffsetsEmpty": "En az bir hatırlatma zamanı seçin.",
+  "birthdayDeleteTitle": "Silinsin mi?",
+  "birthdayDeleteBody": "\"{name}\" doğum günü hatırlatması silinecek.",
+  "@birthdayDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayNew": "Yeni doğum günü",
+  "birthdayEdit": "Doğum günü düzenle",
+  "birthdayNameLabel": "İsim",
+  "birthdayNameHint": "Örn. Ayşe",
+  "birthdayNoteHint": "Örn. Hediye fikri",
+  "birthdayDateCard": "Tarih ve bildirim saati",
+  "birthdayDatePick": "Doğum tarihi seç",
+  "birthdayTimeSpoken": "Bildirim saati: {time}",
+  "@birthdayTimeSpoken": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "birthdayTimePick": "Bildirim saati seç",
+  "birthdayYearUnknown": "Yıl bilinmiyor",
+  "birthdayYearUnknownHint": "Yılı bilmiyorsan “Yıl bilinmiyor”u seç; yaş gösterilmez.",
+  "birthdayWhenCard": "Ne zaman hatırlatayım?",
+  "birthdayWhenHint": "Birden fazla seçim yapabilirsin.",
+  "birthdayOffsetOnDay": "Doğum gününde",
+  "birthdayOffsetMinutes": "{count, plural, other{{count} dakika önce}}",
+  "@birthdayOffsetMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayOffsetHours": "{count, plural, other{{count} saat önce}}",
+  "@birthdayOffsetHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayOffsetDays": "{count, plural, other{{count} gün önce}}",
+  "@birthdayOffsetDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "birthdayOffsetWeeks": "{count, plural, other{{count} hafta önce}}",
+  "@birthdayOffsetWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureBarLabel": "Hızlı ekle",
+  "captureBarHint": "Ne hatırlatayım? Uzun basınca ayrıntılı hatırlatıcı veya doğum günü seçilir",
+  "captureFieldHint": "Ne hatırlatayım?",
+  "captureParserHint": "Doğal dil: Türkçe",
+  "@captureParserHint": {
+    "description": "Shown under the quick capture field when the app is not Turkish: the parser only understands Turkish."
+  },
+  "captureCategory": "Kategori",
+  "capturePriority": "Öncelik",
+  "captureAllDetails": "Tüm ayrıntılar",
+  "captureDateChip": "Tarih",
+  "captureDateChipSet": "{day}, {time}",
+  "@captureDateChipSet": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "captureDateSpoken": "Zaman: {when}",
+  "@captureDateSpoken": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "captureDateAdd": "Tarih ekle",
+  "captureRecurrenceChip": "Tekrar",
+  "captureRecurrenceSpoken": "Tekrar: {summary}",
+  "@captureRecurrenceSpoken": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "captureRecurrenceAdd": "Tekrar ekle",
+  "captureNewCategory": "Yeni kategori: #{tag}",
+  "@captureNewCategory": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "captureNewCategorySpoken": "Yeni kategori: {tag}. Oluşturmak için dokun",
+  "@captureNewCategorySpoken": {
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "captureCategorySpoken": "Kategori: {name}",
+  "@captureCategorySpoken": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "captureCategoryPick": "Kategori seç",
+  "capturePriorityPick": "Öncelik seç",
+  "capturePlaceSpoken": "Yer: {place}. Nota eklenir; konum bildirimi için Tüm ayrıntılar",
+  "@capturePlaceSpoken": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "captureSplitCount": "{count} madde",
+  "@captureSplitCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureSplitAsk": "Maddelere böl?",
+  "captureSplitUndo": "Maddelere bölmeyi geri al",
+  "captureSplitDo": "{count} maddeye böl",
+  "@captureSplitDo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureChipPlainText": "Düz metne çevir",
+  "captureAdded": "Eklendi: {title}",
+  "@captureAdded": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "captureListTitleMarket": "Market alışverişi",
+  "@captureListTitleMarket": {
+    "description": "Title of a split grocery list."
+  },
+  "captureListTitle": "{category} listesi",
+  "@captureListTitle": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "capturePlaceNote": "Yer: {place}",
+  "@capturePlaceNote": {
+    "description": "Note of a captured reminder with @place.",
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "backupShared": "Yedek dosyası paylaşıldı.",
+  "backupExportFailed": "Yedek oluşturulamadı. Tekrar dene.",
+  "backupTooLarge": "Bu dosya bir Hatırlatıcı yedeği olamayacak kadar büyük.",
+  "backupReadFailed": "Dosya okunamadı.",
+  "backupReplaceTitle": "Verileri değiştir",
+  "backupReplaceBody": "Mevcut hatırlatıcıların ve doğum günlerin silinip yedektekilerle değiştirilir. Bu işlem geri alınamaz.",
+  "backupRestored": "Geri yüklendi: {reminders} hatırlatıcı, {birthdays} doğum günü.",
+  "@backupRestored": {
+    "placeholders": {
+      "reminders": {
+        "type": "int"
+      },
+      "birthdays": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreFailed": "Geri yükleme tamamlanamadı; veriler kısmen değişmiş olabilir. Aynı dosyayı tekrar geri yükleyebilirsin.",
+  "backupErrorNotJson": "Bu dosya okunamadı: geçerli bir yedek dosyası değil.",
+  "backupErrorNotBackup": "Bu dosya bir Hatırlatıcı yedeği değil.",
+  "backupErrorNewer": "Bu yedek uygulamanın daha yeni bir sürümüyle alınmış (sürüm {version}). Geri yüklemek için uygulamayı güncelle.",
+  "@backupErrorNewer": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "backupErrorInvalid": "Yedek dosyası bozuk; hiçbir şey değiştirilmedi.",
+  "backupFound": "{reminders} hatırlatıcı, {birthdays} doğum günü bulundu.",
+  "@backupFound": {
+    "placeholders": {
+      "reminders": {
+        "type": "int"
+      },
+      "birthdays": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFoundSkipped": "{reminders} hatırlatıcı, {birthdays} doğum günü bulundu; {skipped} kayıt okunamadı.",
+  "@backupFoundSkipped": {
+    "placeholders": {
+      "reminders": {
+        "type": "int"
+      },
+      "birthdays": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreTitle": "Yedeği geri yükle",
+  "backupDate": "Yedek tarihi: {date} {time}",
+  "@backupDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSkippedHint": "Okunamayan kayıtlar atlanır; diğerleri geri yüklenir.",
+  "backupMerge": "Birleştir",
+  "backupReplace": "Değiştir",
+  "backupMergeHint": "Mevcut kayıtların kalır, yedektekiler eklenir. Aynı kayıt iki tarafta da varsa yedekteki sürüm kullanılır. Ayarlar değişmez.",
+  "backupReplaceHint": "Mevcut hatırlatıcıların ve doğum günlerin silinir, yerine yedektekiler gelir. Ayarlar da yedekten alınır.",
+  "backupRestore": "Geri yükle",
+  "permissionsTitle": "İzinler",
+  "permissionOn": "Açık",
+  "permissionNotificationsNotRequested": "İzin verilmedi — hatırlatmalar bildirim olarak gelmez",
+  "permissionNotificationsDenied": "Kapalı — hatırlatmalar zamanında gelmez",
+  "permissionNotifications": "Bildirimler",
+  "permissionLocationAlways": "Her zaman",
+  "permissionLocationWhileInUse": "Yalnızca kullanırken — arka plan hatırlatmaları çalışmaz",
+  "permissionLocationNotRequested": "İzin verilmedi — konum hatırlatmaları çalışmaz",
+  "permissionLocationDenied": "Kapalı — konum hatırlatmaları çalışmaz",
+  "permissionLocation": "Konum",
+  "permissionFix": "Düzelt",
+  "permissionExactAlarms": "Tam zamanlı alarmlar",
+  "permissionExactAlarmsOff": "Kapalı — izin olmadan hatırlatmalar birkaç dakika gecikebilir",
+  "permissionChecking": "Denetleniyor…",
+  "resetTitle": "Tüm verileri sıfırla",
+  "resetBody": "Tüm hatırlatmalar ve ayarlar silinir. Bu işlem geri alınamaz. Silmeden önce bir yedek alabilirsin.",
+  "resetBackupFirst": "Önce yedekle",
+  "widgetPinUnsupported": "Ana ekranda boş bir alana uzun basın → Widget'lar → Hatırlatıcı'yı seçin.",
+  "widgetPinTitle": "Hangi widget?",
+  "homeWidgetToday": "Bugün",
+  "@homeWidgetToday": {
+    "description": "Home widget name; same as the Android widget picker (values/strings.xml)."
+  },
+  "homeWidgetList": "Liste",
+  "homeWidgetNext": "Sıradaki",
+  "homeWidgetQuickAdd": "Hızlı ekle",
+  "homeWidgetTodayDescription": "4×2 · bugünün ilk iki işi ve \"+\"",
+  "homeWidgetListDescription": "4×4 · kaydırılabilir, boyutu değişir",
+  "homeWidgetNextDescription": "2×2 · sıradaki iş ve saati",
+  "homeWidgetQuickAddDescription": "1×1 · tek dokunuşla yeni hatırlatıcı",
+  "settingsAppearance": "Görünüm",
+  "settingsThemeSystem": "Sistem",
+  "settingsThemeLight": "Açık",
+  "settingsThemeDark": "Koyu",
+  "settingsThemeHint": "Açık veya koyu temayı seç ya da sistemi takip et.",
+  "settingsHaptics": "Titreşim geri bildirimi",
+  "settingsHapticsHint": "Tamamlama, silme ve kaydırma gibi aksiyonlarda kısa titreşim.",
+  "settingsNotifications": "Bildirimler",
+  "settingsReminderNotifications": "Hatırlatma bildirimleri",
+  "settingsReminderNotificationsHint": "Kapalıyken zamanlanmış hatırlatmalar gönderilmez. Açıkken sistem bildirim ayarları geçerlidir (ses, öncelik).",
+  "settingsLocationNeedsNotifications": "Konum hatırlatmaları için de bildirimler açık olmalı.",
+  "settingsHomeWidget": "Ana ekran widget'ı",
+  "settingsHomeWidgetHint": "Dört widget var: Bugün, kaydırılabilir Liste, Sıradaki ve Hızlı ekle. Daireye dokunarak işi tamamlarsın, \"+\" hızlı ekler. Liste'nin boyutunu ana ekranda kenarlarından sürükleyerek değiştirebilirsin.",
+  "settingsAddWidget": "Widget ekle",
+  "settingsBackup": "Yedekle ve geri yükle",
+  "settingsBackupHint": "Hatırlatıcılarını, doğum günlerini ve ayarlarını bir dosyaya yedekle; yeni bir cihazda veya yeniden kurulumdan sonra geri yükle.",
+  "settingsBackupExport": "Yedekle",
+  "settingsOther": "Diğer",
+  "settingsPrivacy": "Gizlilik politikası",
+  "settingsLicenses": "Lisanslar",
+  "settingsLinkFailed": "Bağlantı açılamadı.",
+  "navTabHint": "Sekme {index} / {count}",
+  "@navTabHint": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navShowTabs": "Sekmeleri göster",
+  "newItemQuick": "Hızlı ekle",
+  "newItemReminder": "Hatırlatıcı",
+  "newItemBirthday": "Doğum günü",
+  "newItemDetailedReminder": "Ayrıntılı hatırlatıcı",
+  "newItemFabHint": "Hızlı ekleme açılır. Uzun basınca ayrıntılı hatırlatıcı veya doğum günü seçilir",
+  "permNotifTitle": "Hatırlatmaları zamanında al",
+  "permNotifBody": "Seçtiğin saatte haber verebilmem için bildirim izni gerekiyor.",
+  "permNotifPoint1": "Hatırlatıcılar tam zamanında bildirim olarak gelir.",
+  "permNotifPoint2": "Doğum günlerini önceden haber veririm.",
+  "permNotifPoint3": "Konuma varınca da bildirim gönderirim.",
+  "permNotifConfirm": "Bildirimlere izin ver",
+  "permNotNow": "Şimdi değil",
+  "permExactTradeOff": "İzin olmadan hatırlatmalar birkaç dakika gecikebilir.",
+  "permExactTitle": "Tam zamanında hatırlatma",
+  "permExactBody": "Bildirimlerin dakikası dakikasına gelmesi için “Alarmlar ve hatırlatıcılar” iznini açabilirsin. {tradeOff} Hatırlatmaların yine de gelir.",
+  "@permExactBody": {
+    "placeholders": {
+      "tradeOff": {
+        "type": "String"
+      }
+    }
+  },
+  "permLocationTitle": "Bir yere varınca hatırlatayım",
+  "permLocationBody": "Haritada yer seçmek ve oraya vardığında sana haber vermek için konum izni gerekiyor. Konumun yalnızca bu cihazda kullanılır.",
+  "permContinue": "Devam",
+  "permLocationAlwaysTitle": "Uygulama kapalıyken de çalışsın",
+  "permLocationAlwaysBodyIos": "Uygulama kapalıyken de hatırlatabilmem için konum iznini “Her Zaman” yap. Açılan pencerede ya da Ayarlar’da seçebilirsin.",
+  "permLocationAlwaysBodyAndroid": "Uygulama kapalıyken de çalışması için Ayarlar’da “Her zaman izin ver”i seç.",
+  "permStep": "Adım {step}",
+  "@permStep": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "permIllustrationTitle": "Konum izni",
+  "permIllustrationAlways": "Her zaman izin ver",
+  "permIllustrationWhileInUse": "Yalnızca uygulamayı kullanırken",
+  "permIllustrationDeny": "İzin verme",
+  "onboardingWidgetUnsupported": "Ana ekranda boş bir alana uzun basın → Widget'lar → Hatırlatıcıyı seçin.",
+  "onboardingSkip": "Atla",
+  "onboardingStep": "Adım {index} / {count}",
+  "@onboardingStep": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingContinue": "Devam",
+  "onboardingCaptureTitle": "Yazman yeterli.",
+  "onboardingCaptureBody": "Aklına geleni yaz; zamanını ve kategorisini seç. “yarın 9’da”, “#market” gibi ifadeleri kendiliğinden anlama özelliği de yolda.",
+  "onboardingDemoSentence": "yarın 9'da eczaneye uğra #sağlık",
+  "@onboardingDemoSentence": {
+    "description": "Scripted demo. Must start with onboardingDemoWhen and end with onboardingDemoCategory."
+  },
+  "onboardingDemoWhen": "yarın 9'da",
+  "onboardingDemoCategory": "#sağlık",
+  "onboardingDemoCardTitle": "Eczaneye uğra",
+  "onboardingDemoCardMeta": "Sağlık · Yarın 09:00",
+  "onboardingDemoSpoken": "Örnek: “{sentence}” yazınca hatırlatıcı oluşur: {title}, Sağlık, yarın saat 09:00",
+  "@onboardingDemoSpoken": {
+    "placeholders": {
+      "sentence": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingNotifTitle": "Doğru anda haber verelim",
+  "onboardingNotifBenefit1": "Zamanı gelince bildirim",
+  "onboardingNotifBenefit2": "Bildirimden tek dokunuşla tamamla veya ertele",
+  "onboardingNotifBenefit3": "Doğum günlerini önceden hatırlat",
+  "onboardingNotifOn": "Bildirimler açık.",
+  "onboardingNotifOff": "Bildirimler kapalı. İstediğin zaman Ayarlar › İzinler’den açabilirsin.",
+  "onboardingMockSpoken": "Örnek bildirim: Market alışverişi. Migros Kadıköy’e yaklaştın, 6 maddeden 2’si tamam. Tamamla, 10 dk ertele",
+  "onboardingMockApp": "Hatırlatıcı · şimdi",
+  "onboardingMockTitle": "Market alışverişi",
+  "onboardingMockBody": "Migros Kadıköy’e yaklaştın · 2/6 madde",
+  "onboardingMockSnooze": "10 dk ertele",
+  "onboardingEnterApp": "Uygulamaya geç",
+  "onboardingReadyTitle": "Hazırsın.",
+  "onboardingReadyBody": "İlk hatırlatıcını ekleyelim mi?",
+  "onboardingMarketList": "Market listesi oluştur",
+  "onboardingAddBirthday": "Bir doğum günü ekle",
+  "onboardingAddWidget": "Ana ekrana widget ekle",
+  "onboardingStart": "Başla",
+  "onboardingWelcomeTitle": "Aklında kalmasın.",
+  "onboardingWelcomeBody": "Yaz, zamanını ya da yerini söyle; gerisini Hatırlatıcı takip etsin.",
+  "onboardingNow": "şimdi",
+  "@onboardingNow": {
+    "description": "Pill on the welcome illustration's now line (shown upper-case)."
+  },
+  "mapsServicesOff": "Konum servisleri kapalı.",
+  "mapsPermissionOff": "Konum izni kapalı.",
+  "mapsLocationFailed": "Konum alınamadı.",
+  "mapsPlacesKeyMissing": "Yakındaki marketler için Google Places anahtarı gerekir (isteğe bağlı: --dart-define=GOOGLE_MAPS_KEY=...).",
+  "mapsNoMarkets": "Yakında market bulunamadı.",
+  "mapsNearbyMarkets": "Yakındaki marketler",
+  "mapsTapToPick": "Seçmek için dokunun",
+  "mapsBusiness": "İşletme",
+  "@mapsBusiness": {
+    "description": "Name of a nearby place without a name."
+  },
+  "mapsTitle": "Konum seç",
+  "mapsHint": "Haritaya dokun, yarıçapı ayarla ve «Bu konumu kaydet» ile onayla.",
+  "mapsRadius": "Yarıçap",
+  "mapsRadiusMeters": "{meters} m",
+  "@mapsRadiusMeters": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "mapsRadiusSpoken": "Yarıçap {meters} metre",
+  "@mapsRadiusSpoken": {
+    "placeholders": {
+      "meters": {
+        "type": "int"
+      }
+    }
+  },
+  "mapsShowMarkets": "Yakındaki marketleri göster",
+  "mapsMap": "Harita",
+  "mapsMapHint": "İşaretçiyi taşımak için dokun",
+  "mapsMyLocation": "Konumuma git",
+  "mapsSave": "Bu konumu kaydet",
+  "mapsAttributionHint": "Telif hakkı sayfasını açar",
+  "notifChannelReminders": "Hatırlatmalar",
+  "@notifChannelReminders": {
+    "description": "Android notification channel name (system settings)."
+  },
+  "notifChannelRemindersDescription": "Zamanlanmış hatırlatıcı bildirimleri",
+  "notifChannelLocation": "Konum hatırlatmaları",
+  "notifChannelLocationDescription": "Seçtiğiniz yere geldiğinizde",
+  "notifChannelBirthdays": "Doğum günü hatırlatmaları",
+  "notifChannelBirthdaysDescription": "Yıllık olarak tekrarlayan doğum günü bildirimleri",
+  "notifTitleFallback": "Hatırlatıcı",
+  "@notifTitleFallback": {
+    "description": "Notification title of a reminder without a title."
+  },
+  "notifBodyFallback": "Hatırlatma zamanı",
+  "notifGeoFallback": "Kayıtlı konuma girdiniz",
+  "notifSubtasksLeft": "{count, plural, other{{count} madde kaldı}}",
+  "@notifSubtasksLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifBodyWithSubtasks": "{lead} · {remaining}",
+  "@notifBodyWithSubtasks": {
+    "placeholders": {
+      "lead": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "notifSubtasksMore": "{count, plural, other{… ve {count} madde daha}}",
+  "@notifSubtasksMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifBirthdayTitle": "🎂 {name}",
+  "@notifBirthdayTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifBirthdayTitleSoon": "🎂 Yaklaşıyor: {name}",
+  "@notifBirthdayTitleSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifBirthdayToday": "Bugün doğum günü.",
+  "notifBirthdayInMinutes": "{count, plural, other{{count} dakika sonra doğum günü.}}",
+  "@notifBirthdayInMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifBirthdayInHours": "{count, plural, other{{count} saat sonra doğum günü.}}",
+  "@notifBirthdayInHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifBirthdayTomorrow": "Yarın doğum günü.",
+  "notifBirthdayInDays": "{count, plural, other{{count} gün sonra doğum günü.}}",
+  "@notifBirthdayInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "notifActionComplete": "Tamamla",
+  "@notifActionComplete": {
+    "description": "Notification action button."
+  },
+  "notifActionSnooze10": "10 dk",
+  "@notifActionSnooze10": {
+    "description": "Android notification action (short)."
+  },
+  "notifActionSnooze1h": "1 saat",
+  "notifActionSnooze10Long": "10 dk ertele",
+  "@notifActionSnooze10Long": {
+    "description": "iOS notification action."
+  },
+  "notifActionSnooze1hLong": "1 saat ertele",
+  "notifActionTomorrowMorning": "Yarın sabah"
 }

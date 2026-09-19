@@ -1,6 +1,8 @@
 import 'package:flutter/semantics.dart' show FocusSemanticEvent;
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
+
 /// "Geri al" snackbar after complete / delete / snooze (§3.5, §3.6 rule 9).
 ///
 /// One at a time: showing a new one removes the previous one immediately
@@ -10,7 +12,6 @@ import 'package:material_ui/material_ui.dart';
 abstract final class UndoSnackBar {
   static const Duration duration = Duration(seconds: 5);
   static const Duration screenReaderDuration = Duration(seconds: 10);
-  static const String actionLabel = 'Geri al';
 
   static void show(
     ScaffoldMessengerState messenger, {
@@ -30,7 +31,7 @@ abstract final class UndoSnackBar {
         persist: false,
         action: SnackBarAction(
           key: actionKey,
-          label: actionLabel,
+          label: messenger.context.l10n.actionUndo,
           onPressed: onUndo,
         ),
       ),

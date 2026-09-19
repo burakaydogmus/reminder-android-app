@@ -2,7 +2,9 @@ import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -59,25 +61,31 @@ class ReminderCard extends StatelessWidget {
     return !reminder.isDone && at != null && at.toLocal().isBefore(now);
   }
 
-  String? get _placeLabel {
+  String? _placeLabel(AppLocalizations l10n) {
     if (!reminder.locationTriggerEnabled) return null;
     final label = reminder.locationPlaceLabel?.trim();
-    return label != null && label.isNotEmpty ? label : 'Konum';
+    return label != null && label.isNotEmpty
+        ? label
+        : l10n.reminderPlaceFallback;
   }
 
-  String _semanticLabel(String categoryLabel) {
+  String _semanticLabel(String categoryLabel, AppLocalizations l10n) {
     final at = reminder.remindAt?.toLocal();
+    final place = _placeLabel(l10n);
     return [
       reminder.title,
       categoryLabel,
-      if (at != null)
-        '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
-      if (_isOverdue) 'gecikti',
-      if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
-      if (_placeLabel != null) 'konum: $_placeLabel',
-      if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
-      ...PriorityPinVisuals.spokenParts(reminder),
-      reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
+      if (at != null) KorFormat.spokenWhen(at, now, l10n),
+      if (_isOverdue) l10n.reminderSpokenOverdue,
+      if (reminder.isRecurring)
+        l10n.reminderSpokenRecurring(
+          RecurrenceText.summary(reminder.recurrence, l10n),
+        ),
+      if (place != null) l10n.reminderSpokenPlace(place),
+      if (reminder.hasSubtasks)
+        SubtaskProgressText.spoken(reminder.subtasks, l10n),
+      ...PriorityPinVisuals.spokenParts(reminder, l10n),
+      reminder.isDone ? l10n.reminderSpokenDone : l10n.reminderSpokenOpen,
     ].join(', ');
   }
 
@@ -85,8 +93,10 @@ class ReminderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
     final categoryLabel = CategoryVisuals.labelOf(context, reminder.categoryId);
+    final placeLabel = _placeLabel(l10n);
     final done = reminder.isDone;
     final overdue = _isOverdue;
     final at = reminder.remindAt?.toLocal();
@@ -116,17 +126,20 @@ class ReminderCard extends StatelessWidget {
         if (overdue) ...[
           separator,
           metaIcon(Icons.schedule_rounded, scheme.primary),
-          TextSpan(text: 'Gecikti', style: TextStyle(color: scheme.primary)),
+          TextSpan(
+            text: l10n.reminderOverdue,
+            style: TextStyle(color: scheme.primary),
+          ),
         ],
         if (reminder.isRecurring) ...[
           separator,
           metaIcon(Icons.repeat_rounded, scheme.onSurfaceVariant),
-          TextSpan(text: reminder.recurrence.summary),
+          TextSpan(text: RecurrenceText.summary(reminder.recurrence, l10n)),
         ],
-        if (_placeLabel != null) ...[
+        if (placeLabel != null) ...[
           separator,
           metaIcon(Icons.place_rounded, scheme.onSurfaceVariant),
-          TextSpan(text: _placeLabel),
+          TextSpan(text: placeLabel),
         ],
         if (reminder.hasSubtasks) ...[
           separator,
@@ -135,7 +148,7 @@ class ReminderCard extends StatelessWidget {
         ],
         if (reminder.hasPriority) ...[
           separator,
-          ...PriorityPinVisuals.metaSpans(scheme, reminder.priority),
+          ...PriorityPinVisuals.metaSpans(scheme, reminder.priority, l10n),
         ],
       ],
     );
@@ -144,7 +157,7 @@ class ReminderCard extends StatelessWidget {
         ? null
         : (timeStyle == ReminderTimeStyle.timeOnly
             ? KorFormat.time(at)
-            : KorFormat.when(at, now));
+            : KorFormat.when(at, now, l10n));
 
     final timeWidget = timeText == null
         ? null
@@ -171,16 +184,18 @@ class ReminderCard extends StatelessWidget {
       onDelete: delete,
       child: Semantics(
         container: true,
-        label: _semanticLabel(categoryLabel),
+        label: _semanticLabel(categoryLabel, l10n),
         customSemanticsActions: {
-          CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
-          if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
           CustomSemanticsAction(
-            label: PriorityPinVisuals.pinActionLabel(reminder.pinned),
+            label: done ? l10n.actionReopen : l10n.actionComplete,
+          ): toggle,
+          if (!done) CustomSemanticsAction(label: l10n.actionSnooze): snooze,
+          CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(reminder.pinned, l10n),
           ): togglePin,
-          const CustomSemanticsAction(label: 'Düzenle'): () =>
+          CustomSemanticsAction(label: l10n.actionEdit): () =>
               showReminderEditorSheet(context, existing: reminder),
-          const CustomSemanticsAction(label: 'Sil'): delete,
+          CustomSemanticsAction(label: l10n.actionDelete): delete,
         },
         child: DecoratedBox(
           decoration: korCardDecoration(context, flat: done),

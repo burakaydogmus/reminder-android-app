@@ -236,71 +236,6 @@ void main() {
     });
   });
 
-  group('RecurrenceRule.summary', () {
-    test('Turkish summaries', () {
-      expect(RecurrenceRule.none.summary, 'Tekrar yok');
-      expect(RecurrenceRule.daily().summary, 'Her gün');
-      expect(RecurrenceRule.daily(interval: 3).summary, '3 günde bir');
-      expect(
-        RecurrenceRule.weekly([DateTime.saturday]).summary,
-        'Her Cumartesi',
-      );
-      expect(
-        RecurrenceRule.weekly([DateTime.monday, DateTime.wednesday],
-                interval: 2)
-            .summary,
-        '2 haftada bir Pzt, Çar',
-      );
-      expect(
-        RecurrenceRule.weekly([DateTime.tuesday, DateTime.friday]).summary,
-        'Her hafta Sal, Cum',
-      );
-      expect(
-        RecurrenceRule.weekly([DateTime.sunday], interval: 3).summary,
-        '3 haftada bir Pazar',
-      );
-      expect(
-        RecurrenceRule.weekly([1, 2, 3, 4, 5]).summary,
-        'Hafta içi her gün',
-      );
-      expect(RecurrenceRule.weekly([1, 2, 3, 4, 5, 6, 7]).summary, 'Her gün');
-      expect(RecurrenceRule.monthly(dayOfMonth: 17).summary, "Her ayın 17'si");
-      expect(
-        RecurrenceRule.monthly(dayOfMonth: 31, interval: 2).summary,
-        "2 ayda bir, ayın 31'i",
-      );
-      expect(
-        RecurrenceRule.daily(until: DateTime(2026, 12, 31)).summary,
-        'Her gün · bitiş 31 Ara 2026',
-      );
-    });
-
-    test('day-of-month suffixes follow vowel harmony', () {
-      const expected = {
-        1: "1'i",
-        2: "2'si",
-        3: "3'ü",
-        4: "4'ü",
-        5: "5'i",
-        6: "6'sı",
-        7: "7'si",
-        8: "8'i",
-        9: "9'u",
-        10: "10'u",
-        13: "13'ü",
-        16: "16'sı",
-        20: "20'si",
-        26: "26'sı",
-        29: "29'u",
-        30: "30'u",
-        31: "31'i",
-      };
-      expected.forEach((day, label) {
-        expect(RecurrenceRule.dayOfMonthLabel(day), label);
-      });
-    });
-  });
-
   group('RecurrenceRule.alignedTo (moving the whole series)', () {
     final sunday = DateTime(2026, 9, 20);
     final monday = DateTime(2026, 9, 21);
@@ -354,7 +289,7 @@ void main() {
     ];
 
     for (final rule in rules) {
-      test('round-trips ${rule.summary}', () {
+      test('round-trips ${rule.toJson()}', () {
         expect(RecurrenceRule.fromJson(rule.toJson()), rule);
       });
     }

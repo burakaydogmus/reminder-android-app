@@ -1,6 +1,7 @@
 import 'package:flutter/physics.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/haptics.dart';
@@ -198,6 +199,7 @@ class _ReminderSwipeState extends State<ReminderSwipe>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final kor = context.korColors;
+    final l10n = context.l10n;
     final startSide = _offset.value > 0;
     final snoozeSide =
         !startSide && _canSnooze && _fraction > -ReminderSwipe.deleteThreshold;
@@ -207,20 +209,20 @@ class _ReminderSwipeState extends State<ReminderSwipe>
             kor.success,
             kor.onSuccess,
             widget.done ? Icons.undo_rounded : Icons.check_rounded,
-            widget.done ? 'Geri aç' : 'Tamamla',
+            widget.done ? l10n.actionReopen : l10n.actionComplete,
           )
         : snoozeSide
             ? (
                 scheme.tertiary,
                 scheme.onTertiary,
                 Icons.snooze_rounded,
-                'Ertele'
+                l10n.actionSnooze,
               )
             : (
                 scheme.error,
                 scheme.onError,
                 Icons.delete_outline_rounded,
-                'Sil',
+                l10n.actionDelete,
               );
 
     final armed = startSide

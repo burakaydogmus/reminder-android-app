@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/reminders/snooze_options.dart';
 
 void main() {
@@ -10,7 +11,7 @@ void main() {
       // Sunday 13 Sep 2026, 14:32:20.
       final options = SnoozeOptions.from(DateTime(2026, 9, 13, 14, 32, 20));
       expect(options.map((o) => o.kind), SnoozeKind.values);
-      expect(options.map((o) => o.label), [
+      expect(options.map((o) => o.labelIn(AppL10n.turkish)), [
         '10 dakika',
         '1 saat',
         'Bu akşam',
@@ -27,15 +28,16 @@ void main() {
     test('after 20:00 the evening option moves to tomorrow', () {
       final options = SnoozeOptions.from(DateTime(2026, 9, 13, 21, 15));
       final evening = options[2];
-      expect(evening.label, 'Yarın akşam');
+      expect(evening.labelIn(AppL10n.turkish), 'Yarın akşam');
       expect(evening.at, DateTime(2026, 9, 14, 20));
-      expect(options.map((o) => o.label), isNot(contains('Bu akşam')));
+      expect(options.map((o) => o.labelIn(AppL10n.turkish)),
+          isNot(contains('Bu akşam')));
       expect(options[3].at, DateTime(2026, 9, 14, 9));
     });
 
     test('exactly 20:00 counts as past', () {
       final options = SnoozeOptions.from(DateTime(2026, 9, 13, 20));
-      expect(options[2].label, 'Yarın akşam');
+      expect(options[2].labelIn(AppL10n.turkish), 'Yarın akşam');
     });
 
     test('late night: relative options cross midnight, month end handled', () {
@@ -52,11 +54,17 @@ void main() {
 
     test('timeLabel: time today, weekday + time otherwise', () {
       expect(
-          SnoozeOptions.timeLabel(DateTime(2026, 9, 13, 14, 42), now), '14:42');
+          SnoozeOptions.timeLabel(
+              DateTime(2026, 9, 13, 14, 42), now, AppL10n.turkish),
+          '14:42');
       expect(
-          SnoozeOptions.timeLabel(DateTime(2026, 9, 14, 9), now), 'Pzt 09:00');
+          SnoozeOptions.timeLabel(
+              DateTime(2026, 9, 14, 9), now, AppL10n.turkish),
+          'Pzt 09:00');
       expect(
-          SnoozeOptions.timeLabel(DateTime(2026, 9, 19, 9), now), 'Cmt 09:00');
+          SnoozeOptions.timeLabel(
+              DateTime(2026, 9, 19, 9), now, AppL10n.turkish),
+          'Cmt 09:00');
     });
 
     test('dativeSuffix follows the last spoken number word', () {
@@ -89,11 +97,13 @@ void main() {
 
     test('snoozedMessage', () {
       expect(
-        SnoozeOptions.snoozedMessage(DateTime(2026, 9, 14, 9), now),
+        SnoozeOptions.snoozedMessage(
+            DateTime(2026, 9, 14, 9), now, AppL10n.turkish),
         "Yarın 09:00'a ertelendi",
       );
       expect(
-        SnoozeOptions.snoozedMessage(DateTime(2026, 9, 13, 14, 42), now),
+        SnoozeOptions.snoozedMessage(
+            DateTime(2026, 9, 13, 14, 42), now, AppL10n.turkish),
         "14:42'ye ertelendi",
       );
     });

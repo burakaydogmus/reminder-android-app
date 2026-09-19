@@ -66,6 +66,7 @@ abstract final class CaptureToReminder {
     DateTime? createdAt,
     bool acceptSplit = false,
     int hourForDateOnly = defaultHour,
+    CaptureTexts texts = const CaptureTexts(),
   }) {
     final categoryId = result.categoryId ?? ReminderCategoryIds.other;
     final tag = result.categoryKey?.trim();
@@ -73,7 +74,7 @@ abstract final class CaptureToReminder {
         result.categoryId == null && tag != null && tag.isNotEmpty ? tag : null;
 
     final split = acceptSplit && result.splitSuggestion.length >= 2;
-    final title = split ? listTitle(categoryId) : result.title.trim();
+    final title = split ? texts.listTitle(categoryId) : result.title.trim();
     final subtasks = split
         ? SubtaskList.inOrder([
             for (var i = 0; i < result.splitSuggestion.length; i++)
@@ -95,7 +96,7 @@ abstract final class CaptureToReminder {
     final reminder = Reminder(
       id: id,
       title: title,
-      note: placeLabel == null ? null : 'Yer: $placeLabel',
+      note: placeLabel == null ? null : texts.placeNote(placeLabel),
       isDone: false,
       createdAt: createdAt ?? now,
       remindAt: remindAt,
@@ -190,10 +191,15 @@ abstract final class CaptureToReminder {
 
   /// Title of an accepted "Maddelere böl?" list (design §3.3.3):
   /// "Market alışverişi" for Market, "`<Kategori>` listesi" otherwise.
+  /// Turkish default of [CaptureTexts.listTitle].
   static String listTitle(String categoryId) =>
       categoryId == ReminderCategoryIds.market
           ? 'Market alışverişi'
           : '${ReminderCategoryIds.defaultLabel(categoryId)} listesi';
+
+  /// The note of a capture with `@place`: `Yer: ev`. Turkish default of
+  /// [CaptureTexts.placeNote].
+  static String placeNote(String place) => 'Yer: $place';
 
   static String _capitalized(String text) {
     if (text.isEmpty) return text;
@@ -205,4 +211,20 @@ abstract final class CaptureToReminder {
     };
     return '$upper${text.substring(1)}';
   }
+}
+
+/// Texts [CaptureToReminder.map] writes into the reminder (F6.1): the title
+/// of an accepted list split and the `@place` note. The Turkish defaults
+/// keep the mapping pure; the capture sheet passes the app language's.
+class CaptureTexts {
+  const CaptureTexts({
+    this.listTitle = CaptureToReminder.listTitle,
+    this.placeNote = CaptureToReminder.placeNote,
+  });
+
+  /// Title for a split list of the given category id.
+  final String Function(String categoryId) listTitle;
+
+  /// Note for a `@place` capture.
+  final String Function(String place) placeNote;
 }
