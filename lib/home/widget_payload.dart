@@ -189,17 +189,28 @@ abstract final class WidgetPayload {
     };
   }
 
+  /// Bugün (0) veya yarın (1) olan doğum günleri. `daysUntilNext` bildirim
+  /// saati geçince gelecek yılı döndürdüğü için gün, takvim tarihinden
+  /// hesaplanır: bugünün doğum günü bütün gün "Bugün" kalır.
   static List<Map<String, Object?>> _birthdays(
     List<Birthday> birthdays,
     DateTime now,
   ) {
-    final soon = [
-      for (final b in birthdays)
-        if (b.daysUntilNext(from: now) <= 1) (b, b.daysUntilNext(from: now)),
-    ]..sort((a, b) {
-        final byDay = a.$2.compareTo(b.$2);
-        return byDay != 0 ? byDay : a.$1.name.compareTo(b.$1.name);
-      });
+    final soon = <(Birthday, int)>[];
+    for (final b in birthdays) {
+      for (var days = 0; days <= 1; days++) {
+        final day = DateTime(now.year, now.month, now.day + days);
+        final at = b.occurrenceInYear(day.year);
+        if (at.month == day.month && at.day == day.day) {
+          soon.add((b, days));
+          break;
+        }
+      }
+    }
+    soon.sort((a, b) {
+      final byDay = a.$2.compareTo(b.$2);
+      return byDay != 0 ? byDay : a.$1.name.compareTo(b.$1.name);
+    });
     return [
       for (final (b, days) in soon)
         {
@@ -208,9 +219,15 @@ abstract final class WidgetPayload {
           'label': days == 0 ? todayLabel : tomorrowLabel,
           'date': DateTime(now.year, now.month, now.day + days)
               .millisecondsSinceEpoch,
-          'age': b.upcomingAgeFrom(from: now),
+          'age': _ageOn(b, DateTime(now.year, now.month, now.day + days)),
         },
     ];
+  }
+
+  static int? _ageOn(Birthday b, DateTime day) {
+    if (!b.hasYear) return null;
+    final age = day.year - b.date.year;
+    return age > 0 ? age : null;
   }
 
   /// Satırdaki zaman etiketi: gecikmiş → "Gecikti", bugün → "16:00", yarın

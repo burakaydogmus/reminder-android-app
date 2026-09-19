@@ -200,6 +200,30 @@ void main() {
       });
     }
 
+    for (final id in ['first', 'missing']) {
+      test('"$id": the widget gets birthdays and the notification flag (F5.1)',
+          () async {
+        await repository
+            .saveSettings(const AppSettings(notificationsEnabled: false));
+
+        await toggle(id);
+
+        final captured = verify(
+          () => homeWidget.sync(
+            any(),
+            birthdays: captureAny(named: 'birthdays'),
+            notificationsEnabled: captureAny(named: 'notificationsEnabled'),
+          ),
+        ).captured;
+        expect(captured, hasLength(2));
+        expect(
+          (captured[0] as List<Birthday>).map((b) => b.id),
+          ['bday'],
+        );
+        expect(captured[1], isFalse);
+      });
+    }
+
     test('schedules nothing when notifications are disabled', () async {
       await repository
           .saveSettings(const AppSettings(notificationsEnabled: false));
