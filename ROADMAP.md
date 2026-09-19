@@ -108,8 +108,9 @@ Diğer tüm fazların temeli.
   Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; zemin üzerindeki kategori metni `CategoryColors.onContainer`, ikon `fg` kullanır (kor anahtarı için zorunlu); mevcut "Diğer + özel ad" yapısının migration'ı.
 - [x] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
-- [ ] **F4.5 Erişilebilirlik** · `feat/a11y` · *F4.1'den itibaren her PR'ın kabul kriteri*
+- [x] **F4.5 Erişilebilirlik** · `feat/a11y-audit` · *F4.1'den itibaren her PR'ın kabul kriteri*
   Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.
+  *Not:* kapanış denetimi `test/ui/a11y/` (ana ekranlar × açık/koyu × yazı ölçeği 1.0/2.0 × Android/iOS: dokunma hedefi, etiket, kontrast, taşma, "saat 16:00") ve [`docs/a11y-checklist.md`](docs/a11y-checklist.md) (kuralların nasıl zorlandığı, cihazda TalkBack/VoiceOver kontrolleri). Golden yerine ekran görüntüsü tabanlı kontrast kılavuzu kullanıldı. Erişilebilirlik **her PR'ın kabul kriteri olmaya devam ediyor**: yeni ekran/sheet denetime eklenir.
 - [x] **F4.6a Türkçe ayrıştırıcı (domain)** · `feat/turkish-capture-parser`
   `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
 - [x] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture` · *bağımlı: F3.1, F3.4, F4.6a*
