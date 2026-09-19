@@ -11,7 +11,7 @@ Matcher _throwsKind(BackupErrorKind kind) => throwsA(
       isA<BackupFormatException>().having((e) => e.kind, 'kind', kind),
     );
 
-Map<String, dynamic> _header({Object? version = 1}) => {
+Map<String, dynamic> _header({Object? version = 2}) => {
       'format': BackupFormat.formatId,
       'version': version,
     };
@@ -71,7 +71,7 @@ void main() {
     test('writes the versioned header and model JSON', () {
       final json = jsonDecode(encode()) as Map<String, dynamic>;
       expect(json['format'], 'hatirlatici-backup');
-      expect(json['version'], 1);
+      expect(json['version'], 2);
       expect(json['exportedAt'], '2026-09-13T10:30:00.000Z');
       expect(json['app'], {'version': '2.1.0+8'});
       expect(json['reminders'], [for (final r in reminders) r.toJson()]);
@@ -90,7 +90,7 @@ void main() {
   group('decode', () {
     test('round trip equals the original lists and settings', () {
       final backup = BackupFormat.decode(encode());
-      expect(backup.version, 1);
+      expect(backup.version, 2);
       expect(
         [for (final r in backup.reminders) r.toJson()],
         [for (final r in reminders) r.toJson()],
@@ -181,13 +181,13 @@ void main() {
     test('rejects a newer version with the found version', () {
       expect(
         () => BackupFormat.decode(jsonEncode({
-          ..._header(version: 2),
+          ..._header(version: 3),
           'reminders': [reminders[0].toJson()],
         })),
         throwsA(
           isA<BackupFormatException>()
               .having((e) => e.kind, 'kind', BackupErrorKind.unsupportedVersion)
-              .having((e) => e.foundVersion, 'foundVersion', 2),
+              .having((e) => e.foundVersion, 'foundVersion', 3),
         ),
       );
     });
@@ -213,6 +213,84 @@ void main() {
         ),
         _throwsKind(BackupErrorKind.invalid),
       );
+    });
+  });
+
+  group('categories (version 2, F4.3)', () {
+    final categories = [
+      ...CategoryCatalog([buildCategory(id: 'gym', name: 'Spor')]).ordered,
+    ];
+
+    test('encode writes categories and decode reads them back', () {
+      final raw = BackupFormat.encode(
+        reminders: [buildReminder(categoryId: 'gym')],
+        birthdays: const [],
+        categories: categories,
+        settings: settings,
+        exportedAt: exportedAt,
+      );
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      expect(json['categories'], [for (final c in categories) c.toJson()]);
+      final backup = BackupFormat.decode(raw);
+      expect(backup.categories, categories);
+      expect(backup.reminders.single.categoryId, 'gym');
+    });
+
+    test('unreadable categories are skipped and counted', () {
+      final backup = BackupFormat.decode(jsonEncode({
+        ..._header(),
+        'reminders': [],
+        'categories': [
+          categories.last.toJson(),
+          {'id': 'x'},
+          'nope',
+          {...categories.last.toJson(), 'name': 'same id'},
+        ],
+      }));
+      expect(backup.categories.map((c) => c.id), ['gym']);
+      expect(backup.skippedCategories, 3);
+      expect(backup.skippedCount, 3);
+    });
+
+    test('categories that are not a list reject the file', () {
+      expect(
+        () => BackupFormat.decode(jsonEncode({
+          ..._header(),
+          'categories': {'id': 'gym'},
+        })),
+        _throwsKind(BackupErrorKind.invalid),
+      );
+    });
+
+    test('a version 1 file derives categories from "Diğer + özel ad"', () {
+      final backup = BackupFormat.decode(jsonEncode({
+        ..._header(version: 1),
+        'reminders': [
+          buildReminder(id: 'a', customCategoryLabel: 'Hobi').toJson(),
+          buildReminder(id: 'b', customCategoryLabel: 'HOBİ').toJson(),
+          buildReminder(id: 'c', customCategoryLabel: 'Market').toJson(),
+          buildReminder(id: 'd').toJson(),
+          buildReminder(
+            id: 'e',
+            categoryId: ReminderCategoryIds.work,
+            customCategoryLabel: 'Yoga',
+          ).toJson(),
+        ],
+        // A version 1 file never has categories; ignore any stray key.
+        'categories': [buildCategory(id: 'stray').toJson()],
+      }));
+      expect(backup.version, 1);
+      final hobi = backup.categories.single;
+      expect(hobi.name, 'Hobi');
+      expect(hobi.colorKey, CategoryColorKeys.diger);
+      expect(hobi.iconKey, CategoryIconKeys.label);
+      expect(backup.reminders.map((r) => r.categoryId), [
+        hobi.id,
+        hobi.id,
+        ReminderCategoryIds.market,
+        ReminderCategoryIds.other,
+        ReminderCategoryIds.work,
+      ]);
     });
   });
 }
