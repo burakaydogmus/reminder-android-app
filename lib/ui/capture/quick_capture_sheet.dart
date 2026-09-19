@@ -554,13 +554,20 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
             const SizedBox(height: KorSpacing.s3),
             Row(
               children: [
-                TextButton.icon(
-                  key: QuickCaptureKeys.details,
-                  onPressed: _openDetails,
-                  icon: const Icon(Icons.open_in_full_rounded),
-                  label: const Text('Tüm ayrıntılar'),
+                // Expanded: the label wraps at 200 % text instead of
+                // pushing "Kaydet" off the sheet.
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      key: QuickCaptureKeys.details,
+                      onPressed: _openDetails,
+                      icon: const Icon(Icons.open_in_full_rounded),
+                      label: const Text('Tüm ayrıntılar'),
+                    ),
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: KorSpacing.s3),
                 IconButton.filled(
                   key: QuickCaptureKeys.save,
                   tooltip: 'Kaydet',
