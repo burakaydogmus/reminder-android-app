@@ -6,6 +6,9 @@ import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
+import '../../helpers/factories.dart';
+import '../ui_harness.dart';
+
 void main() {
   test('every built-in category id maps to its Kor colour key', () {
     const expected = {
@@ -24,7 +27,7 @@ void main() {
 
   test('unknown ids fall back to Diğer', () {
     expect(CategoryVisuals.colorKeyFor('nope'), KorColorKey.diger);
-    expect(CategoryVisuals.iconFor('nope'), Icons.label_rounded);
+    expect(CategoryIcons.of('nope'), Icons.label_rounded);
   });
 
   test('birthday accent uses the dogumGunu key', () {
@@ -56,4 +59,63 @@ void main() {
       expect(resolved, colors.category(KorColorKey.ev));
     });
   }
+
+  test('18 icons and 12 spoken colour names (F4.3)', () {
+    expect(CategoryIcons.byKey.keys, CategoryIconKeys.all);
+    expect(
+        CategoryIcons.spokenNames.keys.toSet(), CategoryIconKeys.all.toSet());
+    expect(
+        KorColorKey.values.map(CategoryColorNames.of).toSet(), hasLength(12));
+    expect(CategoryColorNames.of(KorColorKey.lacivert), 'Lacivert');
+  });
+
+  test('colorKeyFor resolves user categories through a catalog', () {
+    final catalog = CategoryCatalog([buildCategory(id: 'gym')]);
+    expect(CategoryVisuals.colorKeyFor('gym', catalog), KorColorKey.lacivert);
+    expect(CategoryVisuals.colorKeyFor('gym'), KorColorKey.diger);
+    expect(
+      CategoryVisuals.colorKeyOf(buildCategory(colorKey: 'bogus')),
+      KorColorKey.diger,
+    );
+  });
+
+  testWidgets('user categories resolve from the cubit, unknown → Diğer',
+      (tester) async {
+    final h = await UiHarness.create(categories: [
+      buildCategory(id: 'gym', name: 'Spor salonu', colorKey: 'kor'),
+    ]);
+    late String label;
+    late String unknown;
+    late IconData icon;
+    late CategoryColors resolved;
+    await tester.pumpWidget(h.app(
+      home: Builder(builder: (context) {
+        label = CategoryVisuals.labelOf(context, 'gym');
+        unknown = CategoryVisuals.labelOf(context, 'deleted');
+        icon = CategoryVisuals.iconFor(context, 'gym');
+        resolved = CategoryVisuals.colorsOf(context, 'gym');
+        return const SizedBox.shrink();
+      }),
+    ));
+    expect(label, 'Spor salonu');
+    expect(unknown, 'Diğer');
+    expect(icon, Icons.fitness_center_rounded);
+    expect(resolved, KorColors.light.category(KorColorKey.kor));
+
+    // A rename rebuilds dependents.
+    await h.cubit.saveCategory(buildCategory(id: 'gym', name: 'Yoga'));
+    await tester.pump();
+    expect(label, 'Yoga');
+  });
+
+  testWidgets('without a cubit only built-ins exist', (tester) async {
+    late String label;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(builder: (context) {
+        label = CategoryVisuals.labelOf(context, 'gym');
+        return const SizedBox.shrink();
+      }),
+    ));
+    expect(label, 'Diğer');
+  });
 }

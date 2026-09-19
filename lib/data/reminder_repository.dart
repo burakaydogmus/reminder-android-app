@@ -9,6 +9,7 @@ import 'package:reminder/data/prefs_migration.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 
 /// Hatırlatıcı, doğum günü ve ayarları Drift (SQLite) veritabanında saklar
 /// (F2.1). Genel arayüz ve anlamı SharedPreferences dönemiyle aynıdır.
@@ -156,6 +157,56 @@ class ReminderRepository {
     }
   }
 
+  /// Kategoriler (F4.3), `position` sırasıyla; silinmişler hariç. Yerleşik
+  /// kategoriler ancak sıralama kaydedildiyse satır olarak bulunur; eksikleri
+  /// `CategoryCatalog` tamamlar. Veritabanı açılamadığı oturumda boş liste
+  /// (eski SharedPreferences deposunda kategori yok; yalnızca yerleşikler).
+  Future<List<ReminderCategory>> loadCategories() async {
+    final storage = await _open();
+    if (storage.database case final db?) {
+      final rows = await (db.select(db.categories)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .get();
+      return [for (final row in rows) categoryFromRow(row)];
+    }
+    return const [];
+  }
+
+  /// Kategori listesini (yerleşikler dahil, görüntüleme sırasıyla) diğer
+  /// listelerle aynı kuralla kaydeder: değişen/yeni satır upsert, listede
+  /// olmayan satır yumuşak silinir (silinen kullanıcı kategorisi).
+  /// Veritabanı yoksa yazılmaz.
+  Future<void> saveCategories(List<ReminderCategory> categories) async {
+    final storage = await _open();
+    final db = storage.database;
+    if (db == null) return;
+
+    final now = toEpochMicros(_clock());
+    await db.transaction(() async {
+      final existing = {
+        for (final row in await db.select(db.categories).get()) row.id: row,
+      };
+      final kept = <String>{};
+      for (var i = 0; i < categories.length; i++) {
+        final c = categories[i];
+        if (!kept.add(c.id)) continue;
+        final old = existing[c.id];
+        final unchanged = old != null &&
+            categoryToRow(c, position: i, updatedAt: old.updatedAt) == old;
+        if (unchanged) continue;
+        await db.into(db.categories).insertOnConflictUpdate(
+            categoryToRow(c, position: i, updatedAt: now).toCompanion(false));
+      }
+      await (db.update(db.categories)
+            ..where((t) => t.deletedAt.isNull() & t.id.isNotIn(kept)))
+          .write(CategoriesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    });
+  }
+
   Future<AppSettings> loadSettings() async {
     final storage = await _open();
     if (storage.database case final db?) {
@@ -250,6 +301,7 @@ class ReminderRepository {
       await db.transaction(() async {
         await db.delete(db.subtasks).go();
         await db.delete(db.reminders).go();
+        await db.delete(db.categories).go();
         await db.delete(db.birthdays).go();
         await db.delete(db.settings).go();
       });

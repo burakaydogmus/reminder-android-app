@@ -3,16 +3,20 @@ import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 
 /// How a backup is applied.
 enum BackupImportMode {
   /// Upsert by id: existing items stay (in their order), items with the same
   /// id are overwritten by the backup's version, new ones are appended.
-  /// Settings are **not** changed.
+  /// Settings are **not** changed. A backup user category whose name matches
+  /// a local category with another id (case/Turkish-diacritic insensitive)
+  /// is not added; its reminders move to the local one.
   merge,
 
-  /// Reminders and birthdays become exactly the backup's lists (the others
-  /// are soft-deleted by the repository); settings come from the backup when
+  /// Reminders, birthdays and categories become exactly the backup's lists
+  /// (the others are soft-deleted by the repository; built-in categories
+  /// always exist); settings come from the backup when
   /// it has readable settings, otherwise the current ones are kept.
   replace,
 }
@@ -57,9 +61,12 @@ class BackupService {
     final reminders = await _repository.loadReminders();
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
+    final categories =
+        CategoryCatalog(await _repository.loadCategories()).ordered;
     return BackupFormat.encode(
       reminders: reminders,
       birthdays: birthdays,
+      categories: categories,
       settings: settings,
       exportedAt: _clock(),
       appVersion: appVersion,
@@ -72,9 +79,18 @@ class BackupService {
   ) async {
     switch (mode) {
       case BackupImportMode.merge:
+        final local = CategoryCatalog(await _repository.loadCategories());
+        final (:categories, :remap) = mergeCategories(local, backup.categories);
+        final imported = [
+          for (final r in backup.reminders)
+            if (remap[r.categoryId] case final id?)
+              r.copyWith(categoryId: id)
+            else
+              r,
+        ];
         final reminders = mergeById<Reminder>(
           await _repository.loadReminders(),
-          backup.reminders,
+          imported,
           (r) => r.id,
         );
         final birthdays = mergeById<Birthday>(
@@ -82,6 +98,7 @@ class BackupService {
           backup.birthdays,
           (b) => b.id,
         );
+        await _repository.saveCategories(categories);
         await _repository.saveReminders(reminders);
         await _repository.saveBirthdays(birthdays);
         return BackupApplyResult(
@@ -91,6 +108,8 @@ class BackupService {
         );
       case BackupImportMode.replace:
         final AppSettings? settings = backup.settings;
+        await _repository
+            .saveCategories(CategoryCatalog(backup.categories).ordered);
         await _repository.saveReminders(backup.reminders);
         await _repository.saveBirthdays(backup.birthdays);
         if (settings != null) await _repository.saveSettings(settings);
@@ -100,6 +119,37 @@ class BackupService {
           settingsApplied: settings != null,
         );
     }
+  }
+
+  /// Merge-mode categories: local order kept, same-id backup categories
+  /// overwrite (built-ins stay fixed), new ones appended. A new backup
+  /// category whose folded name matches a local one is dropped and listed in
+  /// `remap` (backup id → local id).
+  static ({List<ReminderCategory> categories, Map<String, String> remap})
+      mergeCategories(CategoryCatalog local, List<ReminderCategory> imported) {
+    final remap = <String, String>{};
+    final accepted = <ReminderCategory>[];
+    for (final c in imported) {
+      if (!c.isBuiltIn && !local.contains(c.id)) {
+        final match = local.byFoldedName(c.name);
+        if (match != null) {
+          remap[c.id] = match.id;
+          continue;
+        }
+      }
+      accepted.add(c);
+    }
+    final merged = mergeById<ReminderCategory>(
+      local.ordered,
+      accepted,
+      (c) => c.id,
+    );
+    return (
+      categories: CategoryCatalog([
+        for (var i = 0; i < merged.length; i++) merged[i].copyWith(position: i),
+      ]).ordered,
+      remap: remap,
+    );
   }
 
   /// [existing] in order with same-id items replaced by [imported]; imported

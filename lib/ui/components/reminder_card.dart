@@ -57,11 +57,11 @@ class ReminderCard extends StatelessWidget {
     return label != null && label.isNotEmpty ? label : 'Konum';
   }
 
-  String _semanticLabel() {
+  String _semanticLabel(String categoryLabel) {
     final at = reminder.remindAt?.toLocal();
     return [
       reminder.title,
-      reminder.categoryDisplayLabel,
+      categoryLabel,
       if (at != null)
         '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
       if (_isOverdue) 'gecikti',
@@ -78,6 +78,7 @@ class ReminderCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
+    final categoryLabel = CategoryVisuals.labelOf(context, reminder.categoryId);
     final done = reminder.isDone;
     final overdue = _isOverdue;
     final at = reminder.remindAt?.toLocal();
@@ -98,9 +99,10 @@ class ReminderCard extends StatelessWidget {
     final meta = TextSpan(
       style: metaStyle,
       children: [
-        metaIcon(CategoryVisuals.iconFor(reminder.categoryId), category.fg),
+        metaIcon(
+            CategoryVisuals.iconFor(context, reminder.categoryId), category.fg),
         TextSpan(
-          text: reminder.categoryDisplayLabel,
+          text: categoryLabel,
           style: TextStyle(color: category.fg),
         ),
         if (overdue) ...[
@@ -148,7 +150,7 @@ class ReminderCard extends StatelessWidget {
       onDelete: delete,
       child: Semantics(
         container: true,
-        label: _semanticLabel(),
+        label: _semanticLabel(categoryLabel),
         customSemanticsActions: {
           CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
           if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,

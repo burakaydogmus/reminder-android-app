@@ -60,7 +60,8 @@ class ReadyStep extends StatelessWidget {
             children: [
               _SuggestionRow(
                 key: OnboardingKeys.marketSuggestion,
-                icon: CategoryVisuals.iconFor(ReminderCategoryIds.market),
+                icon: CategoryVisuals.iconFor(
+                    context, ReminderCategoryIds.market),
                 iconColor: market.fg,
                 label: 'Market listesi oluştur',
                 onTap: onCreateMarketList,

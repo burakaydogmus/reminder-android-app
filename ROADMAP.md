@@ -104,7 +104,7 @@ Diğer tüm fazların temeli.
   `useMaterial3: true`, Kor `ColorScheme` (tüm roller elle), tipografi, bileşen temaları, yeni hatırlatıcı kartı, 3 sekmeli kabuk (Bugün / Takvim / Listeler) + Ayarlar dişliye, `Switch.adaptive`, editörde başlık önce + otomatik odak, kontrast testi.
 - [x] **F4.2 Onboarding** · `feat/onboarding` · *bağımlı: F1.6, F4.1*
   4 adım: karşılama, "yazman yeterli" demosu, bildirim ön-izni, hazır; konum ve exact alarm izinleri ilk ihtiyaç anında bağlamsal sheet ile.
-- [ ] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
+- [x] **F4.3 Özel kategoriler** · `feat/custom-categories` · *bağımlı: F2.1, F4.1*
   Kullanıcı tanımlı kategori (ad, 12 renk anahtarından biri, ikon), sıralama; kategori hex değil `colorKey` saklar; zemin üzerindeki kategori metni `CategoryColors.onContainer`, ikon `fg` kullanır (kor anahtarı için zorunlu); mevcut "Diğer + özel ad" yapısının migration'ı.
 - [x] **F4.4 Takvim + doğum günleri** · `feat/calendar-view` · *bağımlı: F3.6*
   Hafta şeridi ⇄ ay ızgarası, sürükleyerek yeniden planlama (menü alternatifiyle), Doğum günleri ekranı, yılı bilinmeyen tarih.
@@ -114,7 +114,7 @@ Diğer tüm fazların temeli.
   `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
 - [x] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture` · *bağımlı: F3.1, F3.4, F4.6a*
   iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
-  *Not:* bilinmeyen `#etiket` şimdilik "Diğer" + ipucu chip'i (oluşturma F4.3 ile bağlanacak); `@yer` nota yazılır, geofence kurmaz.
+  *Not:* bilinmeyen `#etiket` "Diğer"e gider; "Yeni kategori: #etiket" chip'i kategoriyi o adla oluşturur (F4.3); `@yer` nota yazılır, geofence kurmaz.
 - [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 

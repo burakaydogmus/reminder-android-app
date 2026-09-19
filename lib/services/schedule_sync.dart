@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/sync_interfaces.dart';
 
 /// Zamanlanmış bildirimleri saklanan durumla eşitleyen servis.
@@ -63,8 +64,9 @@ class ScheduleSync {
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
     required AppSettings settings,
+    CategoryCatalog? categories,
   }) {
-    final request = _SyncRequest(reminders, birthdays, settings);
+    final request = _SyncRequest(reminders, birthdays, settings, categories);
     if (_running) {
       _queued = request;
       return (_queuedDone ??= Completer<void>()).future;
@@ -103,6 +105,7 @@ class ScheduleSync {
       request.reminders,
       birthdays: request.birthdays,
       notificationsEnabled: enabled,
+      categories: request.categories,
     );
   }
 
@@ -111,19 +114,27 @@ class ScheduleSync {
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
     required AppSettings settings,
+    CategoryCatalog? categories,
   }) =>
       _homeWidget.sync(
         reminders,
         birthdays: birthdays,
         notificationsEnabled: settings.notificationsEnabled,
+        categories: categories,
       );
 }
 
 /// [ScheduleSync.syncAll] argümanlarının anlık görüntüsü.
 class _SyncRequest {
-  const _SyncRequest(this.reminders, this.birthdays, this.settings);
+  const _SyncRequest(
+    this.reminders,
+    this.birthdays,
+    this.settings,
+    this.categories,
+  );
 
   final List<Reminder> reminders;
   final List<Birthday> birthdays;
   final AppSettings settings;
+  final CategoryCatalog? categories;
 }

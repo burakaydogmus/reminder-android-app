@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:reminder/domain/category_label_migration.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 
 /// Why a backup file was rejected as a whole. Nothing is applied in any of
 /// these cases.
@@ -16,8 +18,8 @@ enum BackupErrorKind {
   /// `version` is newer than [BackupFormat.version] (written by a newer app).
   unsupportedVersion,
 
-  /// Right format, broken structure (missing/invalid `version`, `reminders`
-  /// or `birthdays` not a list).
+  /// Right format, broken structure (missing/invalid `version`,
+  /// `reminders`, `birthdays` or `categories` not a list).
   invalid,
 }
 
@@ -43,11 +45,13 @@ class BackupDocument {
     required this.version,
     required this.reminders,
     required this.birthdays,
+    this.categories = const [],
     this.settings,
     this.exportedAt,
     this.appVersion,
     this.skippedReminders = 0,
     this.skippedBirthdays = 0,
+    this.skippedCategories = 0,
     this.settingsSkipped = false,
   });
 
@@ -55,34 +59,50 @@ class BackupDocument {
   final List<Reminder> reminders;
   final List<Birthday> birthdays;
 
+  /// Categories (F4.3) in the file's order, built-ins included when the file
+  /// stored their order. Version 1 files have no categories: they are
+  /// derived from the reminders' "Diğer + özel ad" labels
+  /// ([CategoryLabelMigration], like the schema v5 migration) and those
+  /// reminders already point to them.
+  final List<ReminderCategory> categories;
+
   /// `null` when the file has no (readable) `settings` object.
   final AppSettings? settings;
   final DateTime? exportedAt;
   final String? appVersion;
   final int skippedReminders;
   final int skippedBirthdays;
+  final int skippedCategories;
 
   /// `settings` was present but could not be read.
   final bool settingsSkipped;
 
   /// Unreadable records (items plus an unreadable settings object).
   int get skippedCount =>
-      skippedReminders + skippedBirthdays + (settingsSkipped ? 1 : 0);
+      skippedReminders +
+      skippedBirthdays +
+      skippedCategories +
+      (settingsSkipped ? 1 : 0);
 }
 
-/// Versioned JSON backup (F2.2):
+/// Versioned JSON backup (F2.2; version 2 adds `categories`, F4.3):
 ///
 /// ```json
 /// {
 ///   "format": "hatirlatici-backup",
-///   "version": 1,
+///   "version": 2,
 ///   "exportedAt": "2026-09-13T10:30:00.000Z",
 ///   "app": {"version": "2.1.0+8"},
 ///   "reminders": [Reminder.toJson(), ...],
 ///   "birthdays": [Birthday.toJson(), ...],
+///   "categories": [ReminderCategory.toJson(), ...],
 ///   "settings": AppSettings.toJson()
 /// }
 /// ```
+///
+/// Version 2 (F4.3) bumped the version because a version 1 reader would drop
+/// the categories and show user-category reminders as "Diğer". Version 1
+/// files are still read: their "Diğer + özel ad" labels become categories.
 ///
 /// Items are the models' own `toJson`/`fromJson`, so model fields added later
 /// are exported and imported without touching this file (model times keep
@@ -97,11 +117,12 @@ abstract final class BackupFormat {
   static const formatId = 'hatirlatici-backup';
 
   /// Highest version this app reads and the version it writes.
-  static const version = 1;
+  static const version = 2;
 
   static Map<String, dynamic> toJson({
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
+    List<ReminderCategory> categories = const [],
     required AppSettings settings,
     required DateTime exportedAt,
     String? appVersion,
@@ -113,6 +134,7 @@ abstract final class BackupFormat {
       'app': {'version': appVersion},
       'reminders': [for (final r in reminders) r.toJson()],
       'birthdays': [for (final b in birthdays) b.toJson()],
+      'categories': [for (final c in categories) c.toJson()],
       'settings': settings.toJson(),
     };
   }
@@ -120,6 +142,7 @@ abstract final class BackupFormat {
   static String encode({
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
+    List<ReminderCategory> categories = const [],
     required AppSettings settings,
     required DateTime exportedAt,
     String? appVersion,
@@ -127,6 +150,7 @@ abstract final class BackupFormat {
     return const JsonEncoder.withIndent('  ').convert(toJson(
       reminders: reminders,
       birthdays: birthdays,
+      categories: categories,
       settings: settings,
       exportedAt: exportedAt,
       appVersion: appVersion,
@@ -184,6 +208,24 @@ abstract final class BackupFormat {
       (b) => b.id,
     );
 
+    final storedCategories = _decodeList(
+      decoded['categories'],
+      'categories',
+      ReminderCategory.fromJson,
+      (c) => c.id,
+    );
+    var reminderItems = reminders.items;
+    var categories = storedCategories.items;
+    if (fileVersion < 2) {
+      // F4.3: same rule as the schema v5 migration.
+      final labelled = CategoryLabelMigration.apply(
+        reminderItems,
+        existing: CategoryCatalog.builtIns,
+      );
+      reminderItems = labelled.reminders;
+      categories = labelled.created;
+    }
+
     AppSettings? settings;
     var settingsSkipped = false;
     final rawSettings = decoded['settings'];
@@ -203,13 +245,15 @@ abstract final class BackupFormat {
 
     return BackupDocument(
       version: fileVersion,
-      reminders: reminders.items,
+      reminders: reminderItems,
       birthdays: birthdays.items,
+      categories: categories,
       settings: settings,
       exportedAt: exportedAt is String ? DateTime.tryParse(exportedAt) : null,
       appVersion: appVersion is String ? appVersion : null,
       skippedReminders: reminders.skipped,
       skippedBirthdays: birthdays.skipped,
+      skippedCategories: storedCategories.skipped,
       settingsSkipped: settingsSkipped,
     );
   }

@@ -164,6 +164,28 @@ void main() {
       expect(byId['ruleOnly']!['recurring'], isFalse);
     });
 
+    test('user categories resolve their colour key via the catalog (F4.3)', () {
+      final gym = buildReminder(id: 'gym', categoryId: 'gym');
+      Map<Object?, Map<String, Object?>> byId(CategoryCatalog? categories) => {
+            for (final i in _items(WidgetPayload.build(
+              reminders: [gym],
+              birthdays: const [],
+              notificationsEnabled: true,
+              now: _now,
+              categories: categories,
+            )))
+              i['id']: i,
+          };
+
+      expect(
+        byId(CategoryCatalog([buildCategory(id: 'gym', colorKey: 'kiremit')]))[
+            'gym']!['category'],
+        'kiremit',
+      );
+      // Without a catalog (or after deletion) the item falls back to Diğer.
+      expect(byId(null)['gym']!['category'], 'diger');
+    });
+
     test('counts: today = today + untimed, overdue, open = all active', () {
       final counts = _counts(
         _build(reminders: [overdue, at16, at18, untimed, tomorrow, done]),

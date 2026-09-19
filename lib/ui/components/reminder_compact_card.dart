@@ -57,7 +57,7 @@ class ReminderCompactCard extends StatelessWidget {
   }
 
   /// Same wording as [ReminderCard]'s label.
-  String semanticLabel() {
+  String semanticLabel(String categoryLabel) {
     final at = reminder.remindAt?.toLocal();
     final place = reminder.locationTriggerEnabled
         ? ((reminder.locationPlaceLabel?.trim().isNotEmpty ?? false)
@@ -66,7 +66,7 @@ class ReminderCompactCard extends StatelessWidget {
         : null;
     return [
       reminder.title,
-      reminder.categoryDisplayLabel,
+      categoryLabel,
       if (at != null)
         '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
       if (_isOverdue) 'gecikti',
@@ -78,11 +78,15 @@ class ReminderCompactCard extends StatelessWidget {
   }
 
   /// Category label, plus "☑ 2/6" when the reminder has subtasks (F3.3).
-  InlineSpan _defaultSubtitle(Color categoryColor, Color mutedColor) {
+  InlineSpan _defaultSubtitle(
+    String categoryLabel,
+    Color categoryColor,
+    Color mutedColor,
+  ) {
     return TextSpan(
       children: [
         TextSpan(
-          text: reminder.categoryDisplayLabel,
+          text: categoryLabel,
           style: TextStyle(color: categoryColor),
         ),
         if (reminder.hasSubtasks) ...[
@@ -106,6 +110,7 @@ class ReminderCompactCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final category = CategoryVisuals.colorsOf(context, reminder.categoryId);
+    final categoryLabel = CategoryVisuals.labelOf(context, reminder.categoryId);
     final done = reminder.isDone;
 
     void toggle() => toggleReminderDoneWithUndo(context, reminder);
@@ -129,7 +134,7 @@ class ReminderCompactCard extends StatelessWidget {
       onDelete: delete,
       child: Semantics(
         container: true,
-        label: semanticLabel(),
+        label: semanticLabel(categoryLabel),
         customSemanticsActions: {
           CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
           if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
@@ -202,6 +207,7 @@ class ReminderCompactCard extends StatelessWidget {
                                 Text.rich(
                                   subtitle ??
                                       _defaultSubtitle(
+                                        categoryLabel,
                                         category.fg,
                                         scheme.onSurfaceVariant,
                                       ),

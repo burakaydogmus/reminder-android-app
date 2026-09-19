@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
-import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/ui/categories/category_list_section.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -38,9 +38,6 @@ class ListsPage extends StatelessWidget {
     return BlocBuilder<ReminderCubit, ReminderState>(
       builder: (context, state) {
         final bottom = MediaQuery.paddingOf(context).bottom;
-        int openIn(String id) => state.reminders
-            .where((r) => !r.isDone && r.categoryId == id)
-            .length;
         int countOf(SmartList list) => list == SmartList.birthdays
             ? state.birthdays.length
             : list.filter(state.reminders, now).length;
@@ -87,22 +84,12 @@ class ListsPage extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: KorSpacing.s5),
-              GroupedCard(
-                title: 'Kategorilerim',
-                padding: const EdgeInsets.symmetric(vertical: KorSpacing.s3),
-                children: [
-                  for (final id in ReminderCategoryIds.orderedIds)
-                    ListEntryRow(
-                      leading: CategoryIconBadge(categoryId: id),
-                      title: ReminderCategoryIds.defaultLabel(id),
-                      count: openIn(id),
-                      countLabel: 'açık',
-                      onTap: () => _push(
-                        context,
-                        ReminderFilterPage.category(categoryId: id),
-                      ),
-                    ),
-                ],
+              // F4.3: user categories, order, Düzenle, "+ Yeni kategori".
+              CategoryListSection(
+                onOpen: (id) => _push(
+                  context,
+                  ReminderFilterPage.category(categoryId: id),
+                ),
               ),
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(

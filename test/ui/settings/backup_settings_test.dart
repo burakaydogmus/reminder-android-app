@@ -273,13 +273,14 @@ void main() {
 
   testWidgets('a newer backup version asks to update the app', (tester) async {
     h = await UiHarness.create();
-    io.pickedContents = _backupJson(version: 2);
+    io.pickedContents = _backupJson(version: BackupFormat.version + 1);
     await pumpPage(tester);
 
     await tapScrolled(tester, find.byKey(SettingsPageKeys.backupImport));
 
     expect(find.byType(BackupPreviewSheet), findsNothing);
-    expect(find.textContaining('sürüm 2'), findsOneWidget);
+    expect(find.textContaining('sürüm ${BackupFormat.version + 1}'),
+        findsOneWidget);
   });
 
   testWidgets('cancelled picker does nothing', (tester) async {

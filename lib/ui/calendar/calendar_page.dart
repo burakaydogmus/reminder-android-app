@@ -165,6 +165,7 @@ class _CalendarPageState extends State<CalendarPage> {
               ? CalendarDates.addDays(grid.last, 1)
               : CalendarDates.addDays(week, 14),
           filter: _filter,
+          categories: state.categories,
         );
         List<KorColorKey> dotsFor(DateTime d) => markers[d] ?? const [];
 

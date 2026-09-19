@@ -31,8 +31,8 @@ class CaptureDraft {
   final bool isPast;
 
   /// A `#tag` that matched no category (raw, without `#`). The reminder
-  /// goes to "Diğer"; the sheet shows an inert "Yeni kategori: #tag" hint
-  /// until custom categories (F4.3) can create it.
+  /// goes to "Diğer"; the sheet's "Yeni kategori: #tag" chip opens the
+  /// category editor with the tag as the name (F4.3).
   final String? newCategoryTag;
 
   /// `@place` text (without `@`). The model has no place without a
@@ -55,7 +55,8 @@ abstract final class CaptureToReminder {
   /// - **Recurrence:** [ruleOf]; the first `remindAt` is always an
   ///   occurrence of that rule (see [remindAtOf]).
   /// - **Priority:** 0–3, same scale ([ReminderPriority.normalize]).
-  /// - **Category:** the matched built-in id, otherwise "Diğer" (an
+  /// - **Category:** the matched category id (built-in, or a user category
+  ///   when the config carries `CategoryAliases`), otherwise "Diğer" (an
   ///   unmatched tag is reported in [CaptureDraft.newCategoryTag]).
   static CaptureDraft map(
     CaptureParseResult result, {

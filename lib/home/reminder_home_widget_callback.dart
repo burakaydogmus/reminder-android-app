@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/geofence_service.dart';
@@ -86,11 +87,15 @@ Future<void> handleReminderHomeWidgetToggle(
   final birthdays = await repository.loadBirthdays();
   final settings = await repository.loadSettings();
 
+  // F4.3: user-category colours in the widget.
+  final categories = CategoryCatalog(await repository.loadCategories());
+
   if (!changed) {
     await schedules.refreshHomeWidget(
       reminders: reminders,
       birthdays: birthdays,
       settings: settings,
+      categories: categories,
     );
     return;
   }
@@ -101,6 +106,7 @@ Future<void> handleReminderHomeWidgetToggle(
     reminders: updated,
     birthdays: birthdays,
     settings: settings,
+    categories: categories,
   );
   notifyAppOfWidgetChange(); // F1.3: açık uygulama depodan yeniden yüklesin.
 }

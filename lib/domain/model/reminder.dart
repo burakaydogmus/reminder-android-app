@@ -12,10 +12,15 @@ class Reminder {
   final DateTime createdAt;
   final DateTime? remindAt;
 
-  /// [ReminderCategoryIds] değerlerinden biri.
+  /// Kategori kimliği: [ReminderCategoryIds] ya da bir kullanıcı
+  /// kategorisi (F4.3). Bilinmeyen kimlik arayüzde "Diğer" görünür
+  /// (`CategoryCatalog.resolve`).
   final String categoryId;
 
-  /// Yalnızca [ReminderCategoryIds.other] için kullanıcı tanımlı isim.
+  /// F4.3 öncesi "Diğer + özel ad". Artık yazılmıyor ve gösterilmiyor: şema
+  /// v5 geçişi etiketleri kullanıcı kategorilerine taşıdı
+  /// (`CategoryLabelMigration`); değer yalnızca geri dönüş güvenliği için
+  /// saklanır.
   final String? customCategoryLabel;
 
   final bool locationTriggerEnabled;
@@ -143,6 +148,8 @@ class Reminder {
       locationLongitude != null &&
       locationTriggerEnabled;
 
+  /// F4.3 öncesi etiket (özel ad dahil). Arayüz `CategoryCatalog.labelOf`
+  /// kullanır.
   String get categoryDisplayLabel =>
       ReminderCategoryIds.displayLabel(categoryId, customCategoryLabel);
 

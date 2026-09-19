@@ -56,7 +56,22 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `AppDatabaseHost`; `data/legacy_prefs_store.dart` is the old SharedPreferences JSON
   store (migration source and fallback); `data/prefs_migration.dart` the one-time import.
 - `domain/model/` — `Reminder` (with `copyWith`), `Birthday`, `ReminderCategory`,
-  `AppSettings`. Nullable fields in `copyWith` take `T? Function()?`
+  `AppSettings`. Categories (F4.3, `reminder_category.dart`): `ReminderCategory { id,
+  name, colorKey (KorColorKey.storageKey), iconKey (CategoryIconKeys, 18 fixed keys),
+  position }` + `isBuiltIn`; the six built-ins (`ReminderCategoryIds`) keep their ids,
+  names, colours and icons (only their order is stored) and can't be deleted.
+  `CategoryCatalog(stored)` is the ordered, immutable list (built-ins added when
+  missing — first when none is stored —, duplicate ids dropped, positions 0..n-1,
+  value equality); `resolve(id)`/`labelOf(id)` map unknown/deleted ids to "Diğer";
+  `byFoldedName` compares names case/Turkish-diacritic insensitive
+  (`CategoryNames.fold`). `domain/category_label_migration.dart`
+  (`CategoryLabelMigration`) is the **one** "Diğer + özel ad" → user category rule
+  (schema v5 step, `PrefsMigration`, v1 backups): one category per folded label
+  (first spelling wins; colour `diger`, icon `label`), a label equal to an existing
+  category's name joins it (`market` → Market, `diğer` stays), stable id
+  `label-<fnv1a32 hex of the folded name>`. `Reminder.customCategoryLabel` is no longer
+  shown or written (kept for rollback; the editor keeps it only while the category is
+  unchanged). Nullable fields in `copyWith` take `T? Function()?`
   (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
   **Feb 28 in non-leap years** (`occurrenceInYear`, used by `nextOccurrence`,
   `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests. A birthday
@@ -171,7 +186,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     and `kor_glass_tab_bar.dart` (iOS `KorGlassTabBar`, F5.4). `capture/` —
     quick capture (F4.6b): `quick_capture_sheet.dart` (`showQuickCaptureSheet`),
     `capture_text.dart` (`CaptureText`, `CaptureTextController`), `capture_bar.dart`
-    (iOS `CaptureBar`).
+    (iOS `CaptureBar`). `categories/` (F4.3) — `category_editor_sheet.dart`
+    (`showCategoryEditorSheet`, `CategoryEditorSheet`, `ColorSwatchButton`,
+    `CategoryPreview`) and `category_list_section.dart` (Listeler › Kategorilerim,
+    `CategoryListSection`).
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
     grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
     `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
@@ -182,7 +200,7 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `SmartListPage`, `ReminderFilterPage`. `search/` — `SearchPage`,
     `ReminderSearch` (pure ranking/grouping), `RecentSearchStore`.
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
-    `KorColorKey`/icon mapping), `reminder_actions.dart` (complete / snooze / delete
+    `KorColorKey`/icon/label mapping; `CategoryIcons`, `CategoryColorNames`), `reminder_actions.dart` (complete / snooze / delete
     handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
     + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
     `PermissionsGroup`), `maps/`.
@@ -345,8 +363,8 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v4** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json` … `drift_schema_v4.json`): `reminders` and
+- **Schema v5** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v5.json`): `reminders` and
   `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
   `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
   v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
@@ -360,7 +378,17 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   `loadReminders` reads both tables in one transaction; `clearAll` deletes subtasks
   first. v4 (F3.4) adds `reminders.priority` (INTEGER, default 0) and
   `reminders.pinned` (BOOLEAN, default false) in the `from < 4` step; existing rows
-  get the defaults. SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
+  get the defaults. v5 (F4.3) adds the `categories` table (`id`, `name`, `color_key`,
+  `icon_key`, `position`, `updated_at`, `deleted_at`); the `from < 5` step creates it
+  and runs `AppDatabase.migrateCustomCategoryLabels` (raw SQL, so later schema changes
+  don't break it): non-deleted `other` reminders with a `custom_category_label` get a
+  user category per `CategoryLabelMigration` and their `category_id` (+ `updated_at`)
+  repointed; `custom_category_label` itself is left as is (rollback safety, no longer
+  read by the UI). `loadCategories`/`saveCategories` follow the list rule below (the
+  cubit saves the whole catalog, built-ins included, so their order persists; a
+  deleted user category is soft-deleted); `clearAll` deletes categories;
+  `PrefsMigration` converts legacy labels the same way. The SharedPreferences fallback
+  session has no categories (built-ins only). SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
   (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
@@ -398,13 +426,19 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   `repository.close()` in `finally`; the app's repository stays open. Stream queries
   don't cross engines (the app doesn't use them; the cubit reloads).
 - **Backup (F2.2)** — `lib/data/backup/`: `BackupFormat` is a versioned JSON document
-  (`format: "hatirlatici-backup"`, `version: 1`, `exportedAt` UTC, `app.version`,
-  `reminders`/`birthdays` as the models' `toJson`, `settings`). New model fields travel
+  (`format: "hatirlatici-backup"`, `version: 2`, `exportedAt` UTC, `app.version`,
+  `reminders`/`birthdays`/`categories` as the models' `toJson`, `settings`). Version 2
+  (F4.3) added `categories` (the full catalog in order); version 1 files still import:
+  their "Diğer + özel ad" labels become categories through `CategoryLabelMigration`
+  in `decode` (a stray `categories` key in a v1 file is ignored). Merge mode merges
+  categories by id (local order kept) and maps a new backup category whose folded
+  name matches a local one onto it (`BackupService.mergeCategories`); replace mode
+  saves the backup's categories. New model fields travel
   automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
   changes an older reader would misread — a newer file is rejected with "update the
   app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
   id → skipped and counted); a non-JSON file, wrong `format`, bad/newer `version` or a
-  non-list `reminders`/`birthdays` throws `BackupFormatException` and **nothing is
+  non-list `reminders`/`birthdays`/`categories` throws `BackupFormatException` and **nothing is
   applied**. `BackupService` exports from and applies to the repository's public API:
   **merge** = upsert by id (backup wins, local-only items kept, settings unchanged),
   **replace** = the backup's lists (others soft-deleted) plus its settings when
@@ -552,6 +586,11 @@ same labels as the widget picker) and refreshes all four after every sync.
   the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
   `pazar` with a suffix is the market, a time without a date is today if still
   ahead, else tomorrow. Details in each rule file's doc comment.
+- **Category aliases (F4.3):** `category_aliases.dart` (`CategoryAliases.of(catalog)`,
+  `configFor(catalog, base:)`) builds `CaptureParserConfig.categoryAliases` from the
+  current categories: built-ins keep the default aliases + folded name, user
+  categories their folded name; the first category wins a folded clash. The capture
+  sheet passes it on every parse.
 - **No model mapping in the parser.** `capture_to_reminder.dart` (F4.6b) is the only
   place that turns a `CaptureParseResult` into a `Reminder` (see **Quick capture**).
 - Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
@@ -571,8 +610,10 @@ same labels as the widget picker) and refreshes all four after every sync.
   without a time stays untimed**; a repeat → the rule's first occurrence at or after
   now (untimed repeats at 09:00; the month-end clamp wins over the parser's skipped
   month: `her ayın 31'i` in September → 30 Eylül). Priority 0–3 as is. Category: the
-  matched id, else "Diğer" with `newCategoryTag` (the sheet shows an inert
-  "Yeni kategori: #tag" chip; F4.3 wires creation). `@place` → note `Yer: <place>`
+  matched id (user categories too, via `CategoryAliases`), else "Diğer" with
+  `newCategoryTag`: the sheet's "Yeni kategori: #tag" chip opens
+  `showCategoryEditorSheet(initialName:)` (tag → "Spor salonu") and the capture then
+  uses the created category. `@place` → note `Yer: <place>`
   (the model's `locationPlaceLabel` belongs to the geofence; never registers one).
   `acceptSplit` → title `listTitle` ("Market alışverişi") + one open subtask per
   item. `isPast` (one-off only) → warn, never save silently.
@@ -838,6 +879,36 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   stay contextual. The capture demo is scripted (no parsing; F4.6). Illustrations
   are one-shot (`OneShotAnimation`, final frame under Reduce Motion) — never add a
   repeating animation. Each step scrolls, so 200% text never overflows.
+- **Categories (F4.3):** `ReminderState.categories` (`CategoryCatalog`) is a new object
+  only when categories change (`load` keeps the old one when equal). UI reads it through
+  `CategoryVisuals`: `labelOf` / `colorsOf` / `iconFor(context, id)` resolve built-in
+  ids without the cubit and other ids with `context.select<ReminderCubit?, …>` — call
+  them **only in `build`** (select asserts elsewhere); outside build (callbacks, text
+  styles computed while parsing) use `readCatalog` / `readColorsOf`. Without a cubit
+  (isolated widgets) only built-ins exist; unknown ids show as "Diğer". Pure code takes
+  a catalog (`calendarDayMarkers(categories:)`, `ReminderSearch.run(categories:)`,
+  `agendaReminderLabel(categoryLabel:)`). Text on a category `container` uses
+  `onContainer`, icons `fg` (light "kor" fails 4.5:1 with `fg` text). Cubit:
+  `saveCategory` (append new / update user category in place; built-ins ignored),
+  `reorderCategories(ids)`, `moveCategory(from, to)` (`to` = index after removal, like
+  `onReorderItem`), `deleteCategory(id)` → its reminders (done ones too) move to "Diğer",
+  returns the count. Listeler › Kategorilerim (`CategoryListSection`): rows with open
+  counts ("Spor, 3 açık") → `ReminderFilterPage.category` (app-bar "Kategoriyi düzenle"
+  for user categories; leaves the page when deleted); "Düzenle" → `ReorderableListView`
+  (handle only, its items carry "Yukarı taşı / Aşağı taşı"; lift/drop haptics), a
+  pencil/tap opens the editor for user categories; "+ Yeni kategori". Category editor
+  sheet (§3.3.6): live preview pill, Ad (max 24, required, unique by folded name incl.
+  built-ins), 12 swatches (40 in 48 dp cells, 6 columns; selected = 3 px `onSurface`
+  ring + ✓; semantics = colour name + selected flag, e.g. "Lacivert, seçili"), 18 icons
+  (48 cells, 6 columns, spoken names), [Sil] (existing only; confirm "Bu kategorideki N
+  hatırlatıcı Diğer'e taşınacak.") · [Kaydet]. Reminder editor: chips for every
+  category in catalog order + "+ Yeni" (creates and selects); the old "Özel ad" field
+  is gone. Search's category filter lists the catalog. Home widget colours:
+  `ScheduleSync.syncAll` / `refreshHomeWidget(categories:)` → `HomeWidgetSync.sync(
+  categories:)` → `WidgetPayload.build(categories:)` (`null` = built-ins); the cubit
+  passes `state.categories` (and refreshes the widget after category edits), the
+  widget and notification-action isolates load them from the repository. Mock stubs
+  match `categories: any(named: 'categories')` (`test/helpers/mocks.dart`).
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 

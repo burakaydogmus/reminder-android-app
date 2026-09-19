@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
-import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/text_search.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -124,6 +123,8 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Future<void> _pickCategory() async {
+    // F4.3: every category in the user's order.
+    final categories = context.read<ReminderCubit>().state.categories;
     final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -137,12 +138,12 @@ class _SearchPageState extends State<SearchPage> {
               selected: _categoryId == null,
               onTap: () => Navigator.of(context).pop(''),
             ),
-            for (final id in ReminderCategoryIds.orderedIds)
+            for (final c in categories.ordered)
               ListTile(
-                leading: CategoryIconBadge(categoryId: id, size: 32),
-                title: Text(ReminderCategoryIds.defaultLabel(id)),
-                selected: _categoryId == id,
-                onTap: () => Navigator.of(context).pop(id),
+                leading: CategoryBadge(category: c, size: 32),
+                title: Text(c.name),
+                selected: _categoryId == c.id,
+                onTap: () => Navigator.of(context).pop(c.id),
               ),
           ],
         ),
@@ -252,7 +253,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _chips(BuildContext context) {
     final categoryLabel = _categoryId == null
         ? 'Kategori'
-        : ReminderCategoryIds.defaultLabel(_categoryId!);
+        : CategoryVisuals.labelOf(context, _categoryId!);
     return Wrap(
       spacing: KorSpacing.s3,
       runSpacing: KorSpacing.s3,
@@ -343,6 +344,7 @@ class _SearchPageState extends State<SearchPage> {
       query,
       statuses: _statuses,
       categoryId: _categoryId,
+      categories: state.categories,
     );
 
     if (results.isEmpty) {
@@ -458,7 +460,7 @@ class SearchResultCard extends StatelessWidget {
       subtitle: TextSpan(
         children: [
           TextSpan(
-            text: r.categoryDisplayLabel,
+            text: CategoryVisuals.labelOf(context, r.categoryId),
             style: TextStyle(color: category.fg),
           ),
           TextSpan(text: '  ·  ${_when(r)}'),

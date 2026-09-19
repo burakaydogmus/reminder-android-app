@@ -11,6 +11,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
+import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -21,6 +22,7 @@ import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/subtasks_card.dart';
+import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 import 'package:reminder/services/permission_service.dart';
@@ -34,6 +36,8 @@ abstract final class ReminderEditorKeys {
   static const recurrence = Key('reminderEditor.recurrence');
   static const pin = Key('reminderEditor.pin');
   static const priority = Key('reminderEditor.priority');
+  static Key category(String id) => Key('reminderEditor.category.$id');
+  static const newCategory = Key('reminderEditor.newCategory');
 }
 
 /// Reminder editor sheet (§3.3.4, reduced to today's data): title first with
@@ -96,7 +100,6 @@ class _ReminderEditorBody extends StatefulWidget {
 class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _noteCtrl;
-  late final TextEditingController _customCategoryCtrl;
   late String _categoryId;
   late bool _schedule;
   DateTime? _date;
@@ -138,9 +141,6 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     final e = widget.existing ?? widget.draft;
     _titleCtrl = TextEditingController(text: e?.title ?? '');
     _noteCtrl = TextEditingController(text: e?.note ?? '');
-    _customCategoryCtrl = TextEditingController(
-      text: e?.customCategoryLabel ?? '',
-    );
     _categoryId =
         e?.categoryId ?? widget.initialCategoryId ?? ReminderCategoryIds.other;
     final remindAt = widget.existing != null
@@ -173,7 +173,6 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   void dispose() {
     _titleCtrl.dispose();
     _noteCtrl.dispose();
-    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -385,14 +384,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     }
 
     final note = _noteCtrl.text.trim();
-    // "Diğer" no longer requires a custom name; empty shows "Diğer".
-    final customName = _customCategoryCtrl.text.trim();
-    final customCat =
-        _categoryId == ReminderCategoryIds.other && customName.isNotEmpty
-            ? customName
-            : null;
-
     final existing = widget.existing;
+    // F4.3: the pre-v5 "Diğer + özel ad" label is no longer written; an
+    // unchanged category keeps the old value (rollback safety).
+    final legacyLabel = existing != null && existing.categoryId == _categoryId
+        ? existing.customCategoryLabel
+        : null;
 
     final reminder = Reminder(
       id: existing?.id ?? Uuid().v4(), // ignore: prefer_const_constructors
@@ -402,7 +399,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       createdAt: existing?.createdAt ?? DateTime.now(),
       remindAt: remindAt,
       categoryId: _categoryId,
-      customCategoryLabel: customCat,
+      customCategoryLabel: legacyLabel,
       locationTriggerEnabled: _locationTrigger,
       locationLatitude: _locationTrigger ? _locLat : null,
       locationLongitude: _locationTrigger ? _locLng : null,
@@ -426,6 +423,13 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
           toggleReminderDoneWithUndo(context, reminder, now: widget.clock));
     }
     Navigator.of(context).pop();
+  }
+
+  /// "+ Yeni" chip: creates a category and selects it.
+  Future<void> _newCategory() async {
+    final created = await showCategoryEditorSheet(context);
+    if (created == null || !mounted) return;
+    setState(() => _categoryId = created.id);
   }
 
   /// Never shows raw coordinates.
@@ -527,33 +531,31 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
               title: 'Kategori',
               icon: Icons.label_outline_rounded,
             ),
+            // F4.3: every category in the user's order, then "+ Yeni".
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  for (final id in ReminderCategoryIds.orderedIds)
+                  for (final c in CategoryVisuals.catalogOf(context).ordered)
                     Padding(
                       padding: const EdgeInsets.only(right: KorSpacing.s3),
                       child: _CategoryChip(
-                        categoryId: id,
-                        selected: _categoryId == id,
-                        onSelected: () => setState(() => _categoryId = id),
+                        key: ReminderEditorKeys.category(c.id),
+                        category: c,
+                        selected: _categoryId == c.id,
+                        onSelected: () => setState(() => _categoryId = c.id),
                       ),
                     ),
+                  ActionChip(
+                    key: ReminderEditorKeys.newCategory,
+                    avatar: const Icon(Icons.add_rounded),
+                    label: const Text('Yeni'),
+                    tooltip: 'Yeni kategori',
+                    onPressed: _newCategory,
+                  ),
                 ],
               ),
             ),
-            if (_categoryId == ReminderCategoryIds.other) ...[
-              const SizedBox(height: KorSpacing.s3),
-              TextField(
-                controller: _customCategoryCtrl,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Özel ad (isteğe bağlı)',
-                  hintText: 'Örn. Spor salonu',
-                ),
-              ),
-            ],
             const SizedBox(height: KorSpacing.s4),
             _PrioritySelector(
               value: _priority,
@@ -840,14 +842,17 @@ class _LocationPermissionWarning extends StatelessWidget {
   }
 }
 
+/// Category chip; selected → `container` fill, `fg` icon and `onContainer`
+/// text (F4.3: `fg` text on `container` fails contrast for light "kor").
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
-    required this.categoryId,
+    super.key,
+    required this.category,
     required this.selected,
     required this.onSelected,
   });
 
-  final String categoryId;
+  final ReminderCategory category;
   final bool selected;
   final VoidCallback onSelected;
 
@@ -855,18 +860,19 @@ class _CategoryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final colors = CategoryVisuals.colorsOf(context, categoryId);
+    final colors =
+        context.korColors.category(CategoryVisuals.colorKeyOf(category));
     return FilterChip(
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => onSelected(),
       avatar: Icon(
-        CategoryVisuals.iconFor(categoryId),
+        CategoryVisuals.iconOf(category),
         color: selected ? colors.fg : scheme.onSurfaceVariant,
       ),
-      label: Text(ReminderCategoryIds.defaultLabel(categoryId)),
+      label: Text(category.name),
       labelStyle: theme.textTheme.labelLarge?.copyWith(
-        color: selected ? colors.fg : scheme.onSurface,
+        color: selected ? colors.onContainer : scheme.onSurface,
       ),
       selectedColor: colors.container,
       side: BorderSide(

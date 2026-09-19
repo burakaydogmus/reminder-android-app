@@ -3,6 +3,9 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/common.dart' show CommonDatabase;
 
+import 'package:reminder/domain/category_label_migration.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
+
 part 'app_database.g.dart';
 
 // Zaman sütunları iki türdür (dönüşüm `row_mapping.dart` içinde; domain
@@ -74,6 +77,28 @@ class Subtasks extends Table {
   Set<Column<Object>> get primaryKey => {reminderId, id};
 }
 
+/// `ReminderCategory` satırları (v5, F4.3).
+///
+/// Kullanıcı kategorileri ve (sıralama kaydedildiyse) yerleşik kategorilerin
+/// sırası. Yerleşiklerin adı/rengi/ikonu koddan gelir (`CategoryCatalog`);
+/// yerleşik satır yoksa yerleşikler başta varsayılır. `color_key`
+/// `KorColorKey.storageKey`, `icon_key` `CategoryIconKeys` değeridir; hex
+/// saklanmaz. Kullanıcı kategorisi silinince `deleted_at` alır, hatırlatıcıları
+/// "Diğer"e taşınır.
+@DataClassName('CategoryRow')
+class Categories extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get colorKey => text()();
+  TextColumn get iconKey => text()();
+  IntColumn get position => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get deletedAt => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// `Birthday` satırları.
 @DataClassName('BirthdayRow')
 class Birthdays extends Table {
@@ -123,7 +148,9 @@ class AppMeta extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
-@DriftDatabase(tables: [Reminders, Subtasks, Birthdays, Settings, AppMeta])
+@DriftDatabase(
+  tables: [Reminders, Subtasks, Categories, Birthdays, Settings, AppMeta],
+)
 class AppDatabase extends _$AppDatabase {
   /// [executor] verilmezse cihazdaki `reminder.sqlite` dosyası açılır
   /// ([openDefaultConnection]). Testler `NativeDatabase.memory()` geçer.
@@ -137,7 +164,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -160,11 +187,80 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(reminders, reminders.priority);
             await m.addColumn(reminders, reminders.pinned);
           }
-          if (to > 4) {
+          if (from < 5) {
+            // v5 (F4.3): kategoriler tablosu; "Diğer + özel ad" kayıtları
+            // kullanıcı kategorilerine dönüşür. `custom_category_label`
+            // geri dönüş güvenliği için olduğu gibi kalır.
+            await m.createTable(categories);
+            await migrateCustomCategoryLabels(this);
+          }
+          if (to > 5) {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },
       );
+
+  /// v4 → v5 adımı (F4.3): silinmemiş `other` hatırlatıcılarının
+  /// `custom_category_label` değerlerini [CategoryLabelMigration] kuralıyla
+  /// kullanıcı kategorilerine çevirir ve bu hatırlatıcıların `category_id`
+  /// değerini yeni kategoriye yönlendirir.
+  ///
+  /// Şema sınıflarına değil ham SQL'e dayanır; böylece ileride tablolar
+  /// değişse de bu adım v5 şekliyle çalışır.
+  static Future<void> migrateCustomCategoryLabels(
+    GeneratedDatabase db, {
+    DateTime Function() clock = DateTime.now,
+  }) async {
+    final rows = await db
+        .customSelect(
+          "SELECT id, custom_category_label FROM reminders "
+          "WHERE category_id = 'other' AND deleted_at IS NULL "
+          "AND custom_category_label IS NOT NULL ORDER BY position",
+        )
+        .get();
+    final existing = await db
+        .customSelect(
+          'SELECT id, name, color_key, icon_key, position FROM categories '
+          'WHERE deleted_at IS NULL',
+        )
+        .get();
+    final plan = CategoryLabelMigration.plan(
+      [
+        for (final row in rows)
+          (
+            row.read<String>('id'),
+            row.readNullable<String>('custom_category_label'),
+          ),
+      ],
+      existing: CategoryCatalog([
+        for (final row in existing)
+          ReminderCategory(
+            id: row.read<String>('id'),
+            name: row.read<String>('name'),
+            colorKey: row.read<String>('color_key'),
+            iconKey: row.read<String>('icon_key'),
+            position: row.read<int>('position'),
+          ),
+      ]),
+    );
+    if (plan.isEmpty) return;
+    final now = clock().microsecondsSinceEpoch;
+    for (final c in plan.created) {
+      await db.customStatement(
+        'INSERT OR IGNORE INTO categories '
+        '(id, name, color_key, icon_key, position, updated_at, deleted_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, NULL)',
+        [c.id, c.name, c.colorKey, c.iconKey, c.position, now],
+      );
+    }
+    for (final MapEntry(key: reminderId, value: categoryId)
+        in plan.assignments.entries) {
+      await db.customStatement(
+        'UPDATE reminders SET category_id = ?, updated_at = ? WHERE id = ?',
+        [categoryId, now, reminderId],
+      );
+    }
+  }
 
   /// Uygulama veritabanı bağlantısı.
   ///

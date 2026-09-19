@@ -5,6 +5,7 @@ import 'package:home_widget/home_widget.dart';
 
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/home/widget_payload.dart';
 import 'package:reminder/services/sync_interfaces.dart';
 
@@ -61,6 +62,7 @@ Future<void> syncRemindersToHomeWidget(
   List<Reminder> reminders, {
   required List<Birthday> birthdays,
   required bool notificationsEnabled,
+  CategoryCatalog? categories,
   DateTime Function() now = DateTime.now,
 }) async {
   if (!Platform.isAndroid) return;
@@ -69,6 +71,7 @@ Future<void> syncRemindersToHomeWidget(
     reminders: reminders,
     birthdays: birthdays,
     notificationsEnabled: notificationsEnabled,
+    categories: categories,
     now: now(),
   );
   await HomeWidget.saveWidgetData(kHomeWidgetPayloadKey, jsonEncode(payload));
@@ -88,10 +91,12 @@ class PlatformHomeWidgetSync implements HomeWidgetSync {
     List<Reminder> reminders, {
     required List<Birthday> birthdays,
     required bool notificationsEnabled,
+    CategoryCatalog? categories,
   }) =>
       syncRemindersToHomeWidget(
         reminders,
         birthdays: birthdays,
         notificationsEnabled: notificationsEnabled,
+        categories: categories,
       );
 }

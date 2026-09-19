@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/db/row_mapping.dart';
 import 'package:reminder/data/legacy_prefs_store.dart';
+import 'package:reminder/domain/category_label_migration.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 
 /// SharedPreferences JSON → Drift tek seferlik geçişi (F2.1).
 ///
@@ -35,7 +37,14 @@ class PrefsMigration {
   Future<void> runIfNeeded(AppDatabase db) async {
     if (await isDone(db)) return;
 
-    final reminders = await _legacy.loadReminders();
+    // F4.3: "Diğer + özel ad" → kullanıcı kategorileri (şema v5 geçişiyle
+    // aynı kural); eski anahtarlardaki veri şema geçişinden sonra gelir.
+    final labelled = CategoryLabelMigration.apply(
+      await _legacy.loadReminders(),
+      existing: CategoryCatalog.builtIns,
+    );
+    final reminders = labelled.reminders;
+    final categories = labelled.created;
     final birthdays = await _legacy.loadBirthdays();
     final hasSettings = await _legacy.hasSettings();
     final settings = await _legacy.loadSettings();
@@ -65,6 +74,14 @@ class PrefsMigration {
                   position: i,
                   updatedAt: now,
                 ),
+          ],
+          mode: InsertMode.insertOrIgnore,
+        );
+        b.insertAll(
+          db.categories,
+          [
+            for (final c in categories)
+              categoryToRow(c, position: c.position, updatedAt: now),
           ],
           mode: InsertMode.insertOrIgnore,
         );

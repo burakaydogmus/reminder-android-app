@@ -3,6 +3,7 @@ import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/schedule_sync.dart';
 import 'package:reminder/services/sync_interfaces.dart';
@@ -25,6 +26,7 @@ class MockHomeWidgetSync extends Mock implements HomeWidgetSync {}
 void registerModelFallbackValues() {
   registerFallbackValue(<Reminder>[]);
   registerFallbackValue(<Birthday>[]);
+  registerFallbackValue(<ReminderCategory>[]);
   registerFallbackValue(const AppSettings());
   registerFallbackValue(buildReminder());
   registerFallbackValue(buildBirthday());
@@ -36,6 +38,9 @@ void stubRepositoryWrites(MockReminderRepository repository) {
   when(() => repository.saveBirthdays(any())).thenAnswer((_) async {});
   when(() => repository.saveSettings(any())).thenAnswer((_) async {});
   when(() => repository.clearAll()).thenAnswer((_) async {});
+  // F4.3: no stored categories → built-ins only (override to test others).
+  when(() => repository.loadCategories()).thenAnswer((_) async => []);
+  when(() => repository.saveCategories(any())).thenAnswer((_) async {});
 }
 
 void stubNotificationService(MockNotificationService notifications) {
@@ -66,6 +71,7 @@ void stubHomeWidgetSync(MockHomeWidgetSync homeWidget) {
       any(),
       birthdays: any(named: 'birthdays'),
       notificationsEnabled: any(named: 'notificationsEnabled'),
+      categories: any(named: 'categories'),
     ),
   ).thenAnswer((_) async {});
 }
@@ -76,6 +82,7 @@ Future<void> anyHomeWidgetSync(MockHomeWidgetSync homeWidget) =>
       any(),
       birthdays: any(named: 'birthdays'),
       notificationsEnabled: any(named: 'notificationsEnabled'),
+      categories: any(named: 'categories'),
     );
 
 /// Tek `homeWidget.sync` çağrısının hatırlatıcı listesini yakalar.
@@ -85,5 +92,6 @@ List<Reminder> capturedHomeWidgetReminders(MockHomeWidgetSync homeWidget) =>
         captureAny(),
         birthdays: any(named: 'birthdays'),
         notificationsEnabled: any(named: 'notificationsEnabled'),
+        categories: any(named: 'categories'),
       ),
     ).captured.single as List<Reminder>;

@@ -19,6 +19,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
+import 'generated/schema_v5.dart' as v5;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -34,7 +35,7 @@ void main() {
   // data tests below read the migrated rows through the latest generated
   // classes (a database file at vN cannot be reopened with an older
   // version's classes) and the app mapping.
-  const latest = 4;
+  const latest = 5;
 
   test('the app schema version is the latest exported one', () async {
     final db = AppDatabase(NativeDatabase.memory());
@@ -43,7 +44,7 @@ void main() {
     await db.close();
   });
 
-  for (final from in [1, 2, 3]) {
+  for (final from in [1, 2, 3, 4]) {
     test('upgrade from v$from to v$latest yields the v$latest schema',
         () async {
       final connection = await verifier.startAt(from);
@@ -126,7 +127,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v4.DatabaseAtV4(schema.newConnection());
+    final migrated = v5.DatabaseAtV5(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -214,7 +215,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v4.DatabaseAtV4(schema.newConnection());
+    final migrated = v5.DatabaseAtV5(schema.newConnection());
     expect(
       (await migrated.select(migrated.reminders).getSingle()).toJson()
         ..remove('priority')
@@ -237,7 +238,7 @@ void main() {
 
     // The new table accepts rows for existing reminders.
     await migrated.into(migrated.subtasks).insert(
-          const v4.SubtasksData(
+          const v5.SubtasksData(
             reminderId: 'r1',
             id: 's1',
             title: 'Süt',
@@ -260,7 +261,7 @@ void main() {
     await app.close();
   });
 
-  test('v3 → v4 keeps rows and subtasks, defaults priority and pinned',
+  test('v3 → latest keeps rows and subtasks, defaults priority and pinned',
       () async {
     const reminder = v3.RemindersData(
       id: 'r1',
@@ -348,10 +349,10 @@ void main() {
     await oldDb.close();
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 4);
+    await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v4.DatabaseAtV4(schema.newConnection());
+    final migrated = v5.DatabaseAtV5(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -388,7 +389,7 @@ void main() {
     await (migrated.update(migrated.reminders)
           ..where((t) => t.id.equals('gone')))
         .write(
-            const v4.RemindersCompanion(priority: Value(3), pinned: Value(1)));
+            const v5.RemindersCompanion(priority: Value(3), pinned: Value(1)));
     await migrated.close();
 
     // The app reads migrated rows with no priority and not pinned.
@@ -409,5 +410,175 @@ void main() {
     expect(updated.priority, ReminderPriority.high);
     expect(updated.pinned, isTrue);
     await app.close();
+  });
+
+  test('v4 → v5 turns "Diğer + özel ad" into user categories', () async {
+    v4.RemindersData reminder(
+      String id,
+      int position, {
+      String categoryId = 'other',
+      String? label,
+      int? deletedAt,
+      int priority = 0,
+      int pinned = 0,
+    }) =>
+        v4.RemindersData(
+          id: id,
+          title: 'Hatırlatıcı $id',
+          note: 'not $id',
+          isDone: 0,
+          createdAt: '2026-09-01T10:00:00.000',
+          remindAt: '2026-09-13T18:30:00.000',
+          categoryId: categoryId,
+          customCategoryLabel: label,
+          locationTriggerEnabled: 0,
+          locationRadiusMeters: 150.0,
+          position: position,
+          updatedAt: 1000,
+          deletedAt: deletedAt,
+          recurrence: '{"frequency":"daily","interval":1}',
+          priority: priority,
+          pinned: pinned,
+        );
+    final reminders = [
+      reminder('gym', 0, label: 'Spor salonu', priority: 3, pinned: 1),
+      reminder('gym2', 1, label: ' SPOR  SALONU '),
+      reminder('book', 2, label: 'Kitap kulübü'),
+      reminder('light', 3, label: 'Işık'),
+      reminder('light2', 4, label: 'ışık'),
+      reminder('plain', 5),
+      reminder('blank', 6, label: '  '),
+      reminder('diger', 7, label: 'diğer'),
+      reminder('market', 8, label: 'MARKET'),
+      // A label on a fixed category is ignored (it was never shown).
+      reminder('work', 9, categoryId: 'work', label: 'Yoga'),
+      // Soft-deleted rows don't create categories.
+      reminder('gone', 10, label: 'Eski', deletedAt: 2000),
+    ];
+    const subtask = v4.SubtasksData(
+      reminderId: 'gym',
+      id: 's1',
+      title: 'Havlu',
+      isDone: 1,
+      position: 0,
+      updatedAt: 1000,
+    );
+    const birthday = v4.BirthdaysData(
+      id: 'b1',
+      name: 'Ayşe',
+      date: '1990-05-10T00:00:00.000',
+      notifyHour: 9,
+      notifyMinute: 0,
+      advanceOffsetsMinutes: '[0]',
+      createdAt: '2026-01-01T12:00:00.000',
+      position: 0,
+      updatedAt: 1000,
+    );
+
+    final schema = await verifier.schemaAt(4);
+    final oldDb = v4.DatabaseAtV4(schema.newConnection());
+    await oldDb.batch((batch) {
+      batch
+        ..insertAll(oldDb.reminders, reminders)
+        ..insert(oldDb.subtasks, subtask)
+        ..insert(oldDb.birthdays, birthday);
+    });
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, latest);
+    await db.close();
+
+    final migrated = v5.DatabaseAtV5(schema.newConnection());
+    final categories = await (migrated.select(migrated.categories)
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    expect(
+        categories.map((c) => c.name), ['Spor salonu', 'Kitap kulübü', 'Işık']);
+    expect(categories.map((c) => c.colorKey).toSet(), {'diger'});
+    expect(categories.map((c) => c.iconKey).toSet(), {'label'});
+    expect(categories.map((c) => c.position), [6, 7, 8]);
+    expect(categories.every((c) => c.deletedAt == null), isTrue);
+    final idOf = {for (final c in categories) c.name: c.id};
+
+    final rows = await (migrated.select(migrated.reminders)
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    expect({
+      for (final r in rows) r.id: r.categoryId
+    }, {
+      'gym': idOf['Spor salonu'],
+      'gym2': idOf['Spor salonu'],
+      'book': idOf['Kitap kulübü'],
+      'light': idOf['Işık'],
+      'light2': idOf['Işık'],
+      'plain': 'other',
+      'blank': 'other',
+      'diger': 'other',
+      'market': 'market',
+      'work': 'work',
+      'gone': 'other',
+    });
+    // Everything else is untouched; the old label stays for rollback.
+    for (var i = 0; i < rows.length; i++) {
+      final before = reminders[i].toJson()
+        ..remove('categoryId')
+        ..remove('updatedAt');
+      final after = rows[i].toJson()
+        ..remove('categoryId')
+        ..remove('updatedAt');
+      expect(after, before, reason: rows[i].id);
+    }
+    // Repointed rows get a new updated_at, the others keep theirs.
+    expect(rows.firstWhere((r) => r.id == 'plain').updatedAt, 1000);
+    expect(rows.firstWhere((r) => r.id == 'gym').updatedAt, greaterThan(1000));
+    expect(
+      (await migrated.select(migrated.subtasks).getSingle()).toJson(),
+      subtask.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+      birthday.toJson(),
+    );
+    await migrated.close();
+
+    // The app reads the migrated reminder with subtasks, priority and pin.
+    final app = AppDatabase(schema.newConnection());
+    final appRows = await app.select(app.reminders).get();
+    final gym = reminderFromRow(
+      appRows.firstWhere((r) => r.id == 'gym'),
+      subtasks: await app.select(app.subtasks).get(),
+    );
+    expect(gym.categoryId, idOf['Spor salonu']);
+    expect(gym.priority, ReminderPriority.high);
+    expect(gym.pinned, isTrue);
+    expect(gym.subtasks.single.title, 'Havlu');
+    expect(gym.recurrence, RecurrenceRule.daily());
+    await app.close();
+  });
+
+  test('v4 → v5 without labels creates no categories', () async {
+    final schema = await verifier.schemaAt(4);
+    final oldDb = v4.DatabaseAtV4(schema.newConnection());
+    await oldDb.into(oldDb.reminders).insert(const v4.RemindersData(
+          id: 'r1',
+          title: 'Ekmek',
+          isDone: 0,
+          createdAt: '2026-09-01T10:00:00.000',
+          categoryId: 'other',
+          locationTriggerEnabled: 0,
+          locationRadiusMeters: 150.0,
+          position: 0,
+          updatedAt: 1000,
+          priority: 0,
+          pinned: 0,
+        ));
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, latest);
+    expect(await db.select(db.categories).get(), isEmpty);
+    expect((await db.select(db.reminders).getSingle()).updatedAt, 1000);
+    await db.close();
   });
 }
