@@ -10,7 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 Future<void> debugShot(WidgetTester tester, String name) async {
   final view = tester.binding.renderViews.first;
   final layer = view.debugLayer! as OffsetLayer;
-  final safe = name.replaceAll(RegExp(r'[^\w\s.,()-]', unicode: true), '_');
+  final safe =
+      name.replaceAll(RegExp(r'[^\p{L}\p{N}\s.,()-]', unicode: true), '_');
   await tester.binding.runAsync(() async {
     final image = await layer.toImage(view.paintBounds);
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
