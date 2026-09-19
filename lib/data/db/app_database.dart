@@ -212,6 +212,20 @@ class AppDatabase extends _$AppDatabase {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },
+        // Yabancı anahtarlar SQLite'ta varsayılan olarak **kapalıdır**;
+        // burada açılır (F6.4). `beforeOpen` göç adımlarından sonra
+        // çalıştığı için tablo yeniden kuran geçişler (ör. v5 → v6) hâlâ
+        // kısıtlamasız çalışır — drift'in önerdiği sıra budur. PRAGMA
+        // transaction içinde işlemez, bu yüzden burada verilir.
+        //
+        // Etkisi: `subtasks.reminder_id` artık var olmayan bir
+        // hatırlatıcıyı gösteremez ve maddesi olan bir hatırlatıcı satırı
+        // **sert** silinemez (varsayılan `NO ACTION` = kısıtla). Depo zaten
+        // yumuşak siliyor (`deleted_at`), `clearAll` de maddeleri önce
+        // siliyor; bu yüzden davranış değişmiyor, bozuk veri engelleniyor.
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON;');
+        },
       );
 
   /// v5 → v6 adımı (F6.4): `birthdays` tablosunu yeniden kurar ve ISO
