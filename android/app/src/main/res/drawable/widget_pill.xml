@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 56×40 "+" hap (Google Tasks M3E kalıbı, §3.4). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_pill" />
+    <corners android:radius="20dp" />
+</shape>

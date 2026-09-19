@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Liste 4×4, 3×3–5×6 (F5.1). Boyut: 73n − 16 dp (n hücre).
+     updatePeriodMillis=0: saat yenilemesi ReminderWidgetRefreshReceiver'da
+     (uyandırmayan esnek alarm), veri değişiminde Dart senkronu yeniler. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:description="@string/widget_description"
-    android:initialLayout="@layout/reminder_widget_layout"
-    android:minWidth="200dp"
-    android:minHeight="110dp"
+    android:description="@string/widget_list_description"
+    android:initialLayout="@layout/widget_list"
+    android:maxResizeHeight="422dp"
+    android:maxResizeWidth="349dp"
+    android:minWidth="250dp"
+    android:minHeight="250dp"
     android:minResizeWidth="180dp"
-    android:minResizeHeight="72dp"
+    android:minResizeHeight="180dp"
+    android:previewLayout="@layout/widget_list"
     android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="4"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

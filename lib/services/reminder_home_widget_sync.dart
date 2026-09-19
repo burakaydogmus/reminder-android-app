@@ -10,9 +10,11 @@ import 'package:reminder/services/sync_interfaces.dart';
 
 /// Ana ekran widget'larına giden veri anahtarı (F5.1, [WidgetPayload] v2).
 ///
-/// F5.1 öncesi anahtar `reminders_active_json` (yalnız id + başlık, 8 öğe)
-/// artık yazılmaz; widget'lar yalnız bu anahtarı okur.
+/// F5.1 öncesi anahtar [_legacyPayloadKey] (yalnız id + başlık, 8 öğe) artık
+/// yazılmaz, ilk senkronda silinir; widget'lar yalnız bu anahtarı okur.
 const String kHomeWidgetPayloadKey = 'widget_payload_v2';
+
+const String _legacyPayloadKey = 'reminders_active_json';
 
 const String _androidPackage = 'com.burakaydogmus.reminder';
 
@@ -70,6 +72,7 @@ Future<void> syncRemindersToHomeWidget(
     now: now(),
   );
   await HomeWidget.saveWidgetData(kHomeWidgetPayloadKey, jsonEncode(payload));
+  await HomeWidget.saveWidgetData<String>(_legacyPayloadKey, null);
   for (final widget in ReminderHomeWidget.values) {
     await HomeWidget.updateWidget(qualifiedAndroidName: widget.qualifiedName);
   }

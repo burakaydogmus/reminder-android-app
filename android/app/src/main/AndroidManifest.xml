@@ -38,16 +38,76 @@
             </intent-filter>
         </activity>
 
+        <!-- Ana ekran widget'ları (F5.1). Liste, F5.1 öncesi tek widget'ın
+             sınıfını korur; yerleştirilmiş widget'lar Liste olarak sürer. -->
+        <receiver
+            android:name=".ReminderTodayWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_today_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reminder_today_widget_info" />
+        </receiver>
+
         <receiver
             android:name=".ReminderListWidgetProvider"
             android:exported="true"
-            android:label="@string/widget_label">
+            android:label="@string/widget_list_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/reminder_list_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ReminderNextWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_next_label_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reminder_next_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ReminderQuickAddWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quick_add_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/reminder_quick_add_widget_info" />
+        </receiver>
+
+        <!-- Liste koleksiyonu, API 26–30 (API 31+ RemoteCollectionItems). -->
+        <service
+            android:name=".ReminderListWidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <!-- Liste satırlarının tek tıklama şablonu (tamamla / aç). -->
+        <receiver
+            android:name=".ReminderWidgetClickReceiver"
+            android:exported="false" />
+
+        <!-- Widget'ların saate bağlı yenilemesi (uyandırmayan esnek alarm) ve
+             saat / saat dilimi değişimi. -->
+        <receiver
+            android:name=".ReminderWidgetRefreshReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
         </receiver>
 
         <receiver

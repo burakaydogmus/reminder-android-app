@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget yüzeyi (F5.1): Android 12+ sistem köşe yarıçapı ve dinamik renk. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_surface" />
+    <corners android:radius="@dimen/widget_radius" />
+</shape>
