@@ -26,6 +26,7 @@ Future<UiHarness> _open(
   WidgetTester tester, {
   ThemeData Function() theme = KorTheme.light,
   List<ReminderCategory> categories = const [],
+  String initialText = '',
 }) async {
   final h = await UiHarness.create(now: _clock, categories: categories);
   await tester.pumpWidget(
@@ -36,7 +37,11 @@ Future<UiHarness> _open(
           builder: (context) => Center(
             child: TextButton(
               key: _openKey,
-              onPressed: () => showQuickCaptureSheet(context, now: _clock),
+              onPressed: () => showQuickCaptureSheet(
+                context,
+                now: _clock,
+                initialText: initialText,
+              ),
               child: const Text('Aç'),
             ),
           ),
@@ -143,6 +148,33 @@ void main() {
     expect(saved.remindAt, isNull);
     expect(saved.categoryId, ReminderCategoryIds.market);
     expect(saved.priority, 2);
+  });
+
+  testWidgets('initialText prefills and parses the field (F5.3)', (
+    tester,
+  ) async {
+    final h = await _open(tester, initialText: '#market ');
+
+    final value = _controller(tester).value;
+    expect(value.text, '#market ');
+    expect(value.selection, const TextSelection.collapsed(offset: 8));
+    expect(_chipText(QuickCaptureKeys.categoryChip, 'Market'), findsOneWidget);
+    final spans = {for (final (text, style) in _spans(tester)) text: style};
+    expect(spans['#market']?.backgroundColor, isNotNull);
+
+    await _type(tester, '#market süt');
+    await tester.tap(find.byKey(QuickCaptureKeys.save));
+    await tester.pumpAndSettle();
+    final saved = _reminders(h).single;
+    expect(saved.title, 'Süt');
+    expect(saved.categoryId, ReminderCategoryIds.market);
+  });
+
+  testWidgets('without initialText the field starts empty', (tester) async {
+    await _open(tester);
+
+    expect(_controller(tester).text, isEmpty);
+    expect(_chipText(QuickCaptureKeys.categoryChip, 'Market'), findsNothing);
   });
 
   testWidgets('↑ saves, clears the field, stays open; undo deletes', (
