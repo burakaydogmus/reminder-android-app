@@ -70,7 +70,7 @@ abstract final class BirthdayGroups {
   static String birthDay(Birthday b, AppLocalizations l10n) =>
       KorFormat.pattern(
         l10n.dateFormatDayMonth,
-        DateTime(2000, b.date.month, b.date.day),
+        DateTime(2000, b.month, b.day),
         l10n,
       );
 

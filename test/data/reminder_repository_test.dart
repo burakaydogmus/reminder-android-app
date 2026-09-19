@@ -187,7 +187,7 @@ void main() {
       expect(loaded.remindAt!.minute, 30);
       expect(loaded.createdAt, wallClock);
       final birthday = (await newRepository().loadBirthdays()).single;
-      expect(birthday.date, DateTime(1990, 5, 10));
+      expect(birthday.birthDate, DateTime(1990, 5, 10));
       expect(birthday.createdAt, wallClock);
     });
 
@@ -223,11 +223,45 @@ void main() {
       expect(loaded.map((b) => b.id), ['x', 'y']);
       expect(loaded[0].advanceOffsetsMinutes, [60]);
       expect(loaded[1].note, 'hediye');
-      expect(loaded[1].date, DateTime(2000, 2, 29));
+      expect(loaded[1].birthDate, DateTime(2000, 2, 29));
       expect(loaded[1].notifyHour, 8);
       expect(loaded[1].notifyMinute, 30);
       expect(loaded[1].advanceOffsetsMinutes, [0, 1440]);
       expect(loaded[1].createdAt, birthdays[1].createdAt);
+    });
+
+    test('birthdays round-trip with and without a year (F6.4)', () async {
+      final birthdays = [
+        buildBirthday(id: 'known', date: DateTime(1990, 5, 10)),
+        buildBirthday(
+          id: 'unknown',
+          date: DateTime(2000, 2, 29),
+          yearKnown: false,
+        ),
+      ];
+      await repository.saveBirthdays(birthdays);
+
+      // The year is genuinely NULL in the database, not a sentinel.
+      final rows = await db.select(db.birthdays).get()
+        ..sort((a, b) => a.position.compareTo(b.position));
+      expect(
+        rows.map((r) => (r.birthMonth, r.birthDay, r.birthYear)),
+        [(5, 10, 1990), (2, 29, null)],
+      );
+
+      final loaded = await repository.loadBirthdays();
+      expect(loaded[0].year, 1990);
+      expect(loaded[0].birthDate, DateTime(1990, 5, 10));
+      expect(loaded[0].hasYear, isTrue);
+      expect(loaded[1].hasYear, isFalse);
+      expect(loaded[1].year, null);
+      expect((loaded[1].month, loaded[1].day), (2, 29));
+      expect(loaded[1].birthDate, null);
+      // A year-less 29 Şubat still falls back to 28 Şubat in common years.
+      expect(
+        loaded[1].nextOccurrence(from: DateTime(2026, 9, 13)),
+        DateTime(2027, 2, 28, 9),
+      );
     });
 
     test('settings', () async {
@@ -796,7 +830,7 @@ void main() {
         buildBirthday(id: 'bad'),
       ]);
       await (db.update(db.birthdays)..where((t) => t.id.equals('bad')))
-          .write(const BirthdaysCompanion(date: Value('not-a-date')));
+          .write(const BirthdaysCompanion(birthMonth: Value(0)));
 
       expect((await repository.loadBirthdays()).map((b) => b.id), ['ok']);
     });

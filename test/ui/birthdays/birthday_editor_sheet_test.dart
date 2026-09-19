@@ -123,7 +123,7 @@ void main() {
 
       final saved = h.cubit.state.birthdays.single;
       expect(saved.hasYear, isFalse);
-      expect(saved.date, DateTime(Birthday.unknownYear, month, 15));
+      expect((saved.month, saved.day, saved.year), (month, 15, null));
       expect(saved.upcomingAge, isNull);
     });
 
@@ -132,7 +132,8 @@ void main() {
     ) async {
       final existing = buildBirthday(
         name: 'Deniz',
-        date: DateTime(Birthday.unknownYear, 2, 29),
+        date: DateTime(2000, 2, 29),
+        yearKnown: false,
       );
       final h = await UiHarness.create(birthdays: [existing]);
       await tester.pumpWidget(h.app(home: _opener(existing: existing)));
@@ -145,17 +146,16 @@ void main() {
       );
       expect(chip.selected, isTrue);
       await save(tester);
-      expect(
-        h.cubit.state.birthdays.single.date,
-        DateTime(Birthday.unknownYear, 2, 29),
-      );
+      final saved = h.cubit.state.birthdays.single;
+      expect((saved.month, saved.day, saved.year), (2, 29, null));
     });
 
     testWidgets('turning "Yıl bilinmiyor" off asks for a full date', (
       tester,
     ) async {
       final existing = buildBirthday(
-        date: DateTime(Birthday.unknownYear, 10, 3),
+        date: DateTime(1990, 10, 3),
+        yearKnown: false,
       );
       final h = await UiHarness.create(birthdays: [existing]);
       await tester.pumpWidget(h.app(home: _opener(existing: existing)));
@@ -168,7 +168,11 @@ void main() {
       expect(find.text('Tarih seç'), findsOneWidget);
       await save(tester);
       expect(find.text('Tarih seçin.'), findsOneWidget);
-      expect(h.cubit.state.birthdays.single.date, existing.date);
+      final unchanged = h.cubit.state.birthdays.single;
+      expect(
+        (unchanged.month, unchanged.day, unchanged.year),
+        (existing.month, existing.day, existing.year),
+      );
     });
   });
 }

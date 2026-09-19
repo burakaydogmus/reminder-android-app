@@ -10,6 +10,7 @@ import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/data/db/app_database.dart';
 import 'package:reminder/data/db/row_mapping.dart';
+import 'package:reminder/domain/notification_ids.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
@@ -20,6 +21,7 @@ import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v5.dart' as v5;
+import 'generated/schema_v6.dart' as v6;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -35,7 +37,7 @@ void main() {
   // data tests below read the migrated rows through the latest generated
   // classes (a database file at vN cannot be reopened with an older
   // version's classes) and the app mapping.
-  const latest = 5;
+  const latest = 6;
 
   test('the app schema version is the latest exported one', () async {
     final db = AppDatabase(NativeDatabase.memory());
@@ -44,7 +46,7 @@ void main() {
     await db.close();
   });
 
-  for (final from in [1, 2, 3, 4]) {
+  for (final from in [1, 2, 3, 4, 5]) {
     test('upgrade from v$from to v$latest yields the v$latest schema',
         () async {
       final connection = await verifier.startAt(from);
@@ -127,7 +129,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v5.DatabaseAtV5(schema.newConnection());
+    final migrated = v6.DatabaseAtV6(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -143,8 +145,8 @@ void main() {
           deleted.toJson(),
         ]);
     expect(rows.map((r) => r.recurrence), [null, null]);
-    expect(
-      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+    expectSameBirthday(
+      await migrated.select(migrated.birthdays).getSingle(),
       birthday.toJson(),
     );
     expect(
@@ -215,15 +217,15 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v5.DatabaseAtV5(schema.newConnection());
+    final migrated = v6.DatabaseAtV6(schema.newConnection());
     expect(
       (await migrated.select(migrated.reminders).getSingle()).toJson()
         ..remove('priority')
         ..remove('pinned'),
       reminder.toJson(),
     );
-    expect(
-      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+    expectSameBirthday(
+      await migrated.select(migrated.birthdays).getSingle(),
       birthday.toJson(),
     );
     expect(
@@ -238,7 +240,7 @@ void main() {
 
     // The new table accepts rows for existing reminders.
     await migrated.into(migrated.subtasks).insert(
-          const v5.SubtasksData(
+          const v6.SubtasksData(
             reminderId: 'r1',
             id: 's1',
             title: 'Süt',
@@ -352,7 +354,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v5.DatabaseAtV5(schema.newConnection());
+    final migrated = v6.DatabaseAtV6(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -372,8 +374,8 @@ void main() {
       subtaskRows.map((r) => r.toJson()).toList(),
       subtasks.map((s) => s.toJson()).toList(),
     );
-    expect(
-      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+    expectSameBirthday(
+      await migrated.select(migrated.birthdays).getSingle(),
       birthday.toJson(),
     );
     expect(
@@ -389,7 +391,7 @@ void main() {
     await (migrated.update(migrated.reminders)
           ..where((t) => t.id.equals('gone')))
         .write(
-            const v5.RemindersCompanion(priority: Value(3), pinned: Value(1)));
+            const v6.RemindersCompanion(priority: Value(3), pinned: Value(1)));
     await migrated.close();
 
     // The app reads migrated rows with no priority and not pinned.
@@ -489,7 +491,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v5.DatabaseAtV5(schema.newConnection());
+    final migrated = v6.DatabaseAtV6(schema.newConnection());
     final categories = await (migrated.select(migrated.categories)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -536,8 +538,8 @@ void main() {
       (await migrated.select(migrated.subtasks).getSingle()).toJson(),
       subtask.toJson(),
     );
-    expect(
-      (await migrated.select(migrated.birthdays).getSingle()).toJson(),
+    expectSameBirthday(
+      await migrated.select(migrated.birthdays).getSingle(),
       birthday.toJson(),
     );
     await migrated.close();
@@ -581,4 +583,107 @@ void main() {
     expect((await db.select(db.reminders).getSingle()).updatedAt, 1000);
     await db.close();
   });
+
+  test('v5 → v6 splits the birth date and makes the unknown year null',
+      () async {
+    v5.BirthdaysData old(
+      String id,
+      String name,
+      String date, {
+      int position = 0,
+      int? deletedAt,
+    }) =>
+        v5.BirthdaysData(
+          id: id,
+          name: name,
+          note: 'not $id',
+          date: date,
+          notifyHour: 8,
+          notifyMinute: 30,
+          advanceOffsetsMinutes: '[0,1440]',
+          createdAt: '2026-01-01T12:00:00.000',
+          position: position,
+          updatedAt: 1000,
+          deletedAt: deletedAt,
+        );
+    final birthdays = [
+      old('known', 'Ayşe', '1990-05-10T00:00:00.000'),
+      // The F4.4 sentinel year (4) means "year unknown".
+      old('unknown', 'Deniz', '0004-02-29T00:00:00.000', position: 1),
+      old('gone', 'Eski', '1985-11-23T00:00:00.000',
+          position: 2, deletedAt: 2000),
+      old('corrupt', 'Bozuk', 'not-a-date', position: 3),
+    ];
+
+    final schema = await verifier.schemaAt(5);
+    final oldDb = v5.DatabaseAtV5(schema.newConnection());
+    await oldDb.batch((batch) => batch.insertAll(oldDb.birthdays, birthdays));
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, latest);
+    await db.close();
+
+    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final rows = await (migrated.select(migrated.birthdays)
+          ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+        .get();
+    expect(rows.map((r) => r.id), ['known', 'unknown', 'gone', 'corrupt']);
+    expect(
+      rows.map((r) => (r.birthMonth, r.birthDay, r.birthYear)),
+      [(5, 10, 1990), (2, 29, null), (11, 23, 1985), (0, 0, null)],
+    );
+    // Every other column survives untouched.
+    for (var i = 0; i < rows.length; i++) {
+      expectSameBirthday(rows[i], birthdays[i].toJson());
+    }
+    await migrated.close();
+
+    // The app reads them back with a real nullable year; the unreadable row
+    // is skipped like a corrupt `date` text was before v6.
+    final app = AppDatabase(schema.newConnection());
+    final loaded = (await app.select(app.birthdays).get())
+        .where((r) => r.deletedAt == null)
+        .map((r) {
+          try {
+            return birthdayFromRow(r);
+          } on FormatException {
+            return null;
+          }
+        })
+        .nonNulls
+        .toList();
+    expect(loaded.map((b) => b.id), ['known', 'unknown']);
+    expect(loaded[0].year, 1990);
+    expect(loaded[0].birthDate, DateTime(1990, 5, 10));
+    expect(loaded[1].hasYear, isFalse);
+    expect(loaded[1].year, null);
+    expect((loaded[1].month, loaded[1].day), (2, 29));
+    expect(loaded[1].upcomingAgeFrom(from: DateTime(2026, 9, 13)), null);
+    // The notification ids are derived from the id alone, so they do not
+    // change when the stored date shape does (F6.4).
+    expect(loaded[1].notificationIdFor(0),
+        NotificationIds.birthdayNotificationId('unknown', 0));
+    await app.close();
+  });
+}
+
+/// A v6 birthday row holds the v1–v5 `date` text split into `birth_month` /
+/// `birth_day` / `birth_year` (sentinel year 4 → `null`); everything else is
+/// unchanged.
+void expectSameBirthday(v6.BirthdaysData row, Map<String, dynamic> before) {
+  final date = DateTime.tryParse(before['date'] as String);
+  expect(row.birthMonth, date?.month ?? 0);
+  expect(row.birthDay, date?.day ?? 0);
+  expect(
+    row.birthYear,
+    date == null || date.year == 4 ? null : date.year,
+  );
+  expect(
+    row.toJson()
+      ..remove('birthMonth')
+      ..remove('birthDay')
+      ..remove('birthYear'),
+    Map<String, dynamic>.of(before)..remove('date'),
+  );
 }

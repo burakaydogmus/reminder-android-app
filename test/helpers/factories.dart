@@ -46,21 +46,25 @@ Reminder buildReminder({
   );
 }
 
+/// [date] gün/ay (ve [yearKnown] ise yıl) kaynağıdır; [yearKnown] `false`
+/// verildiğinde doğum günü yılsız olur (`Birthday.year == null`, F6.4).
 Birthday buildBirthday({
   String id = 'b1',
   String name = 'Ayşe',
   String? note,
   DateTime? date,
+  bool yearKnown = true,
   int notifyHour = 9,
   int notifyMinute = 0,
   List<int> advanceOffsetsMinutes = const <int>[0, 1440],
   DateTime? createdAt,
 }) {
-  return Birthday(
+  return Birthday.onDate(
     id: id,
     name: name,
     note: note,
     date: date ?? DateTime(1990, 5, 10),
+    yearKnown: yearKnown,
     notifyHour: notifyHour,
     notifyMinute: notifyMinute,
     advanceOffsetsMinutes: advanceOffsetsMinutes,

@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
@@ -299,7 +298,7 @@ void main() {
 
     test('a year-less birthday has no age', () {
       final o = BirthdayOccurrence.next(
-        buildBirthday(date: DateTime(Birthday.unknownYear, 10, 3)),
+        buildBirthday(date: DateTime(1990, 10, 3), yearKnown: false),
         now,
       );
       expect(o.date, DateTime(2026, 10, 3));

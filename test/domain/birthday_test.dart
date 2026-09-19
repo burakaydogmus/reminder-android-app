@@ -22,7 +22,8 @@ void main() {
       expect(restored.id, 'b-42');
       expect(restored.name, 'Mehmet');
       expect(restored.note, 'Kitap hediye');
-      expect(restored.date, DateTime(1985, 11, 23));
+      expect(restored.birthDate, DateTime(1985, 11, 23));
+      expect((restored.month, restored.day, restored.year), (11, 23, 1985));
       expect(restored.notifyHour, 20);
       expect(restored.notifyMinute, 15);
       expect(restored.advanceOffsetsMinutes, [0, 60, 10080]);
@@ -235,7 +236,7 @@ void main() {
       expect(copy.notifyHour, 7);
       expect(copy.id, b.id);
       expect(copy.note, 'not');
-      expect(copy.date, b.date);
+      expect((copy.month, copy.day, copy.year), (b.month, b.day, b.year));
       expect(copy.advanceOffsetsMinutes, b.advanceOffsetsMinutes);
     });
 
@@ -253,10 +254,13 @@ void main() {
     });
   });
 
-  group('year-less birthdays (F4.4)', () {
-    test('the unknown-year sentinel has no age but keeps day and month', () {
-      final b = buildBirthday(date: DateTime(Birthday.unknownYear, 10, 3));
+  group('year-less birthdays (F4.4, nullable year F6.4)', () {
+    test('a null year has no age but keeps day and month', () {
+      final b = buildBirthday(date: DateTime(1990, 10, 3), yearKnown: false);
       expect(b.hasYear, isFalse);
+      expect(b.year, isNull);
+      expect(b.birthDate, isNull);
+      expect((b.month, b.day), (10, 3));
       expect(b.upcomingAgeFrom(from: DateTime(2026, 9, 13)), isNull);
       expect(
         b.nextOccurrence(from: DateTime(2026, 9, 13)),
@@ -266,9 +270,9 @@ void main() {
     });
 
     test('a year-less 29 Şubat round-trips through JSON', () {
-      final b = buildBirthday(date: DateTime(Birthday.unknownYear, 2, 29));
+      final b = buildBirthday(date: DateTime(2000, 2, 29), yearKnown: false);
       final restored = Birthday.fromJson(b.toJson());
-      expect(restored.date, DateTime(Birthday.unknownYear, 2, 29));
+      expect((restored.month, restored.day, restored.year), (2, 29, null));
       expect(restored.hasYear, isFalse);
       expect(
         restored.nextOccurrence(from: DateTime(2026, 9, 13)),

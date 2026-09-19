@@ -293,4 +293,65 @@ void main() {
       ]);
     });
   });
+
+  group('year-less birthdays across backup versions (F6.4)', () {
+    // Pre-v6 files store a year-less birthday with the sentinel year 4 and
+    // have no `birthYear` key at all.
+    Map<String, dynamic> legacyBirthday({required String date}) => {
+          'id': 'old',
+          'name': 'Deniz',
+          'note': null,
+          'date': date,
+          'notifyHour': 9,
+          'notifyMinute': 0,
+          'advanceOffsetsMinutes': [0, 1440],
+          'createdAt': '2026-01-01T12:00:00.000',
+        };
+
+    test('a v1 file with the sentinel year imports as "year unknown"', () {
+      final backup = BackupFormat.decode(jsonEncode({
+        ..._header(version: 1),
+        'birthdays': [
+          legacyBirthday(date: '0004-02-29T00:00:00.000'),
+          {...legacyBirthday(date: '1990-05-10T00:00:00.000'), 'id': 'known'},
+        ],
+      }));
+      final unknown = backup.birthdays.first;
+      expect(unknown.hasYear, isFalse);
+      expect(unknown.year, null);
+      expect((unknown.month, unknown.day), (2, 29));
+      final known = backup.birthdays.last;
+      expect(known.year, 1990);
+      expect(known.birthDate, DateTime(1990, 5, 10));
+    });
+
+    test('a v2 file without birthYear still converts the sentinel', () {
+      final backup = BackupFormat.decode(jsonEncode({
+        ..._header(),
+        'birthdays': [legacyBirthday(date: '0004-10-03T00:00:00.000')],
+      }));
+      expect(backup.birthdays.single.hasYear, isFalse);
+      expect(backup.birthdays.single.day, 3);
+    });
+
+    test('an export keeps the legacy date field and adds birthYear', () {
+      final yearLess =
+          buildBirthday(id: 'y', date: DateTime(2000, 2, 29), yearKnown: false);
+      final json = BackupFormat.encode(
+        reminders: const [],
+        birthdays: [yearLess, buildBirthday(id: 'k')],
+        categories: const [],
+        settings: settings,
+        exportedAt: exportedAt,
+      );
+      final list = (jsonDecode(json) as Map)['birthdays'] as List;
+      expect(list[0]['birthYear'], null);
+      // Older readers only know `date`; they must still see 29 Şubat.
+      expect(list[0]['date'], '0004-02-29T00:00:00.000');
+      expect(list[1]['birthYear'], 1990);
+      // Round-tripping through the current reader keeps both shapes.
+      final back = BackupFormat.decode(json);
+      expect(back.birthdays.map((b) => b.year), [null, 1990]);
+    });
+  });
 }

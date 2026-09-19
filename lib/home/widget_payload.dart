@@ -229,8 +229,9 @@ abstract final class WidgetPayload {
   }
 
   static int? _ageOn(Birthday b, DateTime day) {
-    if (!b.hasYear) return null;
-    final age = day.year - b.date.year;
+    final birthYear = b.year;
+    if (birthYear == null) return null;
+    final age = day.year - birthYear;
     return age > 0 ? age : null;
   }
 

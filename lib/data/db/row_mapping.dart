@@ -161,7 +161,9 @@ BirthdayRow birthdayToRow(
     id: b.id,
     name: b.name,
     note: b.note,
-    date: toStoredDateTime(b.date),
+    birthMonth: b.month,
+    birthDay: b.day,
+    birthYear: b.year,
     notifyHour: b.notifyHour,
     notifyMinute: b.notifyMinute,
     advanceOffsetsMinutes: jsonEncode(b.advanceOffsetsMinutes),
@@ -172,17 +174,28 @@ BirthdayRow birthdayToRow(
   );
 }
 
-/// Bozuk satırda (`date` / önbildirim JSON'u çözülemiyor) hata fırlatır;
-/// depo satırı atlar.
+/// Bozuk satırda (ay/gün aralık dışı, önbildirim JSON'u çözülemiyor) hata
+/// fırlatır; depo satırı atlar. v5 → v6 geçişinde çözülemeyen bir `date`
+/// metni ay/gün 0 bıraktığı için o satırlar da burada elenir.
 Birthday birthdayFromRow(BirthdayRow row) {
   final offsets = (jsonDecode(row.advanceOffsetsMinutes) as List)
       .map((e) => (e as num).toInt())
       .toList(growable: false);
+  if (row.birthMonth < 1 ||
+      row.birthMonth > 12 ||
+      row.birthDay < 1 ||
+      row.birthDay > 31) {
+    throw FormatException(
+      'Invalid birthday date ${row.birthMonth}/${row.birthDay}',
+    );
+  }
   return Birthday(
     id: row.id,
     name: row.name,
     note: row.note,
-    date: fromStoredDateTime(row.date),
+    month: row.birthMonth,
+    day: row.birthDay,
+    year: row.birthYear,
     notifyHour: row.notifyHour,
     notifyMinute: row.notifyMinute,
     advanceOffsetsMinutes: offsets,
