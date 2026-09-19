@@ -6,6 +6,7 @@ import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_swipe.dart';
@@ -67,6 +68,7 @@ class ReminderCard extends StatelessWidget {
       if (reminder.isRecurring) 'tekrar: ${reminder.recurrence.summary}',
       if (_placeLabel != null) 'konum: $_placeLabel',
       if (reminder.hasSubtasks) SubtaskProgressText.spoken(reminder.subtasks),
+      ...PriorityPinVisuals.spokenParts(reminder),
       reminder.isDone ? 'tamamlandı' : 'tamamlanmadı',
     ].join(', ');
   }
@@ -121,6 +123,10 @@ class ReminderCard extends StatelessWidget {
           metaIcon(Icons.check_box_outlined, scheme.onSurfaceVariant),
           TextSpan(text: SubtaskProgressText.count(reminder.subtasks)),
         ],
+        if (reminder.hasPriority) ...[
+          separator,
+          ...PriorityPinVisuals.metaSpans(scheme, reminder.priority),
+        ],
       ],
     );
 
@@ -133,6 +139,7 @@ class ReminderCard extends StatelessWidget {
     void toggle() => toggleReminderDoneWithUndo(context, reminder);
     void snooze() => snoozeReminderWithUndo(context, reminder);
     void delete() => deleteReminderWithUndo(context, reminder);
+    void togglePin() => togglePinnedWithUndo(context, reminder);
 
     return ReminderSwipe(
       done: done,
@@ -145,6 +152,9 @@ class ReminderCard extends StatelessWidget {
         customSemanticsActions: {
           CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
           if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
+          CustomSemanticsAction(
+            label: PriorityPinVisuals.pinActionLabel(reminder.pinned),
+          ): togglePin,
           const CustomSemanticsAction(label: 'Düzenle'): () =>
               showReminderEditorSheet(context, existing: reminder),
           const CustomSemanticsAction(label: 'Sil'): delete,
@@ -169,6 +179,10 @@ class ReminderCard extends StatelessWidget {
                           value: done,
                           color: category.fg,
                           onColor: category.onFg,
+                          ring: PriorityPinVisuals.checkboxRing(
+                            context,
+                            reminder,
+                          ),
                           onToggle: () => prepareToggleReminderDone(
                             context,
                             reminder,
@@ -182,8 +196,14 @@ class ReminderCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  reminder.title,
+                                Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      if (reminder.pinned)
+                                        PriorityPinVisuals.titlePin(scheme),
+                                      TextSpan(text: reminder.title),
+                                    ],
+                                  ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(

@@ -43,6 +43,13 @@ class Reminders extends Table {
   /// `NULL` = tekrar yok (v1 satırları).
   TextColumn get recurrence => text().nullable()();
 
+  /// Öncelik (v4, F3.4): 0 yok … 3 yüksek (`ReminderPriority`). Eski
+  /// satırlar 0 alır.
+  IntColumn get priority => integer().withDefault(const Constant(0))();
+
+  /// Sabitlenmiş (v4, F3.4). Eski satırlar `false` alır.
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -130,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,7 +154,13 @@ class AppDatabase extends _$AppDatabase {
             // v3 (F3.3): maddeler tablosu. Eski hatırlatıcıların maddesi yok.
             await m.createTable(subtasks);
           }
-          if (to > 3) {
+          if (from < 4) {
+            // v4 (F3.4): öncelik ve sabitleme. Varsayılanlar (0, false)
+            // mevcut satırlara uygulanır.
+            await m.addColumn(reminders, reminders.priority);
+            await m.addColumn(reminders, reminders.pinned);
+          }
+          if (to > 4) {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },

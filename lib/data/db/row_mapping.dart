@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
 /// Domain modelleri ↔ Drift satırları. Senkron alanları (`position`,
@@ -44,6 +45,8 @@ ReminderRow reminderToRow(
     updatedAt: updatedAt,
     deletedAt: deletedAt,
     recurrence: recurrenceToStored(r.recurrence),
+    priority: ReminderPriority.normalize(r.priority),
+    pinned: r.pinned,
   );
 }
 
@@ -86,6 +89,8 @@ Reminder reminderFromRow(
     locationPlaceLabel: row.locationPlaceLabel,
     recurrence: recurrenceFromStored(row.recurrence),
     subtasks: SubtaskList.normalized(subtasks.map(subtaskFromRow)),
+    priority: ReminderPriority.normalize(row.priority),
+    pinned: row.pinned,
   );
 }
 

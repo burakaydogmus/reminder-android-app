@@ -194,11 +194,11 @@ void main() {
 
     expect(
       actions("Ali'yi kurstan al"),
-      unorderedEquals(['Tamamla', 'Ertele', 'Düzenle', 'Sil']),
+      unorderedEquals(['Tamamla', 'Ertele', 'Sabitle', 'Düzenle', 'Sil']),
     );
     expect(
       actions('Vitamin iç'),
-      unorderedEquals(['Geri aç', 'Düzenle', 'Sil']),
+      unorderedEquals(['Geri aç', 'Sabitle', 'Düzenle', 'Sil']),
     );
     expect(
       find.bySemanticsLabel(

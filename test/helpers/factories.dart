@@ -22,10 +22,14 @@ Reminder buildReminder({
   String? locationPlaceLabel,
   RecurrenceRule recurrence = RecurrenceRule.none,
   List<Subtask> subtasks = const [],
+  int priority = 0,
+  bool pinned = false,
 }) {
   return Reminder(
     recurrence: recurrence,
     subtasks: subtasks,
+    priority: priority,
+    pinned: pinned,
     id: id,
     title: title,
     note: note,

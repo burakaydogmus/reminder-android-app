@@ -86,6 +86,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   detection (`parsing/rules/list_rules.dart`) whose items become `Subtask`s when
   capture is wired up. `splitSubtaskLines` splits line breaks only (paste, Enter). Completing a reminder never completes its subtasks and all
   subtasks done never completes the reminder (the editor only suggests it).
+- `domain/model/reminder_priority.dart` — `ReminderPriority` (F3.4): 0 none,
+  1 Düşük, 2 Orta, 3 Yüksek — the **same scale as the quick-capture parser**
+  (`!`/`!!`/`!!!`, `CaptureParseResult.priority`); `normalize` clamps, `label`,
+  `marker` ("!!!"), `spoken` ("Yüksek öncelik"). `Reminder.priority` (default 0, JSON
+  `priority`, missing/non-number → 0, out of range clamped) and `Reminder.pinned`
+  (default false, JSON `pinned`, missing/non-bool → false). Priority does not change
+  notifications.
 - `domain/parsing/` — Turkish quick-capture parser (F4.6a, see **Quick-capture
   parser**).
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
@@ -96,9 +103,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (F3.3); a finished series and one-off reminders get `isDone = true` with subtasks
   untouched.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
-  (active before done; timed by `remindAt` asc; timed before untimed; untimed by
-  `createdAt` desc), used by the cubit and the home widget sync. `ReminderCubit`
-  re-sorts after **every** list change, so `state.reminders` is always in this order.
+  (§3.3.2, F3.4): active before done; **pinned before unpinned**; timed before
+  untimed; timed by `remindAt` asc, same time → priority desc; untimed by priority
+  desc, then `createdAt` desc. Used by the cubit, the home widget sync and every
+  list/section (search and the calendar agenda only as a tie-breaker). The Bugün
+  ribbon and the agenda sort by time first, so a pinned item never jumps ahead
+  there. `ReminderCubit` re-sorts after **every** list change, so `state.reminders`
+  is always in this order.
 - Clock: `ReminderCubit(..., now: ...)` (default `DateTime.now`) is passed to every
   `ReminderState` as `clock`; date-dependent getters (`upcomingBirthdays`) use it.
 - Birthday notifications repeat yearly with `DateTimeComponents.dateAndTime` and the
@@ -325,8 +336,8 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v3** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json` … `drift_schema_v3.json`): `reminders` and
+- **Schema v4** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v4.json`): `reminders` and
   `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
   `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
   v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
@@ -338,7 +349,9 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   the same diff rule (unchanged rows untouched, missing ones soft-deleted — also all
   subtasks of a deleted reminder; re-saving, e.g. undo, restores them);
   `loadReminders` reads both tables in one transaction; `clearAll` deletes subtasks
-  first. SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
+  first. v4 (F3.4) adds `reminders.priority` (INTEGER, default 0) and
+  `reminders.pinned` (BOOLEAN, default false) in the `from < 4` step; existing rows
+  get the defaults. SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
   (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
@@ -402,7 +415,11 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   dart format lib test
   ```
 
-  Then add the `vN-1 → vN` case to `test/data/db/migration_test.dart`. Generated
+  Then add the `vN-1 → vN` case to `test/data/db/migration_test.dart` and bump its
+  `latest`: `AppDatabase` always migrates to its current version, so every older
+  start version is validated against the latest schema, and migrated files are read
+  back through the latest generated classes (older classes cannot reopen a newer
+  file). Generated
   `*.g.dart` files and schema helpers are committed (CI doesn't run `build_runner`)
   and formatted. On Windows with a non-ASCII project path, run these in an ASCII-path
   copy and copy `app_database.g.dart`, the schema JSON and `test/data/db/generated/`
@@ -574,7 +591,7 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   Every action lives in `reminders/reminder_actions.dart`
   (`toggleReminderDoneWithUndo`, `snoozeReminderWithUndo`,
   `deleteReminderWithUndo`) and is reachable three ways: swipe, long-press menu
-  (Tamamla/Geri aç, Ertele, Düzenle, Sil) and semantics custom actions (WCAG 2.5.7)
+  (Tamamla/Geri aç, Ertele, Sabitle, Düzenle, Sil) and semantics custom actions (WCAG 2.5.7)
   — add new card actions to all three. Actions apply immediately and show
   `UndoSnackBar` (one at a time, a new one replaces the old; 5 s, 10 s with
   `MediaQuery.accessibleNavigationOf` and accessibility focus on "Geri al"; pass
@@ -695,6 +712,19 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   bar; `ReminderCompactCard`'s default subtitle adds "☑ 2/6"; both add
   "maddeler: 2/6 tamamlandı" to the semantics label. Liste detayı checklist mode
   (§3.3.6) is not built yet.
+- **Priority and pinning (F3.4):** editor top bar has a 📌 `IconButton` toggle
+  (`ReminderEditorKeys.pin`, tooltip "Sabitle" / "Sabitlemeyi kaldır") and the
+  Kategori section an "Öncelik" `SegmentedButton<int>` Yok / Düşük / Orta / Yüksek
+  (`ReminderEditorKeys.priority`); both saved with "Kaydet". Shared visuals in
+  `reminders/priority_pin_visuals.dart` (`PriorityPinVisuals`). `ReminderCard`: pin
+  icon before the title, "!!! Yüksek" (marker + text, colour never alone) in the
+  meta line, and for open high-priority reminders a 2.5 px `primary` ring
+  (`PriorityPinVisuals.checkboxRing`) passed as `KorCheckbox(ring: …)` — never edit
+  the checkbox's own border for it. `ReminderCompactCard`: pin icon, the same ring
+  and a trailing "!!" marker. Labels add "sabitlendi" and "Yüksek öncelik".
+  `togglePinnedWithUndo` is the pin action: long-press menus (card and calendar
+  agenda) and semantics custom actions "Sabitle" / "Sabitlemeyi kaldır"; there is
+  no pin swipe.
 - **Onboarding (F4.2):** `OnboardingGate` shows the 4-step `OnboardingFlow` (§3.3.1)
   once. The flag `onboarding_completed_v1` lives in SharedPreferences through
   `OnboardingStore` (UI-only; never in the repository/database). Users who already

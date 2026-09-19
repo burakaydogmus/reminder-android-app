@@ -65,6 +65,8 @@ void main() {
         ...legacy,
         'recurrence': null,
         'subtasks': <Object?>[],
+        'priority': 0,
+        'pinned': false,
       });
     });
 
@@ -286,6 +288,8 @@ void main() {
         locationPlaceLabel: () => 'Başka yer',
         recurrence: RecurrenceRule.daily(interval: 2),
         subtasks: const [Subtask(id: 's1', title: 'Süt')],
+        priority: 3,
+        pinned: true,
       );
 
       expect(copy.toJson(), {
@@ -306,6 +310,8 @@ void main() {
         'subtasks': [
           {'id': 's1', 'title': 'Süt', 'isDone': false, 'position': 0},
         ],
+        'priority': 3,
+        'pinned': true,
       });
     });
 
