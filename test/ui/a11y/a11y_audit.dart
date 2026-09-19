@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart'
     show debugDefaultTargetPlatformOverride;
-import 'package:flutter/rendering.dart' show RenderFlex, RenderObject;
+import 'package:flutter/rendering.dart'
+    show RenderFlex, RenderObject, SemanticsNode;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -121,7 +122,40 @@ Future<void> expectAccessible(
       failures.add('${guideline.description}:\n${result.reason}');
     }
   }
+  final bareTimes = unspokenTimes(tester);
+  if (bareTimes.isNotEmpty) {
+    failures.add(
+      'Times must be read as "saat 16:00" (§3.6 rule 11, '
+      'KorFormat.spokenTime):\n${bareTimes.join('\n')}',
+    );
+  }
   expect(failures, isEmpty, reason: failures.join('\n\n'));
+}
+
+final _bareTime = RegExp(r'(?<!saat )(?<![\d:])\d{1,2}:\d{2}(?![\d:])');
+
+/// Semantics labels/values that contain a 24 h time not written as
+/// "saat HH:mm" (a screen reader says "on altı sıfır sıfır" otherwise).
+List<String> unspokenTimes(WidgetTester tester) {
+  final found = <String>[];
+  void visit(SemanticsNode node) {
+    if (!node.isInvisible && !node.isMergedIntoParent) {
+      final data = node.getSemanticsData();
+      for (final text in [data.label, data.value]) {
+        if (_bareTime.hasMatch(text)) found.add('"$text"');
+      }
+    }
+    node.visitChildren((child) {
+      visit(child);
+      return true;
+    });
+  }
+
+  for (final view in tester.binding.renderViews) {
+    final root = view.owner?.semanticsOwner?.rootSemanticsNode;
+    if (root != null) visit(root);
+  }
+  return found;
 }
 
 /// Render flexes that report an overflow, with the widget that created them.
