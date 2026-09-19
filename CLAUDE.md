@@ -154,7 +154,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     `PlatformHomeWidgetSync` implements `HomeWidgetSync`. See **Android home screen
     widgets (F5.1)**.
   - `widget_launch_router.dart` — `WidgetLaunchTarget` / `WidgetLaunchRouter`: widget taps
-    that open the app (F5.1).
+    that open the app (F5.1) and app icon shortcuts (F5.3, `openTarget`).
+  - `app_shortcuts.dart` — `AppShortcut`, `ShortcutRouter`, `QuickActionsPlatform`: app
+    icon shortcuts (F5.3). See **App icon shortcuts (F5.3)**.
 - `home/widget_payload.dart` — `WidgetPayload.build`, the widgets' data contract (F5.1).
 - `home/reminder_home_widget_callback.dart` — background entry point
   (`@pragma('vm:entry-point')`) for widget interactions (toggle a reminder while the
@@ -568,6 +570,36 @@ same labels as the widget picker) and refreshes all four after every sync.
 - R8: providers, the list service and the widget receivers are kept by name in
   `proguard-rules.pro`. Kotlin is only compiled by CI (`build-android-release`).
 
+## App icon shortcuts (F5.3)
+
+- Plugin: `quick_actions` (flutter.dev) — Android launcher shortcuts
+  (`ShortcutManagerCompat` dynamic shortcuts, API 25+) and iOS Home Screen quick actions
+  (UIScene-aware since `quick_actions_ios` 1.2.4: registers as a scene delegate, so it
+  works with `FlutterSceneDelegate` + plugin registration in
+  `didInitializeImplicitFlutterEngine`; no `AppDelegate`/`Info.plist` changes).
+- `AppShortcut` (`services/app_shortcuts.dart`) is the list, in display order: `new_reminder`
+  "Yeni hatırlatıcı" → `NewReminderTarget()` (quick capture), `market_list` "Market
+  listesi" → `NewReminderTarget(initialText: '#market ')` (quick capture prefilled via
+  `showQuickCaptureSheet(initialText:)`), `today` "Bugün" → `TodayTarget` (pops pushed
+  routes/sheets, selects Bugün), `new_birthday` "Yeni doğum günü" → `NewBirthdayTarget`
+  (`showBirthdayEditorSheet`). The `type` strings are persisted by the OS (pinned
+  shortcuts); never rename them.
+- `main.dart` runs `ShortcutRouter(router: WidgetLaunchRouter.instance).attach(const
+  PluginQuickActions())` on both platforms: `initialize` (a launching shortcut is
+  delivered to the handler, cold start) then `setShortcutItems`; failures are only
+  logged. The handler calls `WidgetLaunchRouter.openTarget`, so shortcuts are queued and
+  handled by `HomeShell` exactly like widget taps (after onboarding, cold and warm start).
+  Tests pass a fake `QuickActionsPlatform` (`test/services/app_shortcuts_test.dart`,
+  `test/ui/home/shortcut_routing_test.dart`).
+- Icons share one name per shortcut (`AppShortcut.icon`, e.g. `shortcut_today`):
+  Android `res/drawable/shortcut_*.xml` (48dp: 44dp `@color/shortcut_background` circle
+  + 24dp single-colour Material Icons glyph in `@color/shortcut_foreground`; Kor
+  primaryContainer / onPrimaryContainer, night variants in `values-night`), looked up with
+  `getIdentifier`, kept from `shrinkResources` by `res/raw/keep.xml` (`@drawable/*`);
+  iOS `Assets.xcassets/shortcut_*.imageset` (the same glyph as SVG, template rendering,
+  vector preserved) — the plugin only supports `UIApplicationShortcutIcon(templateImageName:)`,
+  not SF Symbols. Titles are Turkish literals (F6.1 will localise them).
+
 ## Quick-capture parser (F4.6a)
 
 - `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
@@ -618,7 +650,8 @@ same labels as the widget picker) and refreshes all four after every sync.
   `acceptSplit` → title `listTitle` ("Market alışverişi") + one open subtask per
   item. `isPast` (one-off only) → warn, never save silently.
 - **Sheet** (`ui/capture/quick_capture_sheet.dart`, `showQuickCaptureSheet(context,
-  now:)`): opens with `KorMotion.sheetStyleOf` (spatialSlow, fade under Reduce
+  now:, initialText:)`; `initialText` is parsed after the first frame without the token
+  haptic, F5.3): opens with `KorMotion.sheetStyleOf` (spatialSlow, fade under Reduce
   Motion). Autofocus field; `CaptureTextController.buildTextSpan` paints token ranges
   (date/time/repeat → `primaryContainer`/`onPrimaryContainer`; category → category
   `container` + `onContainer`; priority → `primary` text with a stroked `background`

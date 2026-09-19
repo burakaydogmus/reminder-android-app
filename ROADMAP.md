@@ -124,7 +124,7 @@ Diğer tüm fazların temeli.
   4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
 - [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
-- [ ] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
+- [x] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
 - [x] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
   Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.

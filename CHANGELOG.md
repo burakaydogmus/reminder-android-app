@@ -18,6 +18,11 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Uygulama simgesi kısayolları:** Uygulama simgesine uzun basınca (Android kısayolları, iOS
+  hızlı işlemleri) dört seçenek çıkar: **Yeni hatırlatıcı** hızlı yakalamayı açar, **Market
+  listesi** hızlı yakalamayı `#market ` yazılı açar (yalnızca maddeleri yaz), **Bugün** Bugün
+  sekmesine döner, **Yeni doğum günü** doğum günü ekleme sayfasını açar. Uygulama kapalıyken de
+  çalışır; ilk açılışta tanıtım bitince hedef açılır. (F5.3)
 - **Özel kategoriler:** Listeler › Kategorilerim'de "+ Yeni kategori" ile kendi kategorini
   oluştur: ad (en fazla 24 karakter), 12 renkten biri ve 18 ikondan biri, canlı önizlemeyle.
   "Düzenle" ile kategorileri sürükleyerek (ya da ekran okuyucunun "Yukarı/Aşağı taşı"
