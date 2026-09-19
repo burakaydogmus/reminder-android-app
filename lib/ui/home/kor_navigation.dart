@@ -2,6 +2,7 @@ import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
+import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
@@ -169,77 +170,112 @@ class _PillNavItem extends StatelessWidget {
   }
 }
 
-enum _NewItemKind { reminder, birthday }
+enum _NewItemKind { quick, reminder, birthday }
 
-/// 64 px squircle "Yeni hatırlatıcı" FAB; long-press offers
-/// Hatırlatıcı / Doğum günü (also exposed as a semantics action).
-class NewItemFab extends StatelessWidget {
-  const NewItemFab({super.key});
-
-  Future<void> _showMenu(BuildContext context) async {
-    final box = context.findRenderObject() as RenderBox?;
-    final overlay =
-        Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
-    if (box == null || overlay == null) return;
-    final rect = Rect.fromPoints(
-      box.localToGlobal(Offset.zero, ancestor: overlay),
-      box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
-    );
-    final kind = await showMenu<_NewItemKind>(
-      context: context,
-      position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-      items: const [
-        PopupMenuItem(
-          value: _NewItemKind.reminder,
-          child: Row(
-            children: [
-              Icon(Icons.check_circle_outline_rounded),
-              SizedBox(width: KorSpacing.s4),
-              Text('Hatırlatıcı'),
-            ],
-          ),
+/// The "new item" menu (long-press on the Android FAB and the iOS capture
+/// bar, §3.2): Hızlı ekle / Hatırlatıcı (full editor) / Doğum günü, anchored
+/// to [context]'s render box.
+Future<void> showNewItemMenu(
+  BuildContext context, {
+  DateTime Function()? now,
+}) async {
+  final box = context.findRenderObject() as RenderBox?;
+  final overlay =
+      Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
+  if (box == null || overlay == null) return;
+  final rect = Rect.fromPoints(
+    box.localToGlobal(Offset.zero, ancestor: overlay),
+    box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
+  );
+  final kind = await showMenu<_NewItemKind>(
+    context: context,
+    position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
+    items: const [
+      PopupMenuItem(
+        value: _NewItemKind.quick,
+        child: Row(
+          children: [
+            Icon(Icons.bolt_rounded),
+            SizedBox(width: KorSpacing.s4),
+            Text('Hızlı ekle'),
+          ],
         ),
-        PopupMenuItem(
-          value: _NewItemKind.birthday,
-          child: Row(
-            children: [
-              Icon(CategoryVisuals.birthdayIcon),
-              SizedBox(width: KorSpacing.s4),
-              Text('Doğum günü'),
-            ],
-          ),
+      ),
+      PopupMenuItem(
+        value: _NewItemKind.reminder,
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_outline_rounded),
+            SizedBox(width: KorSpacing.s4),
+            Text('Hatırlatıcı'),
+          ],
         ),
-      ],
-    );
-    if (!context.mounted) return;
-    switch (kind) {
-      case _NewItemKind.reminder:
-        await showReminderEditorSheet(context);
-      case _NewItemKind.birthday:
-        await showBirthdayEditorSheet(context);
-      case null:
-        break;
-    }
+      ),
+      PopupMenuItem(
+        value: _NewItemKind.birthday,
+        child: Row(
+          children: [
+            Icon(CategoryVisuals.birthdayIcon),
+            SizedBox(width: KorSpacing.s4),
+            Text('Doğum günü'),
+          ],
+        ),
+      ),
+    ],
+  );
+  if (!context.mounted) return;
+  switch (kind) {
+    case _NewItemKind.quick:
+      await showQuickCaptureSheet(context, now: now);
+    case _NewItemKind.reminder:
+      await showReminderEditorSheet(context, now: now);
+    case _NewItemKind.birthday:
+      await showBirthdayEditorSheet(context);
+    case null:
+      break;
   }
+}
+
+/// Semantics actions shared by the FAB and the iOS capture bar (the
+/// long-press menu's other items for screen readers).
+Map<CustomSemanticsAction, VoidCallback> newItemSemanticsActions(
+  BuildContext context, {
+  DateTime Function()? now,
+}) =>
+    {
+      const CustomSemanticsAction(label: 'Ayrıntılı hatırlatıcı'): () =>
+          showReminderEditorSheet(context, now: now),
+      const CustomSemanticsAction(label: 'Yeni doğum günü'): () =>
+          showBirthdayEditorSheet(context),
+    };
+
+/// 64 px squircle "Yeni hatırlatıcı" FAB (Android): tap opens the quick
+/// capture sheet (F4.6b); long-press offers Hızlı ekle / Hatırlatıcı /
+/// Doğum günü (also exposed as semantics actions).
+class NewItemFab extends StatelessWidget {
+  const NewItemFab({super.key, this.clock});
+
+  /// Clock for the sheets; defaults to the caller's `NowScope`.
+  final DateTime Function()? clock;
 
   @override
   Widget build(BuildContext context) {
+    void capture() => showQuickCaptureSheet(context, now: clock);
+    void menu() => showNewItemMenu(context, now: clock);
     return Semantics(
       button: true,
       label: 'Yeni hatırlatıcı',
-      hint: 'Uzun basınca hatırlatıcı veya doğum günü seçilir',
-      onTap: () => showReminderEditorSheet(context),
-      onLongPress: () => _showMenu(context),
-      customSemanticsActions: {
-        const CustomSemanticsAction(label: 'Yeni doğum günü'): () =>
-            showBirthdayEditorSheet(context),
-      },
+      hint: 'Hızlı ekleme açılır. Uzun basınca ayrıntılı hatırlatıcı veya '
+          'doğum günü seçilir',
+      onTap: capture,
+      onLongPress: menu,
+      customSemanticsActions: newItemSemanticsActions(context, now: clock),
       excludeSemantics: true,
       child: GestureDetector(
-        onLongPress: () => _showMenu(context),
+        onLongPress: menu,
         child: FloatingActionButton.large(
           heroTag: null,
-          onPressed: () => showReminderEditorSheet(context),
+          onPressed: capture,
           child: const Icon(Icons.add_rounded, size: 28),
         ),
       ),

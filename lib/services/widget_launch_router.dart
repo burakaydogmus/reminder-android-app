@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart';
 /// Ana ekran widget'ından uygulamayı açan bir dokunuşun hedefi (F5.1).
 ///
 /// Adresler (`reminderwidget://…`, Kotlin tarafıyla ortak):
-/// - `new` → yeni hatırlatıcı düzenleyicisi ("+"; F4.6b hızlı yakalamaya
-///   çevirecek),
+/// - `new` → hızlı yakalama ("+", F4.6b),
 /// - `open?id=<id>` → o hatırlatıcının düzenleyicisi,
 /// - `birthday?id=<id>` → Doğum günleri,
 /// - `permissions` → Ayarlar (İzinler grubu en üstte).
@@ -41,7 +40,7 @@ sealed class WidgetLaunchTarget {
   }
 }
 
-/// "+" → yeni hatırlatıcı.
+/// "+" → hızlı yakalama.
 final class NewReminderTarget extends WidgetLaunchTarget {
   const NewReminderTarget();
 

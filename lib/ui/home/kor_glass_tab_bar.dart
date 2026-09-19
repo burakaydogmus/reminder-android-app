@@ -27,6 +27,7 @@ class KorGlassTabBar extends StatefulWidget {
     this.collapsed = false,
     this.onExpand,
     this.onSearch,
+    this.accessory,
     this.destinations = kShellDestinations,
   });
 
@@ -35,6 +36,12 @@ class KorGlassTabBar extends StatefulWidget {
   final bool collapsed;
   final VoidCallback? onExpand;
   final VoidCallback? onSearch;
+
+  /// Builds the capture bar (F4.6b) at the given size: full width and
+  /// [KorSizes.captureBarHeight] above the capsule, and while [collapsed]
+  /// it moves down between the collapsed tab and the search circle
+  /// (§3.2 "küçülünce birlikte iniyor"). The outer height stays fixed.
+  final Widget Function(BuildContext context, Size size)? accessory;
   final List<KorDestination> destinations;
 
   static const capsuleKey = ValueKey('KorGlassTabBar.capsule');
@@ -124,72 +131,130 @@ class _KorGlassTabBarState extends State<KorGlassTabBar>
           ),
           // Fixed outer height: collapsing never changes the scaffold's
           // bottom inset, so the body does not relayout while scrolling.
-          child: SizedBox(
-            height: KorGlass.tabBarHeight,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final searchSpace =
-                    search == null ? 0.0 : KorGlass.searchSize + KorSpacing.s3;
-                final expandedWidth = math.min(
-                  KorGlass.tabBarWidth,
-                  constraints.maxWidth - searchSpace,
-                );
-                final capsule = collapsed
-                    ? const Size(
-                        KorGlass.tabBarCollapsedWidth,
-                        KorGlass.collapsedHeight,
-                      )
-                    : Size(expandedWidth, KorGlass.tabBarHeight);
-                final circle =
-                    collapsed ? KorGlass.collapsedHeight : KorGlass.searchSize;
+          child: _withAccessory(
+            context,
+            hasSearch: search != null,
+            duration: duration,
+            curve: curve,
+            tabs: SizedBox(
+              height: KorGlass.tabBarHeight,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final searchSpace = search == null
+                      ? 0.0
+                      : KorGlass.searchSize + KorSpacing.s3;
+                  final expandedWidth = math.min(
+                    KorGlass.tabBarWidth,
+                    constraints.maxWidth - searchSpace,
+                  );
+                  final capsule = collapsed
+                      ? const Size(
+                          KorGlass.tabBarCollapsedWidth,
+                          KorGlass.collapsedHeight,
+                        )
+                      : Size(expandedWidth, KorGlass.tabBarHeight);
+                  final circle = collapsed
+                      ? KorGlass.collapsedHeight
+                      : KorGlass.searchSize;
 
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    TweenAnimationBuilder<Size?>(
-                      tween: SizeTween(end: capsule),
-                      duration: duration,
-                      curve: curve,
-                      builder: (context, size, child) => KorGlassSurface(
-                        key: KorGlassTabBar.capsuleKey,
-                        width: size!.width,
-                        height: size.height,
-                        child: _Clipped(size: capsule, child: child!),
-                      ),
-                      child: collapsed
-                          ? _CollapsedTab(
-                              destination:
-                                  widget.destinations[widget.selectedIndex],
-                              onTap: widget.onExpand,
-                            )
-                          : _Tabs(
-                              destinations: widget.destinations,
-                              selectedIndex: widget.selectedIndex,
-                              indicator: _indicator,
-                              onSelected: widget.onSelected,
-                            ),
-                    ),
-                    const Spacer(),
-                    if (search != null)
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(end: circle),
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      TweenAnimationBuilder<Size?>(
+                        tween: SizeTween(end: capsule),
                         duration: duration,
                         curve: curve,
-                        builder: (context, side, child) => KorGlassSurface(
-                          shape: KorGlassShape.circle,
-                          width: side,
-                          height: side,
-                          child: child!,
+                        builder: (context, size, child) => KorGlassSurface(
+                          key: KorGlassTabBar.capsuleKey,
+                          width: size!.width,
+                          height: size.height,
+                          child: _Clipped(size: capsule, child: child!),
                         ),
-                        child: _SearchButton(onTap: search),
+                        child: collapsed
+                            ? _CollapsedTab(
+                                destination:
+                                    widget.destinations[widget.selectedIndex],
+                                onTap: widget.onExpand,
+                              )
+                            : _Tabs(
+                                destinations: widget.destinations,
+                                selectedIndex: widget.selectedIndex,
+                                indicator: _indicator,
+                                onSelected: widget.onSelected,
+                              ),
                       ),
-                  ],
-                );
-              },
+                      const Spacer(),
+                      if (search != null)
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(end: circle),
+                          duration: duration,
+                          curve: curve,
+                          builder: (context, side, child) => KorGlassSurface(
+                            shape: KorGlassShape.circle,
+                            width: side,
+                            height: side,
+                            child: child!,
+                          ),
+                          child: _SearchButton(onTap: search),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// [tabs] alone, or with the [KorGlassTabBar.accessory] above it in a
+  /// fixed-height stack; collapsing moves the accessory down between the
+  /// collapsed tab and the search circle.
+  Widget _withAccessory(
+    BuildContext context, {
+    required Widget tabs,
+    required bool hasSearch,
+    required Duration duration,
+    required Curve curve,
+  }) {
+    final accessory = widget.accessory;
+    if (accessory == null) return tabs;
+    final collapsed = widget.collapsed;
+    const height =
+        KorSizes.captureBarHeight + KorSpacing.s3 + KorGlass.tabBarHeight;
+    return SizedBox(
+      height: height,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: KorGlass.tabBarHeight,
+            child: tabs,
+          ),
+          AnimatedPositionedDirectional(
+            duration: duration,
+            curve: curve,
+            start:
+                collapsed ? KorGlass.tabBarCollapsedWidth + KorSpacing.s3 : 0,
+            end: collapsed && hasSearch
+                ? KorGlass.collapsedHeight + KorSpacing.s3
+                : 0,
+            top: collapsed ? height - KorGlass.collapsedHeight : 0,
+            height: collapsed
+                ? KorGlass.collapsedHeight
+                : KorSizes.captureBarHeight,
+            child: LayoutBuilder(
+              builder: (context, constraints) => accessory(
+                context,
+                Size(constraints.maxWidth, constraints.maxHeight),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

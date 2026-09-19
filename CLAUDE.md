@@ -84,7 +84,7 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `;` and a separate-word " ve " (bullets/checkboxes stripped) — the editor's
   "Maddelere böl" button; the quick-capture parser (F4.6a) has its own list
   detection (`parsing/rules/list_rules.dart`) whose items become `Subtask`s when
-  capture is wired up. `splitSubtaskLines` splits line breaks only (paste, Enter). Completing a reminder never completes its subtasks and all
+  "Maddelere böl?" is accepted in the capture sheet (F4.6b). `splitSubtaskLines` splits line breaks only (paste, Enter). Completing a reminder never completes its subtasks and all
   subtasks done never completes the reminder (the editor only suggests it).
 - `domain/model/reminder_priority.dart` — `ReminderPriority` (F3.4): 0 none,
   1 Düşük, 2 Orta, 3 Yüksek — the **same scale as the quick-capture parser**
@@ -93,8 +93,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `priority`, missing/non-number → 0, out of range clamped) and `Reminder.pinned`
   (default false, JSON `pinned`, missing/non-bool → false). Priority does not change
   notifications.
-- `domain/parsing/` — Turkish quick-capture parser (F4.6a, see **Quick-capture
-  parser**).
+- `domain/parsing/` — Turkish quick-capture parser (F4.6a) and
+  `capture_to_reminder.dart`, its mapping to a new `Reminder` (F4.6b); see
+  **Quick capture**.
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
   action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
@@ -167,7 +168,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
 - `ui/` — screens and widgets (Kor look, see **UI structure** below):
   - `home/` — `HomeShell` (Bugün / Takvim / Listeler, `PopScope` back to Bugün,
     minute tick), `kor_navigation.dart` (Android `KorPillNavigation`, `NewItemFab`)
-    and `kor_glass_tab_bar.dart` (iOS `KorGlassTabBar`, F5.4).
+    and `kor_glass_tab_bar.dart` (iOS `KorGlassTabBar`, F5.4). `capture/` —
+    quick capture (F4.6b): `quick_capture_sheet.dart` (`showQuickCaptureSheet`),
+    `capture_text.dart` (`CaptureText`, `CaptureTextController`), `capture_bar.dart`
+    (iOS `CaptureBar`).
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
     grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
     `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
@@ -505,8 +509,8 @@ same labels as the widget picker) and refreshes all four after every sync.
   open the app with `HomeWidgetLaunchIntent` (direct activity PendingIntents, no
   trampoline). `WidgetLaunchRouter` (`services/widget_launch_router.dart`, attached in
   `main.dart` on Android) queues the target like `NotificationTapRouter`; `HomeShell`
-  takes it (so it waits for onboarding): `new` → new reminder editor (switch to quick
-  capture when F4.6b lands), `open` → editor after the first load, `birthday` →
+  takes it (so it waits for onboarding): `new` → quick capture
+  (`showQuickCaptureSheet`, F4.6b), `open` → editor after the first load, `birthday` →
   Doğum günleri, `permissions` → Ayarlar.
 - **Liste collection:** API 31+ `RemoteViews.RemoteCollectionItems`; API 26–30
   `ReminderListWidgetService` (`RemoteViewsService` + factory), both built by `ListRows`.
@@ -533,7 +537,8 @@ same labels as the widget picker) and refreshes all four after every sync.
 ## Quick-capture parser (F4.6a)
 
 - `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
-  `ReminderCategoryIds`. Entry point `CaptureParser.parse(input, now:, config:)` in
+  `ReminderCategoryIds` (except the separate F4.6b mapping,
+  `capture_to_reminder.dart`). Entry point `CaptureParser.parse(input, now:, config:)` in
   `turkish_capture_parser.dart`; the rules are `part` files in `rules/` (scanner,
   tags, dates, times, recurrence, resolution, list split); `turkish_text.dart` does
   Turkish casing/folding (İ↔i, I↔ı) **without shifting string offsets**.
@@ -547,16 +552,55 @@ same labels as the widget picker) and refreshes all four after every sync.
   the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
   `pazar` with a suffix is the market, a time without a date is today if still
   ahead, else tomorrow. Details in each rule file's doc comment.
-- **F4.6b maps the results; don't add model mapping here.** `RecurrenceSpec` →
-  `RecurrenceRule` (`lib/domain/model/recurrence.dart`): daily → `daily()`,
-  everyNDays → `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
-  `monthly(dayOfMonth:)`. `RecurrenceRule` clamps day 31 to short months while the
-  parser's first occurrence skips them, so compute the first `remindAt` with the
-  rule when they differ. `isPast` → the F1.8b past-time warning; `categoryId == null`
-  with a `categoryKey` → "Yeni kategori oluştur?"; priority → F3.4.
+- **No model mapping in the parser.** `capture_to_reminder.dart` (F4.6b) is the only
+  place that turns a `CaptureParseResult` into a `Reminder` (see **Quick capture**).
 - Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
   clock (`kNow`, 13 Eylül 2026 14:32; the table must keep ≥ 200 sentences), plus
-  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config.
+  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config;
+  `capture_to_reminder_test.dart` for the mapping.
+
+## Quick capture (F4.6b)
+
+- **Mapping** (`domain/parsing/capture_to_reminder.dart`, pure,
+  `CaptureToReminder.map(result, now:, id:, newSubtaskId:, acceptSplit:)` →
+  `CaptureDraft { reminder, isPast, newCategoryTag, placeLabel }`):
+  `RecurrenceSpec` → `RecurrenceRule` (`ruleOf`: daily → `daily()`, everyNDays →
+  `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
+  `monthly(dayOfMonth:)`). Time (`remindAtOf`): none → untimed; explicit time → as
+  parsed; a day without a time → that day at `defaultHour` (09:00), but **today
+  without a time stays untimed**; a repeat → the rule's first occurrence at or after
+  now (untimed repeats at 09:00; the month-end clamp wins over the parser's skipped
+  month: `her ayın 31'i` in September → 30 Eylül). Priority 0–3 as is. Category: the
+  matched id, else "Diğer" with `newCategoryTag` (the sheet shows an inert
+  "Yeni kategori: #tag" chip; F4.3 wires creation). `@place` → note `Yer: <place>`
+  (the model's `locationPlaceLabel` belongs to the geofence; never registers one).
+  `acceptSplit` → title `listTitle` ("Market alışverişi") + one open subtask per
+  item. `isPast` (one-off only) → warn, never save silently.
+- **Sheet** (`ui/capture/quick_capture_sheet.dart`, `showQuickCaptureSheet(context,
+  now:)`): opens with `KorMotion.sheetStyleOf` (spatialSlow, fade under Reduce
+  Motion). Autofocus field; `CaptureTextController.buildTextSpan` paints token ranges
+  (date/time/repeat → `primaryContainer`/`onPrimaryContainer`; category → category
+  `container` + `onContainer`; priority → `primary` text with a stroked `background`
+  Paint (a span cannot have a border); place → `secondaryContainer`); plain while an
+  IME composition is active. `KorHaptics.tokenRecognized()` when a new token appears.
+  Chip row: date, Tekrar, category (or the new-tag hint), priority, place, "Maddelere
+  böl?"; tapping opens the matching picker (date+time, `showRecurrenceSheet`, list
+  sheets) whose value overrides the parsed one; "×" turns the phrases back into text
+  through `CaptureText.parse(suppressed:)` (whole-word occurrences masked with a
+  same-length private-use run, original text restored in the title). Past one-off
+  time → `PastTimeHint` + blocked save. Save (Enter or the 48 px ↑): `addReminder`
+  (after `PermissionFlows.beforeScheduling` for timed ones), field cleared, sheet
+  stays open, an in-sheet toast "Eklendi: … · Geri al" (3 s, 10 s with a screen
+  reader; a snackbar would sit under the sheet) whose undo deletes it. "Tüm
+  ayrıntılar" pops the sheet with the draft and opens `showReminderEditorSheet(draft:)`
+  — the editor fills from `existing ?? draft`, but only `existing` decides update vs.
+  add and the overdue-time allowance.
+- **Entry points:** Android `NewItemFab` tap → capture; long-press (`showNewItemMenu`)
+  Hızlı ekle / Hatırlatıcı / Doğum günü, the last two also as semantics actions
+  (`newItemSemanticsActions`). iOS: no FAB; `CaptureBar` ("Ne hatırlatayım?", glass
+  through `KorGlassSurface`, 52 high) is `KorGlassTabBar.accessory`, above the
+  capsule inside the fixed-height chrome; collapsing moves it down to 48 between the
+  collapsed tab and the search circle. Long-press opens the same menu.
 
 ## Workflow rules (from ROADMAP.md)
 
@@ -610,12 +654,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - **Shell:** `HomeShell` has three tabs (Bugün / Takvim / Listeler) in an
   `IndexedStack`; Ayarlar is a pushed route from the gear in `TabHeader`. Back on
   Takvim/Listeler selects Bugün (`PopScope`). Android: floating `KorPillNavigation` +
-  64 px `NewItemFab` (long-press: Hatırlatıcı / Doğum günü); iOS: floating glass
-  `KorGlassTabBar` + FAB (below). Decide platform chrome only through `PlatformChrome` (reads
+  64 px `NewItemFab` (tap: quick capture; long-press: Hızlı ekle / Hatırlatıcı /
+  Doğum günü); iOS: floating glass `KorGlassTabBar` with the `CaptureBar` above it,
+  no FAB (below, and **Quick capture**). Decide platform chrome only through `PlatformChrome` (reads
   `Theme.of(context).platform`, so tests override it via the theme).
 - **iOS glass chrome (F5.4):** `liquid_glass_widgets` (MIT) is used **only** through
-  `KorGlassSurface` and only for iOS floating chrome (tab bar, search circle, later
-  the F4.6 capture bar); content and cards stay opaque, Android never uses glass.
+  `KorGlassSurface` and only for iOS floating chrome (tab bar, search circle,
+  the F4.6b capture bar); content and cards stay opaque, Android never uses glass.
   `KorGlassTabBar`: 290×62 capsule (Bugün/Takvim/Listeler, icon + label, sliding
   `primaryContainer` indicator on `spatialDefault`, jump under Reduce Motion) + a
   separate 62 "Ara" circle → `openSearch`, over a `surface` edge fade. `HomeShell`

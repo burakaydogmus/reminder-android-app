@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:reminder/services/widget_launch_router.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
+import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/onboarding/onboarding_gate.dart';
@@ -26,6 +27,7 @@ final _reminder = buildReminder(
 );
 
 Finder get _editorTitle => find.byKey(ReminderEditorKeys.title);
+Finder get _capture => find.byKey(QuickCaptureKeys.field);
 
 void main() {
   late WidgetLaunchRouter router;
@@ -49,15 +51,15 @@ void main() {
   String editorTitleText(WidgetTester tester) =>
       tester.widget<TextField>(_editorTitle).controller!.text;
 
-  testWidgets('"+" (new) opens an empty reminder editor', (tester) async {
+  testWidgets('"+" (new) opens quick capture (F4.6b)', (tester) async {
     await pumpShell(tester);
     await tester.pumpAndSettle();
 
     router.open(Uri.parse('reminderwidget://new'));
     await tester.pumpAndSettle();
 
-    expect(_editorTitle, findsOneWidget);
-    expect(editorTitleText(tester), isEmpty);
+    expect(_capture, findsOneWidget);
+    expect(_editorTitle, findsNothing);
     expect(router.pending, isNull);
   });
 
@@ -131,13 +133,13 @@ void main() {
 
     expect(find.byType(OnboardingFlow), findsOneWidget);
     expect(router.pending, const NewReminderTarget());
-    expect(_editorTitle, findsNothing);
+    expect(_capture, findsNothing);
 
     await tester.tap(find.byKey(OnboardingKeys.skip));
     await tester.pumpAndSettle();
 
     expect(find.byType(HomeShell), findsOneWidget);
     expect(router.pending, isNull);
-    expect(_editorTitle, findsOneWidget);
+    expect(_capture, findsOneWidget);
   });
 }

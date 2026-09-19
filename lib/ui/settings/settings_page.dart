@@ -176,7 +176,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text(
                       'Dört widget var: Bugün, kaydırılabilir Liste, '
                       'Sıradaki ve Hızlı ekle. Daireye dokunarak işi '
-                      'tamamlarsın, "+" yeni hatırlatıcı açar. Liste\'nin '
+                      'tamamlarsın, "+" hızlı ekler. Liste\'nin '
                       'boyutunu ana ekranda kenarlarından sürükleyerek '
                       'değiştirebilirsin.',
                       style: muted,

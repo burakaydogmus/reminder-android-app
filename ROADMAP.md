@@ -112,8 +112,9 @@ Diğer tüm fazların temeli.
   Tasarım dokümanı §3.6'daki 12 kural (kontrast ≥4.5:1, 48 dp hedef, semantics aksiyonları, yazı ölçeği %200, Reduce Motion/Transparency); bu madde kapanış denetimi + golden testlerdir.
 - [x] **F4.6a Türkçe ayrıştırıcı (domain)** · `feat/turkish-capture-parser`
   `lib/domain/parsing/`: saf Dart, kural tabanlı `CaptureParser` (tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`), orijinal metindeki token aralıkları, "Maddelere böl?" önerisi, modelden bağımsız sonuç tipleri; 200+ örnek cümlelik test tablosu, İ/ı testleri.
-- [ ] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture-nlp` · *bağımlı: F3.1, F3.4, F4.6a*
+- [x] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture` · *bağımlı: F3.1, F3.4, F4.6a*
   iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
+  *Not:* bilinmeyen `#etiket` şimdilik "Diğer" + ipucu chip'i (oluşturma F4.3 ile bağlanacak); `@yer` nota yazılır, geofence kurmaz.
 - [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
@@ -127,7 +128,7 @@ Diğer tüm fazların temeli.
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
 - [x] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*
   Cam tab bar, ayrı arama düğmesi, yakalama çubuğu; Reduce Transparency'de solid. Resmi Cupertino cam bileşeni çıkarsa onunla yeniden değerlendirilir.
-  *Not:* yakalama çubuğu (accessory) F4.6b hızlı yakalama arayüzü ile gelir; `KorGlassSurface` ona hazır.
+  *Not:* yakalama çubuğu (accessory) F4.6b ile geldi (`CaptureBar`, `KorGlassTabBar.accessory`).
 
 ## Faz 6 — Yayın hazırlığı
 
