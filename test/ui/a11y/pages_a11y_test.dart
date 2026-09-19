@@ -37,6 +37,7 @@ Future<UiHarness> _pumpPage(
     h.app(
       theme: variant.theme,
       platform: variant.platform,
+      language: variant.language,
       home: NowScope(clock: auditClock, child: page),
     ),
   );
@@ -115,6 +116,7 @@ void main() {
       h.app(
         theme: variant.theme,
         platform: variant.platform,
+        language: variant.language,
         home: LocationPickerPage(
           categoryId: ReminderCategoryIds.market,
           initialPoint: const LatLng(41.0082, 28.9784),

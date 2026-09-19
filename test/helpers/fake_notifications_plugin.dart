@@ -44,6 +44,9 @@ class FakeNotificationsPlugin extends Fake
   final Map<int, NotificationDetails?> shownDetails = {};
   final Map<int, String?> shownPayloads = {};
 
+  /// Title and body of shown notifications (F6.1 language checks).
+  final Map<int, (String?, String?)> shownTexts = {};
+
   int initializeCalls = 0;
   int cancelAllCalls = 0;
   int cancelCalls = 0;
@@ -125,6 +128,7 @@ class FakeNotificationsPlugin extends Fake
     shown.add(id);
     shownDetails[id] = notificationDetails;
     shownPayloads[id] = payload;
+    shownTexts[id] = (title, body);
   }
 
   @override

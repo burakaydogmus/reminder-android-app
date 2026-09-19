@@ -18,6 +18,7 @@ void main() {
           h.app(
             theme: variant.theme,
             platform: variant.platform,
+            language: variant.language,
             home: OnboardingFlow(
               initialPage: step,
               onSkip: () {},

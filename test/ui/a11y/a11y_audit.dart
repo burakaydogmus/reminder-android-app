@@ -4,17 +4,19 @@ import 'package:flutter/rendering.dart'
     show RenderFlex, RenderObject, SemanticsNode;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:reminder/l10n/app_language.dart';
 
 import '../ui_harness.dart';
 import 'debug_shot.dart';
 
-/// One audit configuration: theme × text scale × platform.
+/// One audit configuration: theme × text scale × platform × language.
 class A11yVariant {
   const A11yVariant({
     required this.themeName,
     required this.theme,
     required this.textScale,
     required this.platform,
+    this.language = AppLanguage.turkish,
   });
 
   final String themeName;
@@ -22,10 +24,18 @@ class A11yVariant {
   final double textScale;
   final TargetPlatform platform;
 
+  /// App language (F6.1): pass it to `UiHarness.app(language:)`. English
+  /// strings differ in length, so overflow is audited in both.
+  final AppLanguage language;
+
   bool get isIOS => platform == TargetPlatform.iOS;
 
-  String get name => '$themeName, ${textScale}x, ${isIOS ? 'iOS' : 'Android'}';
+  String get name => '$themeName, ${textScale}x, ${isIOS ? 'iOS' : 'Android'}'
+      '${language == AppLanguage.english ? ', English' : ''}';
 }
+
+/// Languages every audit runs in (F6.1).
+const auditLanguages = [AppLanguage.turkish, AppLanguage.english];
 
 /// Text scales of §3.6 rule 6 (up to 200 %).
 const auditTextScales = [1.0, 2.0];
@@ -35,20 +45,23 @@ const auditTextScales = [1.0, 2.0];
 /// tap-target guidelines skip nodes touching the view or scroll edges.
 const auditSurface = Size(390, 1400);
 
-/// Every theme × [auditTextScales] × [platforms] combination.
+/// Every theme × [auditTextScales] × [platforms] × [languages] combination.
 List<A11yVariant> auditVariants({
   List<TargetPlatform> platforms = const [TargetPlatform.android],
+  List<AppLanguage> languages = auditLanguages,
 }) =>
     [
-      for (final platform in platforms)
-        for (final (themeName, theme) in korThemes)
-          for (final scale in auditTextScales)
-            A11yVariant(
-              themeName: themeName,
-              theme: theme,
-              textScale: scale,
-              platform: platform,
-            ),
+      for (final language in languages)
+        for (final platform in platforms)
+          for (final (themeName, theme) in korThemes)
+            for (final scale in auditTextScales)
+              A11yVariant(
+                themeName: themeName,
+                theme: theme,
+                textScale: scale,
+                platform: platform,
+                language: language,
+              ),
     ];
 
 /// Declares one widget test per [auditVariants] entry: [pump] builds the
@@ -61,10 +74,14 @@ void a11yAudit(
   String description,
   Future<void> Function(WidgetTester tester, A11yVariant variant) pump, {
   List<TargetPlatform> platforms = const [TargetPlatform.android],
+  List<AppLanguage> languages = auditLanguages,
   Size surface = auditSurface,
   bool contrast = true,
 }) {
-  for (final variant in auditVariants(platforms: platforms)) {
+  for (final variant in auditVariants(
+    platforms: platforms,
+    languages: languages,
+  )) {
     testWidgets('$description (${variant.name})', (tester) async {
       tester.view.physicalSize = surface;
       tester.view.devicePixelRatio = 1;
@@ -125,17 +142,18 @@ Future<void> expectAccessible(
   final bareTimes = unspokenTimes(tester);
   if (bareTimes.isNotEmpty) {
     failures.add(
-      'Times must be read as "saat 16:00" (§3.6 rule 11, '
+      'Times must be read as "saat 16:00" / "at 16:00" (§3.6 rule 11, '
       'KorFormat.spokenTime):\n${bareTimes.join('\n')}',
     );
   }
   expect(failures, isEmpty, reason: failures.join('\n\n'));
 }
 
-final _bareTime = RegExp(r'(?<!saat )(?<![\d:])\d{1,2}:\d{2}(?![\d:])');
+final _bareTime = RegExp(r'(?<!saat )(?<!at )(?<![\d:])\d{1,2}:\d{2}(?![\d:])');
 
 /// Semantics labels/values that contain a 24 h time not written as
-/// "saat HH:mm" (a screen reader says "on altı sıfır sıfır" otherwise).
+/// "saat HH:mm" / "at HH:mm" (a screen reader says "on altı sıfır sıfır"
+/// otherwise).
 List<String> unspokenTimes(WidgetTester tester) {
   final found = <String>[];
   void visit(SemanticsNode node) {

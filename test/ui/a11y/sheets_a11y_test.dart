@@ -38,6 +38,7 @@ Future<UiHarness> _openSheet(
     h.app(
       theme: variant.theme,
       platform: variant.platform,
+      language: variant.language,
       home: NowScope(clock: auditClock, child: auditOpener(open)),
     ),
   );

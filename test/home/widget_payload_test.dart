@@ -339,6 +339,36 @@ void main() {
       );
     });
 
+    test('English labels and the "lang" field (F6.1)', () {
+      final en = AppL10n.english;
+      expect(
+          WidgetPayload.dayLabel(DateTime(2026, 9, 14), _now, en), 'Tomorrow');
+      expect(
+          WidgetPayload.dayLabel(DateTime(2026, 10, 12), _now, en), 'Oct 12');
+      expect(WidgetPayload.dayLabel(DateTime(2027, 1, 12), _now, en),
+          'Jan 12, 2027');
+      expect(WidgetPayload.timeLabel(DateTime(2026, 9, 13, 9), _now, en),
+          'Overdue');
+
+      final payload = WidgetPayload.build(
+        l10n: en,
+        reminders: [
+          buildReminder(id: 'late', remindAt: DateTime(2026, 9, 13, 9)),
+        ],
+        birthdays: [buildBirthday(id: 'b', date: DateTime(1990, 9, 13))],
+        notificationsEnabled: true,
+        now: _now,
+      );
+      expect(payload['lang'], 'en');
+      expect(_items(payload).single['time'], 'Overdue');
+      expect(_next(payload)!['day'], 'Overdue');
+      expect(
+        ((payload['birthdays']! as List).single as Map)['label'],
+        'Today',
+      );
+      expect(_build(reminders: const [])['lang'], 'tr');
+    });
+
     test('subtaskProgress', () {
       expect(WidgetPayload.subtaskProgress(const []), isNull);
       expect(
