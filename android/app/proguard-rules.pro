@@ -23,6 +23,11 @@
 }
 
 # home_widget resolves widget providers by class name (Class.forName) for
-# updates and background callbacks.
+# updates and background callbacks. F5.1: four providers, the list service
+# and the click/refresh receivers (manifest components, kept by name here too
+# so Dart's qualifiedAndroidName always matches).
 -keep class es.antonborri.home_widget.** { *; }
--keep class com.burakaydogmus.reminder.ReminderListWidgetProvider { *; }
+-keep class com.burakaydogmus.reminder.Reminder*WidgetProvider { *; }
+-keep class com.burakaydogmus.reminder.ReminderListWidgetService { *; }
+-keep class com.burakaydogmus.reminder.ReminderListWidgetService$* { *; }
+-keep class com.burakaydogmus.reminder.ReminderWidget*Receiver { *; }

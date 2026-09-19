@@ -1,3 +1,4 @@
+import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 
 /// OS geofence kayıtlarını hatırlatıcılarla senkronlayan servis.
@@ -11,10 +12,16 @@ abstract interface class GeofenceSync {
   });
 }
 
-/// Ana ekran widget'ına hatırlatıcı özetini yazan servis.
+/// Ana ekran widget'larına hatırlatıcı, doğum günü ve bildirim durumu
+/// özetini yazan servis (F5.1: doğum günleri ve bildirim bayrağı da widget'ta
+/// gösterildiği için zorunlu parametreler).
 ///
 /// Gerçek uygulama: `PlatformHomeWidgetSync`. `ReminderCubit`'e constructor
 /// ile verilir; testlerde mock'lanır.
 abstract interface class HomeWidgetSync {
-  Future<void> sync(List<Reminder> reminders);
+  Future<void> sync(
+    List<Reminder> reminders, {
+    required List<Birthday> birthdays,
+    required bool notificationsEnabled,
+  });
 }

@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#6B4FC8</color>
+
+    <!-- Ana ekran widget'ları (F5.1), Kor açık tema (lib/ui/theme/tokens/kor_palette.dart).
+         Android 12+ sistem dinamik renkleri values-v31 / values-night-v31'de. -->
+    <color name="widget_surface">#FAF7F2</color>
+    <color name="widget_on_surface">#1F1B16</color>
+    <color name="widget_on_surface_variant">#5C554C</color>
+    <color name="widget_outline">#8C8479</color>
+    <color name="widget_primary">#B8430F</color>
+    <!-- "+" hap ve "Bildirimler kapalı" şeridi (primaryContainer / onPrimaryContainer). -->
+    <color name="widget_pill">#FFDCC8</color>
+    <color name="widget_on_pill">#4A1A00</color>
+
+    <!-- Kategori renkleri (KorColorKey fg, açık). -->
+    <color name="widget_cat_market">#2E7031</color>
+    <color name="widget_cat_ev">#00696B</color>
+    <color name="widget_cat_is">#2D5EA8</color>
+    <color name="widget_cat_saglik">#B0265E</color>
+    <color name="widget_cat_gunluk">#8A5300</color>
+    <color name="widget_cat_diger">#6546C8</color>
+    <color name="widget_cat_dogumgunu">#9A2A8A</color>
 </resources>

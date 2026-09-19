@@ -202,7 +202,7 @@ void main() {
         ),
       ).captured.single as List<Reminder>;
       expect(geo.firstWhere((r) => r.id == 'first').isDone, isTrue);
-      verify(() => homeWidget.sync(any())).called(1);
+      verify(() => anyHomeWidgetSync(homeWidget)).called(1);
     });
 
     test('Tamamla on a recurring reminder advances it (F3.1)', () async {

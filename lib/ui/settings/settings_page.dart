@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:home_widget/home_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
@@ -10,11 +9,11 @@ import 'package:reminder/data/backup/backup_io.dart';
 import 'package:reminder/data/backup/backup_service.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
-import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/settings/backup_actions.dart';
 import 'package:reminder/ui/settings/permissions_group.dart';
 import 'package:reminder/ui/settings/reset_data_dialog.dart';
+import 'package:reminder/ui/settings/widget_pin_sheet.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -26,6 +25,7 @@ abstract final class SettingsPageKeys {
   static const privacyPolicy = Key('settings.privacyPolicy');
   static const licenses = Key('settings.licenses');
   static const haptics = Key('settings.haptics');
+  static const pinWidget = Key('settings.pinWidget');
 }
 
 /// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
@@ -40,11 +40,15 @@ class SettingsPage extends StatefulWidget {
     this.backupIo,
     this.backupService,
     this.linkOpener = openExternalLink,
+    this.widgetPinner = const PlatformHomeWidgetPinner(),
   });
 
   final BackupIo? backupIo;
   final BackupService? backupService;
   final LinkOpener linkOpener;
+
+  /// Pins the chosen home screen widget (F5.1); tests pass a fake.
+  final HomeWidgetPinner widgetPinner;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -170,14 +174,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: 'Ana ekran widget\'ı',
                   children: [
                     Text(
-                      'Aktif hatırlatıcıları listeler. Soldaki kutuya '
-                      'dokunarak öğeyi tamamlandı işaretlersin. Boyutu ana '
-                      'ekranda kenarlardan sürükleyerek değiştirebilirsin.',
+                      'Dört widget var: Bugün, kaydırılabilir Liste, '
+                      'Sıradaki ve Hızlı ekle. Daireye dokunarak işi '
+                      'tamamlarsın, "+" hızlı ekler. Liste\'nin '
+                      'boyutunu ana ekranda kenarlarından sürükleyerek '
+                      'değiştirebilirsin.',
                       style: muted,
                     ),
                     const SizedBox(height: KorSpacing.s4),
                     FilledButton.tonalIcon(
-                      onPressed: () => _pinHomeWidget(context),
+                      key: SettingsPageKeys.pinWidget,
+                      onPressed: () => pickAndPinHomeWidget(
+                        context,
+                        pinner: widget.widgetPinner,
+                      ),
                       icon: const Icon(Icons.add_to_home_screen_rounded),
                       label: const Text('Widget ekle'),
                     ),
@@ -276,24 +286,6 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       ),
     );
-  }
-
-  Future<void> _pinHomeWidget(BuildContext context) async {
-    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
-    if (!context.mounted) return;
-    if (supported) {
-      await HomeWidget.requestPinWidget(
-        qualifiedAndroidName: kReminderListWidgetQualifiedAndroidName,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Ana ekranda boş bir alana uzun basın → Widget\'lar → Hatırlatıcıyı seçin.',
-          ),
-        ),
-      );
-    }
   }
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {

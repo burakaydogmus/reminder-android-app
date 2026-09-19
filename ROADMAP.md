@@ -120,7 +120,7 @@ Diğer tüm fazların temeli.
 
 ## Faz 5 — Widget ve platform
 
-- [ ] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6b*
+- [x] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6b*
   4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
 - [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.

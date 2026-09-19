@@ -18,6 +18,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Dört Android widget'ı:** **Bugün** (4×2: "Bugün · N", ilk iki iş, sağ üstte "+" hap),
+  kaydırılabilir **Liste** (4×4, 3×3–5×6 arası boyutlanır: Kaçanlar, Bugün, Doğum günü, Sonra;
+  8 satır sınırı kalktı), **Sıradaki** (2×2: sıradaki işin saati ve başlığı, "+N daha") ve
+  **Hızlı ekle** (1×1, yalnız "+"). Daireye dokunmak uygulamayı açmadan tamamlar (tekrarlayanlar
+  sonraki tarihe geçer), satıra dokunmak hatırlatıcıyı, doğum günü satırı Doğum günleri'ni, "+"
+  hızlı yakalama sayfasını açar. Bildirimler kapalıysa "Bildirimler kapalı — açmak için dokun" şeridi
+  Ayarlar'a götürür. Android 12+'da sistem dinamik renkleri ve köşe yarıçapı, koyu tema desteği;
+  "Gecikti", "Yarın" ve bölümler uygulama açılmadan saat geçtikçe güncellenir. Ana ekrandaki
+  eski widget kendiliğinden Liste olur. Ayarlar › "Widget ekle" dört widget'tan birini seçtirir.
+  (F5.1)
 - **Hızlı yakalama:** "cuma 18:00 ekmek ve süt al #market !!" gibi yazman yeterli. Android'de
   "+" düğmesi, iOS'ta sekme çubuğunun üstündeki cam **"Ne hatırlatayım?"** çubuğu hızlı ekleme
   sayfasını açar; tanınan tarih/saat, tekrar, `#kategori`, `!` öncelik ve `@yer` metnin içinde

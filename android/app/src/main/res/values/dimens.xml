@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget köşe yarıçapları (F5.1); Android 12+ sistem değerleri values-v31'de. -->
+    <dimen name="widget_radius">16dp</dimen>
+    <dimen name="widget_inner_radius">12dp</dimen>
+    <dimen name="widget_padding">16dp</dimen>
+</resources>
