@@ -21,7 +21,11 @@ class ReminderListWidgetService : RemoteViewsService() {
 
     override fun onDataSetChanged() {
       val raw = WidgetPayload.read(HomeWidgetPlugin.getData(context))
-      rows = ListRows.build(context, WidgetPayload.snapshot(raw))
+      rows =
+          ListRows.build(
+              WidgetPayload.localized(context, raw.lang),
+              WidgetPayload.snapshot(raw),
+          )
     }
 
     override fun onDestroy() {

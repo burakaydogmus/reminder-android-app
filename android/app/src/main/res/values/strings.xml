@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- F6.1: Turkish (default) strings; English in values-en/strings.xml. The
+     widgets resolve them in the app's language (payload "lang"). Keep both
+     files in sync. -->
 <resources>
     <string name="app_name">Hatırlatıcı</string>
     <string name="cancel">İptal</string>
@@ -22,6 +25,9 @@
     <string name="widget_overdue">Gecikti</string>
     <string name="widget_today">Bugün</string>
     <string name="widget_tomorrow">Yarın</string>
+    <!-- java.text.SimpleDateFormat patterns ("12 Eki", "12 Oca 2027"). -->
+    <string name="widget_date_short">d MMM</string>
+    <string name="widget_date_short_year">d MMM y</string>
 
     <string name="widget_section_overdue">Kaçanlar</string>
     <string name="widget_section_today">Bugün</string>

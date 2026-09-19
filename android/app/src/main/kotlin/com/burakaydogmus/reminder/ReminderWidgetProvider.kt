@@ -33,11 +33,14 @@ abstract class ReminderWidgetProvider : HomeWidgetProvider() {
       appWidgetIds: IntArray,
       widgetData: SharedPreferences,
   ) {
-    val snapshot = WidgetPayload.snapshot(WidgetPayload.read(widgetData))
+    val raw = WidgetPayload.read(widgetData)
+    val snapshot = WidgetPayload.snapshot(raw)
+    // F6.1: strings in the app's language (payload "lang").
+    val localized = WidgetPayload.localized(context, raw.lang)
     for (widgetId in appWidgetIds) {
       appWidgetManager.updateAppWidget(
           widgetId,
-          build(context, appWidgetManager, widgetId, snapshot),
+          build(localized, appWidgetManager, widgetId, snapshot),
       )
     }
     afterUpdate(context, appWidgetManager, appWidgetIds)

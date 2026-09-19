@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- F6.1: English strings (values/strings.xml is Turkish). The widgets pick
+     these through the payload "lang" (the app's language), launcher labels and
+     the widget picker through the device language. Keep both files in sync. -->
+<resources>
+    <string name="app_name">Hatırlatıcı</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Home screen widgets (F5.1). Names match Dart ReminderHomeWidget.labelIn. -->
+    <string name="widget_today_label">Today</string>
+    <string name="widget_list_label">List</string>
+    <string name="widget_next_label_name">Up next</string>
+    <string name="widget_quick_add_label">Quick add</string>
+
+    <string name="widget_today_description">Today\'s first two tasks. Tap the circle to complete, + to add.</string>
+    <string name="widget_list_description">Missed, today and birthdays. Scrollable; resize it from its edges.</string>
+    <string name="widget_next_description">The next task and its time; + to add.</string>
+    <string name="widget_quick_add_description">A new reminder in one tap.</string>
+
+    <string name="widget_next_label">UP NEXT</string>
+    <string name="widget_today_header">Today · %1$d</string>
+    <string name="widget_more">+%1$d more</string>
+    <string name="widget_empty_today">Nothing today. Tap + to add</string>
+    <string name="widget_notifications_off">Notifications are off — tap to turn on</string>
+    <string name="widget_overdue">Overdue</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_date_short">MMM d</string>
+    <string name="widget_date_short_year">MMM d, y</string>
+
+    <string name="widget_section_overdue">Missed</string>
+    <string name="widget_section_today">Today</string>
+    <string name="widget_section_birthdays">Birthday</string>
+    <string name="widget_section_later">Later</string>
+    <string name="widget_birthday_age">%1$s · turns %2$d</string>
+
+    <!-- TalkBack -->
+    <string name="widget_cd_add">New reminder</string>
+    <string name="widget_cd_complete">Complete: %1$s</string>
+    <string name="widget_cd_subtasks">%1$s items</string>
+    <string name="widget_cd_recurring">repeating</string>
+    <string name="widget_cd_today">Today, %1$d open tasks. Open the app.</string>
+    <string name="widget_cd_birthday">Birthday: %1$s, %2$s</string>
+</resources>

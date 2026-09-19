@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.view.View
 import android.widget.RemoteViews
-import java.util.Locale
 
 /**
  * Sıradaki 2×2 (F5.1): "SIRADAKİ", büyük saat, 2 satır başlık, "+N daha" ve
@@ -50,12 +49,13 @@ class ReminderNextWidgetProvider : ReminderWidgetProvider() {
         when {
           due == null -> null
           overdue -> context.getString(R.string.widget_overdue)
-          due >= WidgetPayload.startOfDay(now, 1) -> WidgetPayload.dayLabel(due, now)
+          due >= WidgetPayload.startOfDay(now, 1) -> WidgetPayload.dayLabel(context, due, now)
           else -> null
         }
     views.setTextViewText(
         R.id.widget_next_label,
-        if (day == null) label else "$label · ${day.uppercase(TURKISH)}",
+        if (day == null) label
+        else "$label · ${day.uppercase(WidgetPayload.localeOf(context))}",
     )
     if (due == null) {
       views.setViewVisibility(R.id.widget_next_time, View.GONE)
@@ -84,9 +84,5 @@ class ReminderNextWidgetProvider : ReminderWidgetProvider() {
             .joinToString(", "),
     )
     return views
-  }
-
-  private companion object {
-    val TURKISH: Locale = Locale.forLanguageTag("tr-TR")
   }
 }

@@ -1,0 +1,3 @@
+/* F6.1: Türkçe izin açıklamaları (Info.plist'teki varsayılanlarla aynı). */
+"NSLocationWhenInUseUsageDescription" = "Konum hatırlatmaları ve haritada konum seçmek için gerekli.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Seçtiğiniz yere yaklaştığınızda hatırlatma göndermek için konum gerekir.";
