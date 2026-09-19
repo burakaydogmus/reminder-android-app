@@ -46,6 +46,14 @@ class ReminderCard extends StatelessWidget {
   final DateTime now;
   final ReminderTimeStyle timeStyle;
 
+  /// Text scale above which the time sits under the title (§3.6 rule 6:
+  /// "11 Eyl 09:15" beside the title overflows at 200 %).
+  static const double stackedTimeScale = 1.3;
+
+  /// Whether the time is written under the title in [context].
+  static bool stacksTime(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(100) / 100 > stackedTimeScale;
+
   bool get _isOverdue {
     final at = reminder.remindAt;
     return !reminder.isDone && at != null && at.toLocal().isBefore(now);
@@ -138,6 +146,19 @@ class ReminderCard extends StatelessWidget {
             ? KorFormat.time(at)
             : KorFormat.when(at, now));
 
+    final timeWidget = timeText == null
+        ? null
+        : ExcludeSemantics(
+            child: Text(
+              timeText,
+              style: KorTimeText.of(context).copyWith(
+                color: overdue ? scheme.primary : scheme.onSurfaceVariant,
+              ),
+            ),
+          );
+    // Large text: the time moves under the title instead of squeezing it.
+    final stackTime = timeWidget != null && ReminderCard.stacksTime(context);
+
     void toggle() => toggleReminderDoneWithUndo(context, reminder);
     void snooze() => snoozeReminderWithUndo(context, reminder);
     void delete() => deleteReminderWithUndo(context, reminder);
@@ -216,6 +237,7 @@ class ReminderCard extends StatelessWidget {
                                         : null,
                                   ),
                                 ),
+                                if (stackTime) timeWidget,
                                 const SizedBox(height: KorSpacing.s1),
                                 Text.rich(
                                   meta,
@@ -247,18 +269,9 @@ class ReminderCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (timeText != null) ...[
+                        if (timeWidget != null && !stackTime) ...[
                           const SizedBox(width: KorSpacing.s3),
-                          ExcludeSemantics(
-                            child: Text(
-                              timeText,
-                              style: KorTimeText.of(context).copyWith(
-                                color: overdue
-                                    ? scheme.primary
-                                    : scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
+                          timeWidget,
                         ],
                       ],
                     ),
