@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
@@ -29,11 +30,12 @@ class BirthdaysPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final now = NowScope.now(context);
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
         actions: [
           IconButton(
-            tooltip: 'Doğum günü ekle',
+            tooltip: l10n.birthdayAddTooltip,
             onPressed: () => showBirthdayEditorSheet(context),
             icon: const Icon(Icons.person_add_alt_rounded),
           ),
@@ -56,17 +58,16 @@ class BirthdaysPage extends StatelessWidget {
               Semantics(
                 header: true,
                 child: Text(
-                  'Doğum günleri',
+                  l10n.birthdaysTitle,
                   style: theme.textTheme.headlineLarge,
                 ),
               ),
               const SizedBox(height: KorSpacing.s5),
               if (hero == null)
                 EmptyState(
-                  title: 'Henüz doğum günü yok',
-                  body: 'Sevdiklerinin gününü kaçırma. Rehberden içe aktarma '
-                      'yakında.',
-                  actionLabel: 'Doğum günü ekle',
+                  title: l10n.birthdaysEmptyTitle,
+                  body: l10n.birthdaysEmptyBody,
+                  actionLabel: l10n.birthdayAddTooltip,
                   onAction: () => showBirthdayEditorSheet(context),
                 )
               else ...[
@@ -75,16 +76,16 @@ class BirthdaysPage extends StatelessWidget {
               ],
               for (final group in groups) ...[
                 SectionHeader(
-                  title: KorFormat.upperTr(
-                    BirthdayGroups.monthHeader(group.month, now),
+                  title: l10n.upper(
+                    BirthdayGroups.monthHeader(group.month, now, l10n),
                   ),
                 ),
                 for (final o in group.items)
                   BirthdayRow(
                     name: o.birthday.name,
-                    subtitle: BirthdayGroups.rowSubtitle(o),
-                    note: BirthdayGroups.leapDayNote(o),
-                    trailing: KorFormat.countdown(o.daysUntil),
+                    subtitle: BirthdayGroups.rowSubtitle(o, l10n),
+                    note: BirthdayGroups.leapDayNote(o, l10n),
+                    trailing: KorFormat.countdown(o.daysUntil, l10n),
                     onTap: () =>
                         showBirthdayEditorSheet(context, existing: o.birthday),
                   ),
@@ -113,13 +114,14 @@ class _HeroCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final colors = CategoryVisuals.birthdayColorsOf(context);
     final b = occurrence.birthday;
-    final line = BirthdayGroups.heroLine(occurrence, now);
-    final note = BirthdayGroups.leapDayNote(occurrence);
+    final l10n = context.l10n;
+    final line = BirthdayGroups.heroLine(occurrence, now, l10n);
+    final note = BirthdayGroups.leapDayNote(occurrence, l10n);
     final days = occurrence.daysUntil;
 
     final Widget countdown = days == 0
         ? Text(
-            'Bugün',
+            l10n.dayToday,
             style: theme.textTheme.headlineSmall?.copyWith(
               color: colors.onContainer,
             ),
@@ -135,7 +137,7 @@ class _HeroCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'gün',
+                l10n.birthdayHeroDaysUnit(days),
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: colors.onContainer,
                 ),
@@ -147,9 +149,9 @@ class _HeroCard extends StatelessWidget {
       key: BirthdaysPageKeys.hero,
       button: true,
       label: [
-        'Sıradaki doğum günü: ${b.name}',
+        l10n.birthdayHeroSpoken(b.name),
         line,
-        if (days > 1) '$days gün kaldı',
+        if (days > 1) l10n.birthdayDaysLeft(days),
         if (note != null) note,
       ].join(', '),
       excludeSemantics: true,
@@ -172,7 +174,7 @@ class _HeroCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'SIRADAKİ',
+                          l10n.birthdayHeroOverline,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: colors.onContainer,
                           ),

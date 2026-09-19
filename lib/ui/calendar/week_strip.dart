@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:intl/intl.dart';
 
 import 'package:reminder/domain/calendar_dates.dart';
-import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
@@ -30,14 +30,15 @@ class DayDropHandler {
 
 /// Spoken date for a day cell: `Pazartesi 14 Eylül, bugün, planlı kayıt var`.
 String daySemanticsLabel(
-  DateTime day, {
+  DateTime day,
+  AppLocalizations l10n, {
   required bool today,
   required bool hasEntries,
 }) {
   return [
-    DateFormat('EEEE d MMMM', 'tr_TR').format(day),
-    if (today) 'bugün',
-    if (hasEntries) 'planlı kayıt var',
+    KorFormat.pattern(l10n.dateFormatAgenda, day, l10n),
+    if (today) l10n.calendarDayToday,
+    if (hasEntries) l10n.calendarDayHasEntries,
   ].join(', ');
 }
 
@@ -133,7 +134,12 @@ class CalendarDayCell extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: daySemanticsLabel(day, today: today, hasEntries: dots.isNotEmpty),
+      label: daySemanticsLabel(
+        day,
+        context.l10n,
+        today: today,
+        hasEntries: dots.isNotEmpty,
+      ),
       excludeSemantics: true,
       child: InkWell(
         key: CalendarStripKeys.day(day),
@@ -159,7 +165,7 @@ class CalendarDayCell extends StatelessWidget {
                   children: [
                     if (showWeekday)
                       Text(
-                        RecurrenceRule.weekdayShortNames[day.weekday - 1],
+                        KorFormat.weekdayShort(day.weekday, context.l10n),
                         maxLines: 1,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: selected || hovering
@@ -334,10 +340,10 @@ class MonthGrid extends StatelessWidget {
           ExcludeSemantics(
             child: Row(
               children: [
-                for (final name in RecurrenceRule.weekdayShortNames)
+                for (var d = DateTime.monday; d <= DateTime.sunday; d++)
                   Expanded(
                     child: Text(
-                      name,
+                      KorFormat.weekdayShort(d, context.l10n),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       style: theme.textTheme.labelSmall?.copyWith(

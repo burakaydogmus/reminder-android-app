@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/today/today_sections.dart';
 
 import '../../helpers/factories.dart';
@@ -69,7 +70,7 @@ void main() {
   });
 
   test('summary, progress and birthdays for today/tomorrow', () {
-    expect(sections.summary, '4 açık · 2 gecikmiş · 2 tamam');
+    expect(sections.summary(AppL10n.turkish), '4 açık · 2 gecikmiş · 2 tamam');
     expect(sections.progress, closeTo(2 / 8, 1e-9));
     expect(sections.isEmpty, isFalse);
     expect(sections.allDone, isFalse);

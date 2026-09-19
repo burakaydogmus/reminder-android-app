@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/today/today_sections.dart';
 
@@ -28,6 +29,7 @@ Future<void> moveOverdueToTomorrowWithUndo(
 }) async {
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
+  final l10n = context.l10n;
   final targets = movableOverdue(overdue);
   if (targets.isEmpty) return;
 
@@ -50,8 +52,8 @@ Future<void> moveOverdueToTomorrowWithUndo(
   }
 
   final message = moves.length == 1
-      ? '“${targets.first.title.trim()}” yarına alındı'
-      : '${moves.length} hatırlatıcı yarına alındı';
+      ? l10n.overdueMovedOne(targets.first.title.trim())
+      : l10n.overdueMovedMany(moves.length);
   UndoSnackBar.show(
     messenger,
     message: message,

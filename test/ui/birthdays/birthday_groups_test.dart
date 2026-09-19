@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 
@@ -48,7 +49,10 @@ void main() {
   test('grouped by month from this month on, across the year end', () {
     final groups = BirthdayGroups.byMonth(birthdays, now);
     expect(
-      [for (final g in groups) BirthdayGroups.monthHeader(g.month, now)],
+      [
+        for (final g in groups)
+          BirthdayGroups.monthHeader(g.month, now, AppL10n.turkish)
+      ],
       ['Eylül', 'Ekim', 'Şubat 2027', 'Eylül 2027'],
     );
     expect([for (final o in groups.first.items) o.birthday.id],
@@ -57,8 +61,8 @@ void main() {
 
   test('row subtitles: age or "yaş bilinmiyor"', () {
     final list = BirthdayGroups.upcoming(birthdays, now);
-    String sub(String id) =>
-        BirthdayGroups.rowSubtitle(list.firstWhere((o) => o.birthday.id == id));
+    String sub(String id) => BirthdayGroups.rowSubtitle(
+        list.firstWhere((o) => o.birthday.id == id), AppL10n.turkish);
     expect(sub('zeynep'), '14 Eylül · 30 yaşına');
     expect(sub('annem'), '3 Ekim · yaş bilinmiyor');
     expect(sub('deniz'), '29 Şubat · 27 yaşına');
@@ -68,15 +72,16 @@ void main() {
     final b = buildBirthday(date: DateTime(2000, 2, 29));
     final next = BirthdayOccurrence.next(b, now); // 2027
     expect(
-      BirthdayGroups.leapDayNote(next),
+      BirthdayGroups.leapDayNote(next, AppL10n.turkish),
       "Artık yıl değil: 28 Şubat'ta hatırlatılır",
     );
     final leap = BirthdayOccurrence.inYear(b, 2028, now);
-    expect(BirthdayGroups.leapDayNote(leap), isNull);
+    expect(BirthdayGroups.leapDayNote(leap, AppL10n.turkish), isNull);
     expect(
       BirthdayGroups.leapDayNote(
         BirthdayOccurrence.next(
             buildBirthday(date: DateTime(2000, 2, 28)), now),
+        AppL10n.turkish,
       ),
       isNull,
     );
@@ -84,7 +89,8 @@ void main() {
 
   test('hero line', () {
     final list = BirthdayGroups.upcoming(birthdays, now);
-    expect(BirthdayGroups.heroLine(list[0], now), 'Yarın · 30 yaşına giriyor');
-    expect(BirthdayGroups.heroLine(list[2], now), '3 Ekim');
+    expect(BirthdayGroups.heroLine(list[0], now, AppL10n.turkish),
+        'Yarın · 30 yaşına giriyor');
+    expect(BirthdayGroups.heroLine(list[2], now, AppL10n.turkish), '3 Ekim');
   });
 }

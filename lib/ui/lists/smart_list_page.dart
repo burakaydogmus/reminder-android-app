@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/empty_state.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
@@ -44,30 +45,31 @@ abstract final class SmartListVisuals {
   }
 
   /// §3.3.11 empty-state texts.
-  static (String, String) empty(SmartList list) => switch (list) {
+  static (String, String) empty(SmartList list, AppLocalizations l10n) =>
+      switch (list) {
         SmartList.overdue => (
-            'Gecikmiş bir şey yok',
-            'Her şey zamanında, böyle devam.',
+            l10n.smartListOverdueEmptyTitle,
+            l10n.smartListOverdueEmptyBody,
           ),
         SmartList.today => (
-            'Bugün için saatli bir şey yok',
-            'Bugüne saat verdiğin hatırlatmalar burada görünür.',
+            l10n.smartListTodayEmptyTitle,
+            l10n.smartListTodayEmptyBody,
           ),
         SmartList.scheduled => (
-            'Planlı hatırlatma yok',
-            'Saat verdiğin hatırlatmalar burada birikir.',
+            l10n.smartListScheduledEmptyTitle,
+            l10n.smartListScheduledEmptyBody,
           ),
         SmartList.untimed => (
-            'Zamansız hatırlatma yok',
-            'Saati olmayan hatırlatmalar burada durur.',
+            l10n.smartListUntimedEmptyTitle,
+            l10n.smartListUntimedEmptyBody,
           ),
         SmartList.birthdays => (
-            'Henüz doğum günü yok',
-            'Sevdiklerinin gününü kaçırma.',
+            l10n.smartListBirthdaysEmptyTitle,
+            l10n.smartListBirthdaysEmptyBody,
           ),
         SmartList.located => (
-            'Konumlu hatırlatma yok',
-            "Bir yere varınca hatırlatmak için hatırlatıcıda 'Nerede'yi aç.",
+            l10n.smartListLocatedEmptyTitle,
+            l10n.smartListLocatedEmptyBody,
           ),
       };
 }
@@ -93,7 +95,8 @@ class SmartListPage extends StatelessWidget {
         builder: (context, state) {
           final items = list.filter(state.reminders, now);
           final bottom = MediaQuery.paddingOf(context).bottom;
-          final (emptyTitle, emptyBody) = SmartListVisuals.empty(list);
+          final (emptyTitle, emptyBody) =
+              SmartListVisuals.empty(list, context.l10n);
 
           return CustomScrollView(
             slivers: [
@@ -115,12 +118,12 @@ class SmartListPage extends StatelessWidget {
                             Semantics(
                               header: true,
                               child: Text(
-                                list.label,
+                                list.labelIn(context.l10n),
                                 style: theme.textTheme.headlineLarge,
                               ),
                             ),
                             Text(
-                              '${items.length} açık',
+                              context.l10n.smartListOpenCount(items.length),
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),

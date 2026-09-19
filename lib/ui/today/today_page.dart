@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -81,16 +82,16 @@ class _TodayPageState extends State<TodayPage> {
                       padding: const EdgeInsets.only(top: KorSpacing.s3),
                       child: PermissionBanner(
                         key: TodayPageKeys.notificationBanner,
-                        title: 'Bildirimler kapalı',
-                        body: 'Hatırlatmalar zamanında gelmeyecek.',
+                        title: context.l10n.todayNotificationsOffTitle,
+                        body: context.l10n.todayNotificationsOffBody,
                         // Same wording as Ayarlar → İzinler: ask while the
                         // system has never asked, settings after a denial.
                         actionLabel: PermissionScope.of(context)
                                     .snapshot
                                     ?.notifications ==
                                 NotificationPermissionState.notRequested
-                            ? 'İzin ver'
-                            : 'Ayarları aç',
+                            ? context.l10n.permissionAllow
+                            : context.l10n.permissionOpenSettings,
                         onAction: () =>
                             PermissionFlows.fixNotifications(context),
                       ),
@@ -116,9 +117,9 @@ class _TodayPageState extends State<TodayPage> {
               if (sections.isEmpty)
                 SliverToBoxAdapter(
                   child: EmptyState(
-                    title: 'Bugün boş',
-                    body: 'Keyfine bak ya da aklındakini aşağıya yaz.',
-                    actionLabel: 'Yarını planla',
+                    title: context.l10n.todayEmptyTitle,
+                    body: context.l10n.todayEmptyBody,
+                    actionLabel: context.l10n.todayEmptyAction,
                     onAction: () => showReminderEditorSheet(
                       context,
                       initialRemindAt: DateTime(
@@ -133,10 +134,9 @@ class _TodayPageState extends State<TodayPage> {
               else if (allDoneCollapsed)
                 SliverToBoxAdapter(
                   child: EmptyState(
-                    title: 'Hepsi tamam.',
-                    body: 'Bugünkü ${sections.doneCount} hatırlatmanın '
-                        'hepsini bitirdin.',
-                    actionLabel: 'Tamamlananları göster',
+                    title: context.l10n.todayAllDoneTitle,
+                    body: context.l10n.todayAllDoneBody(sections.doneCount),
+                    actionLabel: context.l10n.todayShowCompleted,
                     onAction: () => setState(() {
                       _showCompleted = true;
                       _hideRibbonCompleted = false;
@@ -147,7 +147,7 @@ class _TodayPageState extends State<TodayPage> {
               if (!allDoneCollapsed) ..._ribbon(context, sections, now),
               ..._section(
                 context,
-                title: 'Bugün bir ara',
+                title: context.l10n.todayUntimed,
                 icon: Icons.inbox_rounded,
                 items: sections.untimed,
                 now: now,
@@ -197,7 +197,7 @@ class _TodayPageState extends State<TodayPage> {
           child: Padding(
             padding: const EdgeInsets.only(top: KorSpacing.s5),
             child: _HeaderWithAction(
-              title: 'Kaçanlar',
+              title: context.l10n.todayOverdue,
               icon: Icons.history_rounded,
               iconColor: theme.colorScheme.primary,
               action: movable.isEmpty
@@ -209,7 +209,7 @@ class _TodayPageState extends State<TodayPage> {
                         overdue: sections.overdue,
                         now: now,
                       ),
-                      child: const Text('Hepsini yarına al'),
+                      child: Text(context.l10n.todayMoveOverdue),
                     ),
             ),
           ),
@@ -240,7 +240,7 @@ class _TodayPageState extends State<TodayPage> {
           child: Padding(
             padding: const EdgeInsets.only(top: KorSpacing.s5),
             child: _HeaderWithAction(
-              title: 'Zaman çizelgesi',
+              title: context.l10n.todayTimeline,
               icon: Icons.schedule_rounded,
               action: hasCompleted
                   ? TextButton(
@@ -250,8 +250,8 @@ class _TodayPageState extends State<TodayPage> {
                       ),
                       child: Text(
                         _hideRibbonCompleted
-                            ? 'Tamamlananları göster'
-                            : 'Tamamlananları gizle',
+                            ? context.l10n.todayShowCompleted
+                            : context.l10n.todayHideCompleted,
                       ),
                     )
                   : null,
@@ -366,24 +366,27 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TabHeader(
-          title: 'Bugün',
-          overline: KorFormat.headerDate(now),
+          title: l10n.todayTitle,
+          overline: KorFormat.headerDate(now, l10n),
           actions: const [SearchIconButton()],
         ),
         Text(
-          sections.summary,
+          sections.summary(l10n),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: KorSpacing.s3),
         Semantics(
-          label: 'İlerleme: ${sections.doneCount} / ${sections.totalCount} '
-              'tamamlandı',
+          label: l10n.todayProgressSpoken(
+            sections.doneCount,
+            sections.totalCount,
+          ),
           excludeSemantics: true,
           child: LinearProgressIndicator(value: sections.progress),
         ),
@@ -446,7 +449,9 @@ class _CompletedToggle extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: 'Tamamlananlar, $count, ${expanded ? 'gizle' : 'göster'}',
+      label: expanded
+          ? context.l10n.todayCompletedSpokenHide(count)
+          : context.l10n.todayCompletedSpokenShow(count),
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
@@ -463,7 +468,7 @@ class _CompletedToggle extends StatelessWidget {
               const SizedBox(width: KorSpacing.s3),
               Expanded(
                 child: Text(
-                  'Tamamlananlar',
+                  context.l10n.todayCompleted,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

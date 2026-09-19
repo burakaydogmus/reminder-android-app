@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/lists/smart_list_page.dart';
@@ -58,7 +59,8 @@ void main() {
   });
 
   for (final list in [SmartList.overdue, SmartList.scheduled]) {
-    a11yAudit('Akıllı liste ${list.label}', (tester, variant) async {
+    a11yAudit('Akıllı liste ${list.labelIn(AppL10n.turkish)}',
+        (tester, variant) async {
       await _pumpPage(tester, variant, SmartListPage(list: list));
     });
   }

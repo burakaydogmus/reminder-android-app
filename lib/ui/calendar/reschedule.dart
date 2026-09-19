@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
@@ -42,10 +43,19 @@ bool canRescheduleToDay(Reminder reminder, DateTime day, DateTime now) {
 }
 
 /// Snackbar text: `“Market” taşındı · Çar 16 Eyl 18:30`.
-String rescheduledMessage(Reminder moved, DateTime now) {
+String rescheduledMessage(
+  Reminder moved,
+  DateTime now,
+  AppLocalizations l10n,
+) {
   final at = moved.remindAt!.toLocal();
-  return '“${moved.title.trim()}” taşındı · '
-      '${RecurrenceFormat.day(at, now)} ${KorFormat.time(at)}';
+  return l10n.calendarMoved(
+    moved.title.trim(),
+    l10n.recurrenceNextDay(
+      RecurrenceFormat.day(at, now, l10n),
+      KorFormat.time(at),
+    ),
+  );
 }
 
 /// Moves [reminder] to [day] through `ReminderCubit.updateReminder` and shows
@@ -59,6 +69,7 @@ Future<void> rescheduleReminderWithUndo(
   final cubit = context.read<ReminderCubit>();
   final messenger = ScaffoldMessenger.of(context);
   final clock = now ?? NowScope.clockOf(context);
+  final l10n = context.l10n;
   final current =
       cubit.state.reminders.where((r) => r.id == reminder.id).firstOrNull;
   if (current == null || !canRescheduleToDay(current, day, clock())) return;
@@ -67,7 +78,7 @@ Future<void> rescheduleReminderWithUndo(
   final updated = cubit.updateReminder(moved);
   UndoSnackBar.show(
     messenger,
-    message: rescheduledMessage(moved, clock()),
+    message: rescheduledMessage(moved, clock(), l10n),
     onUndo: () {
       final latest =
           cubit.state.reminders.where((r) => r.id == reminder.id).firstOrNull;
@@ -101,14 +112,14 @@ Future<void> pickDayAndReschedule(
     currentDate: today,
     firstDate: today,
     lastDate: DateTime(today.year + 2, 12, 31),
-    helpText: 'Hangi güne taşınsın?',
-    confirmText: 'Taşı',
+    helpText: context.l10n.calendarMovePickerTitle,
+    confirmText: context.l10n.calendarMoveConfirm,
   );
   if (picked == null || !context.mounted) return;
   if (CalendarDates.isSameDay(picked, at)) return;
   if (!canRescheduleToDay(reminder, picked, clock())) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bu saat geçti; başka bir gün seç.')),
+      SnackBar(content: Text(context.l10n.calendarMovePast)),
     );
     return;
   }

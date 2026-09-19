@@ -9,7 +9,6 @@ import 'package:reminder/ui/calendar/agenda_rows.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/calendar/week_strip.dart';
 import 'package:reminder/ui/common/now_scope.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
@@ -304,7 +303,7 @@ void main() {
       );
       expect(_dots(tester, DateTime(2026, 9, 17)), [KorColorKey.is_]);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(_byId(h, 'slides').remindAt, DateTime(2026, 9, 15, 16));
     });
@@ -348,7 +347,7 @@ void main() {
       expect(moved.remindAt, DateTime(2026, 9, 18, 16));
       expect(moved.recurrence, RecurrenceRule.weekly([DateTime.friday]));
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(_byId(h, 'slides').recurrence,
           RecurrenceRule.weekly([DateTime.tuesday]));
@@ -361,7 +360,7 @@ void main() {
       await tester.longPress(find.text('Sunum slaytları'));
       await tester.pumpAndSettle();
       expect(find.text('Tamamla'), findsOneWidget);
-      await tester.tap(find.text(AgendaRowKeys.moveAction));
+      await tester.tap(find.text('Taşı…'));
       await tester.pumpAndSettle();
 
       final dialog = find.byType(DatePickerDialog);
@@ -375,7 +374,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_byId(h, 'slides').remindAt, DateTime(2026, 9, 18, 16));
-      expect(find.text(UndoSnackBar.actionLabel), findsOneWidget);
+      expect(find.text('Geri al'), findsOneWidget);
     });
 
     testWidgets('semantics: one node with a Taşı… custom action',

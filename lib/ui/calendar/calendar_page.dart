@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/calendar_dates.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
@@ -177,7 +177,9 @@ class _CalendarPageState extends State<CalendarPage> {
         // Month of the shown week's Thursday (ISO rule), or the grid month.
         final labelMonth =
             _expanded ? _gridMonth! : CalendarDates.addDays(week, 3);
-        final monthLabel = DateFormat('MMMM y', 'tr_TR').format(labelMonth);
+        final l10n = context.l10n;
+        final monthLabel =
+            KorFormat.pattern(l10n.dateFormatMonthYear, labelMonth, l10n);
         final bottom = MediaQuery.paddingOf(context).bottom;
 
         return SafeArea(
@@ -188,18 +190,18 @@ class _CalendarPageState extends State<CalendarPage> {
               Padding(
                 padding: KorSpacing.screenPadding,
                 child: TabHeader(
-                  title: 'Takvim',
+                  title: l10n.calendarTitle,
                   actions: [
                     TextButton(
                       key: CalendarPageKeys.today,
                       onPressed: () => _goToToday(today),
-                      child: const Text('Bugün'),
+                      child: Text(l10n.calendarToday),
                     ),
                     IconButton(
                       key: CalendarPageKeys.toggleMonth,
                       tooltip: _expanded
-                          ? 'Hafta görünümüne geç'
-                          : 'Ay görünümüne geç',
+                          ? l10n.calendarWeekView
+                          : l10n.calendarMonthView,
                       onPressed: () => _toggleExpanded(week, selected),
                       icon: Icon(
                         _expanded
@@ -223,13 +225,17 @@ class _CalendarPageState extends State<CalendarPage> {
                     ),
                     IconButton(
                       key: CalendarPageKeys.previous,
-                      tooltip: _expanded ? 'Önceki ay' : 'Önceki hafta',
+                      tooltip: _expanded
+                          ? l10n.calendarPreviousMonth
+                          : l10n.calendarPreviousWeek,
                       onPressed: () => _step(-1, week),
                       icon: const Icon(Icons.chevron_left_rounded),
                     ),
                     IconButton(
                       key: CalendarPageKeys.next,
-                      tooltip: _expanded ? 'Sonraki ay' : 'Sonraki hafta',
+                      tooltip: _expanded
+                          ? l10n.calendarNextMonth
+                          : l10n.calendarNextWeek,
                       onPressed: () => _step(1, week),
                       icon: const Icon(Icons.chevron_right_rounded),
                     ),
@@ -310,13 +316,13 @@ class _CalendarPageState extends State<CalendarPage> {
                     if (!hasEntries)
                       SliverToBoxAdapter(
                         child: EmptyState(
-                          title: 'Yaklaşan bir şey yok',
+                          title: l10n.calendarEmptyTitle,
                           body: _filter == CalendarFilter.all
-                              ? 'Önümüzdeki ${CalendarPage.days} günde planlı '
-                                  'hatırlatma ya da doğum günü yok.'
-                              : 'Bu filtreyle önümüzdeki '
-                                  '${CalendarPage.days} günde bir şey yok.',
-                          actionLabel: 'Hatırlatıcı ekle',
+                              ? l10n.calendarEmptyBody(CalendarPage.days)
+                              : l10n.calendarEmptyFilteredBody(
+                                  CalendarPage.days,
+                                ),
+                          actionLabel: l10n.calendarAddReminder,
                           onAction: () => _quickAdd(selected, now),
                         ),
                       )
@@ -362,7 +368,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ChoiceChip(
             key: CalendarPageKeys.filter(f),
             avatar: icon(f) == null ? null : Icon(icon(f)),
-            label: Text(f.label),
+            label: Text(f.labelIn(context.l10n)),
             selected: _filter == f,
             onSelected: (_) => setState(() => _filter = f),
           ),
@@ -381,7 +387,7 @@ class _CalendarPageState extends State<CalendarPage> {
         SliverPersistentHeader(
           pinned: true,
           delegate: _DayHeaderDelegate(
-            text: KorFormat.agendaDayHeader(day.date, now),
+            text: KorFormat.agendaDayHeader(day.date, now, context.l10n),
             textScaler: MediaQuery.textScalerOf(context),
             background: theme.scaffoldBackgroundColor,
             style: theme.textTheme.labelLarge?.copyWith(
@@ -407,8 +413,15 @@ class _CalendarPageState extends State<CalendarPage> {
                         )
                       : BirthdayRow(
                           name: o.birthday.name,
-                          subtitle: BirthdayGroups.rowSubtitle(o),
-                          trailing: KorFormat.relativeDay(o.date, now),
+                          subtitle: BirthdayGroups.rowSubtitle(
+                            o,
+                            context.l10n,
+                          ),
+                          trailing: KorFormat.relativeDay(
+                            o.date,
+                            now,
+                            context.l10n,
+                          ),
                           onTap: () => showBirthdayEditorSheet(
                             context,
                             existing: o.birthday,
