@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/capture/capture_text.dart';
+import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
@@ -24,8 +25,9 @@ Finder get _field => find.byKey(QuickCaptureKeys.field);
 Future<UiHarness> _open(
   WidgetTester tester, {
   ThemeData Function() theme = KorTheme.light,
+  List<ReminderCategory> categories = const [],
 }) async {
-  final h = await UiHarness.create(now: _clock);
+  final h = await UiHarness.create(now: _clock, categories: categories);
   await tester.pumpWidget(
     h.app(
       theme: theme,
@@ -267,6 +269,53 @@ void main() {
     await tester.tap(find.byKey(QuickCaptureKeys.save));
     await tester.pumpAndSettle();
     expect(_reminders(h).single.categoryId, ReminderCategoryIds.other);
+  });
+
+  testWidgets('#tag matches a user category (F4.3)', (tester) async {
+    final h = await _open(tester, categories: const [
+      ReminderCategory(
+        id: 'gym',
+        name: 'Spor Salonu',
+        colorKey: 'lacivert',
+        iconKey: CategoryIconKeys.fitness,
+      ),
+    ]);
+    await _type(tester, 'koşu #spor_salonu');
+    expect(find.text('Yeni kategori: #spor_salonu'), findsNothing);
+    expect(
+      _chipText(QuickCaptureKeys.categoryChip, 'Spor Salonu'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(QuickCaptureKeys.save));
+    await tester.pumpAndSettle();
+    expect(_reminders(h).single.categoryId, 'gym');
+  });
+
+  testWidgets('"Yeni kategori: #tag" creates the category and uses it',
+      (tester) async {
+    final h = await _open(tester);
+    await _type(tester, 'koşu #spor');
+    await tester.tap(find.text('Yeni kategori: #spor'));
+    await tester.pumpAndSettle();
+
+    // The category editor opens with the tag as the name.
+    final nameField = find.byKey(CategoryEditorKeys.name);
+    expect(nameField, findsOneWidget);
+    expect(tester.widget<TextField>(nameField).controller!.text, 'Spor');
+    await tester.ensureVisible(find.byKey(CategoryEditorKeys.save));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(CategoryEditorKeys.save));
+    await tester.pumpAndSettle();
+
+    final created = h.cubit.state.categories.userCategories.single;
+    expect(created.name, 'Spor');
+    expect(find.text('Yeni kategori: #spor'), findsNothing);
+    expect(_chipText(QuickCaptureKeys.categoryChip, 'Spor'), findsOneWidget);
+
+    await tester.tap(find.byKey(QuickCaptureKeys.save));
+    await tester.pumpAndSettle();
+    expect(_reminders(h).single.categoryId, created.id);
   });
 
   testWidgets('priority chip opens the picker', (tester) async {

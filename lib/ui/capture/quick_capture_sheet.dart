@@ -10,11 +10,13 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/parsing/capture_to_reminder.dart';
+import 'package:reminder/domain/parsing/category_aliases.dart';
 import 'package:reminder/domain/parsing/turkish_capture_parser.dart';
 import 'package:reminder/ui/capture/capture_text.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
+import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
@@ -146,6 +148,8 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
       text,
       now: widget.clock(),
       suppressed: _suppressed,
+      // F4.3: `#tag` also matches user categories.
+      config: CategoryAliases.configFor(CategoryVisuals.readCatalog(context)),
     );
     final keys = {
       for (final t in result.tokens) '${t.kind.name}:${t.text}',
@@ -175,7 +179,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           backgroundColor: scheme.primaryContainer,
         );
       case CaptureTokenKind.category:
-        final colors = CategoryVisuals.colorsOf(
+        final colors = CategoryVisuals.readColorsOf(
           context,
           _result.categoryId ?? ReminderCategoryIds.other,
         );
@@ -381,16 +385,26 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
       title: 'Kategori',
       selected: current,
       options: [
-        for (final id in ReminderCategoryIds.orderedIds)
-          (
-            id,
-            ReminderCategoryIds.defaultLabel(id),
-            CategoryVisuals.iconFor(id)
-          ),
+        for (final c in CategoryVisuals.readCatalog(context).ordered)
+          (c.id, c.name, CategoryVisuals.iconOf(c)),
       ],
     );
     if (picked == null || !mounted) return;
     setState(() => _overrides.categoryId = picked);
+  }
+
+  /// "Yeni kategori: #tag" (F4.3): creates the category with the tag as
+  /// its name; the capture then uses it (the tag matches from now on).
+  Future<void> _createCategory(String tag) async {
+    // "#spor_salonu" → "Spor salonu" (Turkish capital: i → İ).
+    final words = tag.replaceAll(RegExp(r'[_\-]+'), ' ').trim();
+    final name = words.isEmpty
+        ? words
+        : KorFormat.upperTr(words.substring(0, 1)) + words.substring(1);
+    final created = await showCategoryEditorSheet(context, initialName: name);
+    if (created == null || !mounted) return;
+    _overrides.categoryId = created.id;
+    _reparse();
   }
 
   Future<void> _pickPriority() async {
@@ -601,20 +615,20 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           key: QuickCaptureKeys.newCategoryChip,
           icon: Icons.new_label_outlined,
           label: 'Yeni kategori: #$newTag',
-          semanticsLabel: 'Yeni kategori: $newTag. Şimdilik Diğer\'e eklenir',
+          semanticsLabel: 'Yeni kategori: $newTag. Oluşturmak için dokun',
           set: true,
-          onPressed: null,
+          onPressed: () => _createCategory(newTag),
           onDeleted: () => _suppress({CaptureTokenKind.category}),
         )
       else
         _CaptureChip(
           key: QuickCaptureKeys.categoryChip,
-          icon: CategoryVisuals.iconFor(category),
+          icon: CategoryVisuals.iconFor(context, category),
           label: categorySet
-              ? ReminderCategoryIds.defaultLabel(category)
+              ? CategoryVisuals.labelOf(context, category)
               : 'Kategori',
           semanticsLabel: categorySet
-              ? 'Kategori: ${ReminderCategoryIds.defaultLabel(category)}'
+              ? 'Kategori: ${CategoryVisuals.labelOf(context, category)}'
               : 'Kategori seç',
           set: categorySet,
           background: categorySet ? categoryColors.container : null,

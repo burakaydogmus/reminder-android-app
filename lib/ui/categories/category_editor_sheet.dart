@@ -30,9 +30,13 @@ abstract final class CategoryEditorKeys {
 /// Saves through [ReminderCubit.saveCategory] and returns the saved
 /// category; `null` when dismissed or deleted ("Sil" moves the category's
 /// reminders to "Diğer" after a confirmation).
+///
+/// [initialName] prefills the name of a new category (e.g. an unmatched
+/// `#tag` from quick capture).
 Future<ReminderCategory?> showCategoryEditorSheet(
   BuildContext context, {
   ReminderCategory? existing,
+  String? initialName,
 }) {
   assert(existing == null || !existing.isBuiltIn);
   return showModalBottomSheet<ReminderCategory>(
@@ -41,16 +45,21 @@ Future<ReminderCategory?> showCategoryEditorSheet(
     useSafeArea: true,
     showDragHandle: true,
     sheetAnimationStyle: context.korMotion.sheetStyleOf(context),
-    builder: (_) => CategoryEditorSheet(existing: existing),
+    builder: (_) =>
+        CategoryEditorSheet(existing: existing, initialName: initialName),
   );
 }
 
 /// Body of [showCategoryEditorSheet]: live preview, Ad (max 24), Renk (12
 /// swatches, 6 columns) and İkon (18 icons, 6 columns), [Sil] · [Kaydet].
 class CategoryEditorSheet extends StatefulWidget {
-  const CategoryEditorSheet({super.key, this.existing});
+  const CategoryEditorSheet({super.key, this.existing, this.initialName});
 
   final ReminderCategory? existing;
+
+  /// Name of a new category before the user types (ignored with
+  /// [existing]).
+  final String? initialName;
 
   /// Colour swatch visual diameter (target cell stays 48).
   static const double swatchSize = 40;
@@ -93,7 +102,9 @@ class _CategoryEditorSheetState extends State<CategoryEditorSheet> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _name = TextEditingController(text: e?.name ?? '');
+    _name = TextEditingController(
+      text: e?.name ?? ReminderCategory.normalizeName(widget.initialName ?? ''),
+    );
     _color = e == null
         ? CategoryEditorSheet.defaultColor
         : CategoryVisuals.colorKeyOf(e);

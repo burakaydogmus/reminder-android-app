@@ -96,6 +96,16 @@ abstract final class CategoryVisuals {
         (cubit) => cubit?.state.categories ?? CategoryCatalog.builtIns,
       );
 
+  /// [catalogOf] without subscribing: for callbacks and code outside
+  /// `build` (e.g. text styles computed while parsing).
+  static CategoryCatalog readCatalog(BuildContext context) =>
+      context.read<ReminderCubit?>()?.state.categories ??
+      CategoryCatalog.builtIns;
+
+  /// [colorsOf] without subscribing (see [readCatalog]).
+  static CategoryColors readColorsOf(BuildContext context, String id) =>
+      context.korColors.category(colorKeyOf(readCatalog(context).resolve(id)));
+
   /// The category of [id]; unknown/deleted ids resolve to "Diğer".
   static ReminderCategory categoryOf(BuildContext context, String id) =>
       ReminderCategoryIds.isBuiltIn(id)
