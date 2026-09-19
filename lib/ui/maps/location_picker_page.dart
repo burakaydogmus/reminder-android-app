@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:reminder/config/app_links.dart';
 import 'package:reminder/config/maps_config.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/services/places_nearby_service.dart';
 import 'package:reminder/ui/maps/osm_attribution.dart';
@@ -100,7 +101,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       if (!ok) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Konum servisleri kapalı.')),
+            SnackBar(content: Text(context.l10n.mapsServicesOff)),
           );
         }
         return;
@@ -118,9 +119,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Konum izni kapalı.'),
+              content: Text(context.l10n.mapsPermissionOff),
               action: SnackBarAction(
-                label: 'Ayarları aç',
+                label: context.l10n.permissionOpenSettings,
                 onPressed: permissions.service.openAppSettings,
               ),
             ),
@@ -139,7 +140,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Konum alınamadı.')),
+          SnackBar(content: Text(context.l10n.mapsLocationFailed)),
         );
       }
     }
@@ -149,12 +150,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (!mapsConfigured) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Yakındaki marketler için Google Places anahtarı gerekir '
-              '(isteğe bağlı: --dart-define=GOOGLE_MAPS_KEY=...).',
-            ),
-          ),
+          SnackBar(content: Text(context.l10n.mapsPlacesKeyMissing)),
         );
       }
       return;
@@ -165,7 +161,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     setState(() => _loadingPlaces = false);
     if (list.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yakında market bulunamadı.')),
+        SnackBar(content: Text(context.l10n.mapsNoMarkets)),
       );
       return;
     }
@@ -176,19 +172,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         return SafeArea(
           child: ListView(
             children: [
-              const ListTile(
-                title: Text('Yakındaki marketler'),
-                subtitle: Text('Seçmek için dokunun'),
+              ListTile(
+                title: Text(ctx.l10n.mapsNearbyMarkets),
+                subtitle: Text(ctx.l10n.mapsTapToPick),
               ),
               for (final p in list)
                 ListTile(
-                  title: Text(p.name),
+                  title: Text(_placeName(p, ctx.l10n)),
                   subtitle: p.vicinity != null ? Text(p.vicinity!) : null,
                   onTap: () {
                     Navigator.pop(ctx);
                     setState(() {
                       _markerPos = p.location;
-                      _label = p.name;
+                      _label = _placeName(p, ctx.l10n);
                     });
                     _mapController.move(p.location, 16);
                   },
@@ -211,7 +207,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final opened = await widget.linkOpener(AppLinks.osmCopyright);
     if (opened || !mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bağlantı açılamadı.')),
+      SnackBar(content: Text(context.l10n.settingsLinkFailed)),
     );
   }
 
@@ -236,7 +232,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Konum seç'),
+        title: Text(context.l10n.mapsTitle),
       ),
       body: Column(
         children: [
@@ -251,12 +247,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  label != null && label.isNotEmpty ? label : 'Seçilen konum',
+                  label != null && label.isNotEmpty
+                      ? label
+                      : context.l10n.editorLocationChosen,
                   style: theme.textTheme.titleLarge,
                 ),
                 Text(
-                  'Haritaya dokun, yarıçapı ayarla ve «Bu konumu kaydet» ile '
-                  'onayla.',
+                  context.l10n.mapsHint,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -264,10 +261,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 const SizedBox(height: KorSpacing.s3),
                 Row(
                   children: [
-                    Text('Yarıçap', style: theme.textTheme.labelLarge),
+                    Text(
+                      context.l10n.mapsRadius,
+                      style: theme.textTheme.labelLarge,
+                    ),
                     const Spacer(),
                     Text(
-                      '${_radius.round()} m',
+                      context.l10n.mapsRadiusMeters(_radius.round()),
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
@@ -279,9 +279,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   min: 100,
                   max: 500,
                   divisions: 20,
-                  label: '${_radius.round()} m',
+                  label: context.l10n.mapsRadiusMeters(_radius.round()),
                   semanticFormatterCallback: (v) =>
-                      'Yarıçap ${v.round()} metre',
+                      context.l10n.mapsRadiusSpoken(v.round()),
                   onChanged: (v) => setState(() => _radius = v),
                 ),
                 // No developer hint without an API key (§3.3.10).
@@ -295,7 +295,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.store_mall_directory_outlined),
-                    label: const Text('Yakındaki marketleri göster'),
+                    label: Text(context.l10n.mapsShowMarkets),
                   ),
               ],
             ),
@@ -306,8 +306,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 // The map's gesture node needs a name (§3.6 rule 4); the
                 // marker also moves with "Konumuma git".
                 Semantics(
-                  label: 'Harita',
-                  hint: 'İşaretçiyi taşımak için dokun',
+                  label: context.l10n.mapsMap,
+                  hint: context.l10n.mapsMapHint,
                   child: FlutterMap(
                     mapController: _mapController,
                     options: MapOptions(
@@ -362,7 +362,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                     shape: const CircleBorder(),
                     color: scheme.surfaceContainerHigh,
                     child: IconButton(
-                      tooltip: 'Konumuma git',
+                      tooltip: context.l10n.mapsMyLocation,
                       onPressed: _goToMyLocation,
                       icon: Icon(
                         Icons.my_location_rounded,
@@ -385,9 +385,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         ),
         child: FilledButton(
           onPressed: _confirmAndPop,
-          child: const Text('Bu konumu kaydet'),
+          child: Text(context.l10n.mapsSave),
         ),
       ),
     );
   }
 }
+
+/// A nearby place's name, or "İşletme" / "Business" when it has none.
+String _placeName(NearbyPlaceResult place, AppLocalizations l10n) =>
+    place.name.isEmpty ? l10n.mapsBusiness : place.name;

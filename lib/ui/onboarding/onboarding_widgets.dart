@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -26,7 +27,7 @@ class OnboardingStepFrame extends StatelessWidget {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: 'Adım ${index + 1} / ${OnboardingFlow.stepCount}',
+      label: context.l10n.onboardingStep(index + 1, OnboardingFlow.stepCount),
       child: Column(
         children: [
           Expanded(

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/settings/settings_page.dart';
 import 'package:reminder/ui/settings/widget_pin_sheet.dart';
@@ -69,7 +70,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(WidgetPinSheetKeys.option(w)),
-          matching: find.text(w.label),
+          matching: find.text(w.labelIn(AppL10n.turkish)),
         ),
         findsOneWidget,
       );
@@ -78,7 +79,8 @@ void main() {
   });
 
   for (final choice in ReminderHomeWidget.values) {
-    testWidgets('choosing ${choice.label} pins its provider', (tester) async {
+    testWidgets('choosing ${choice.labelIn(AppL10n.turkish)} pins its provider',
+        (tester) async {
       final pinner = _FakePinner();
       await openSheet(tester, pinner);
 

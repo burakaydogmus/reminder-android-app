@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -40,12 +41,7 @@ Future<void> pickAndPinHomeWidget(
   if (!context.mounted) return;
   if (!supported) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Ana ekranda boş bir alana uzun basın → Widget\'lar → '
-          'Hatırlatıcı\'yı seçin.',
-        ),
-      ),
+      SnackBar(content: Text(context.l10n.widgetPinUnsupported)),
     );
     return;
   }
@@ -79,7 +75,7 @@ class _WidgetPinSheet extends StatelessWidget {
             child: Semantics(
               header: true,
               child: Text(
-                'Hangi widget?',
+                context.l10n.widgetPinTitle,
                 style: theme.textTheme.titleLarge,
               ),
             ),
@@ -91,8 +87,8 @@ class _WidgetPinSheet extends StatelessWidget {
                 horizontal: KorSpacing.screenEdge,
               ),
               leading: Icon(_iconOf(widget)),
-              title: Text(widget.label),
-              subtitle: Text(widget.description),
+              title: Text(widget.labelIn(context.l10n)),
+              subtitle: Text(widget.descriptionIn(context.l10n)),
               onTap: () => Navigator.of(context).pop(widget),
             ),
           const SizedBox(height: KorSpacing.s3),

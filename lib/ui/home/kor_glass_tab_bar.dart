@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/physics.dart' show SpringSimulation;
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_glass_surface.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
@@ -377,8 +378,8 @@ class _TabItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: destination.label,
-      hint: 'Sekme ${index + 1} / $count',
+      label: destination.label(context.l10n),
+      hint: context.l10n.navTabHint(index + 1, count),
       excludeSemantics: true,
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -399,7 +400,7 @@ class _TabItem extends StatelessWidget {
                   color: fg,
                 ),
                 Text(
-                  destination.label,
+                  destination.label(context.l10n),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelSmall?.copyWith(color: fg),
@@ -426,8 +427,8 @@ class _CollapsedTab extends StatelessWidget {
       key: KorGlassTabBar.collapsedKey,
       button: true,
       selected: true,
-      label: destination.label,
-      hint: 'Sekmeleri göster',
+      label: destination.label(context.l10n),
+      hint: context.l10n.navShowTabs,
       excludeSemantics: true,
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -452,7 +453,7 @@ class _SearchButton extends StatelessWidget {
     return Semantics(
       key: KorGlassTabBar.searchKey,
       button: true,
-      label: 'Ara',
+      label: context.l10n.searchTooltip,
       excludeSemantics: true,
       child: InkWell(
         customBorder: const CircleBorder(),

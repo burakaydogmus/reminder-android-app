@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -95,7 +96,7 @@ class PermissionSheet extends StatelessWidget {
               const Spacer(),
               if (step != null)
                 Text(
-                  'Adım $step',
+                  context.l10n.permStep(step!),
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -202,13 +203,13 @@ class LocationAlwaysIllustration extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Konum izni',
+              context.l10n.permIllustrationTitle,
               style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: KorSpacing.s3),
-            option('Her zaman izin ver', selected: true),
-            option('Yalnızca uygulamayı kullanırken'),
-            option('İzin verme'),
+            option(context.l10n.permIllustrationAlways, selected: true),
+            option(context.l10n.permIllustrationWhileInUse),
+            option(context.l10n.permIllustrationDeny),
           ],
         ),
       ),

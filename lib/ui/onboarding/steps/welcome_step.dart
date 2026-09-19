@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 
-import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/onboarding/onboarding_widgets.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
@@ -22,21 +22,20 @@ class WelcomeStep extends StatelessWidget {
       footer: [
         OnboardingPrimaryButton(
           key: OnboardingKeys.start,
-          label: 'Başla',
+          label: context.l10n.onboardingStart,
           onPressed: onStart,
         ),
       ],
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: KorSpacing.s5),
-          TimeRibbonIllustration(),
-          SizedBox(height: KorSpacing.s8),
+          const SizedBox(height: KorSpacing.s5),
+          const TimeRibbonIllustration(),
+          const SizedBox(height: KorSpacing.s8),
           OnboardingCopy(
-            title: 'Aklında kalmasın.',
-            body: 'Yaz, zamanını ya da yerini söyle; gerisini Hatırlatıcı '
-                'takip etsin.',
+            title: context.l10n.onboardingWelcomeTitle,
+            body: context.l10n.onboardingWelcomeBody,
           ),
         ],
       ),
@@ -88,7 +87,7 @@ class _TimeRibbonIllustrationState extends State<TimeRibbonIllustration>
                 label: scheme.onSurfaceVariant,
                 labelStyle: theme.textTheme.labelMedium!,
                 pillStyle: theme.textTheme.labelSmall!,
-                pillText: KorFormat.upperTr('şimdi'),
+                pillText: context.l10n.upper(context.l10n.onboardingNow),
               ),
             ),
           ),

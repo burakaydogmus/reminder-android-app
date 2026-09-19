@@ -77,6 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -98,34 +99,37 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Semantics(
                 header: true,
-                child: Text('Ayarlar', style: theme.textTheme.headlineLarge),
+                child: Text(
+                  l10n.settingsTooltip,
+                  style: theme.textTheme.headlineLarge,
+                ),
               ),
               const SizedBox(height: KorSpacing.s6),
               const PermissionsGroup(),
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
                 icon: Icons.palette_outlined,
-                title: 'Görünüm',
+                title: l10n.settingsAppearance,
                 children: [
                   SizedBox(
                     width: double.infinity,
                     child: SegmentedButton<String>(
                       showSelectedIcon: false,
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: AppThemeModeIds.system,
-                          icon: Icon(Icons.brightness_auto_rounded),
-                          label: Text('Sistem'),
+                          icon: const Icon(Icons.brightness_auto_rounded),
+                          label: Text(l10n.settingsThemeSystem),
                         ),
                         ButtonSegment(
                           value: AppThemeModeIds.light,
-                          icon: Icon(Icons.light_mode_rounded),
-                          label: Text('Açık'),
+                          icon: const Icon(Icons.light_mode_rounded),
+                          label: Text(l10n.settingsThemeLight),
                         ),
                         ButtonSegment(
                           value: AppThemeModeIds.dark,
-                          icon: Icon(Icons.dark_mode_rounded),
-                          label: Text('Koyu'),
+                          icon: const Icon(Icons.dark_mode_rounded),
+                          label: Text(l10n.settingsThemeDark),
                         ),
                       ],
                       selected: {state.settings.themeMode},
@@ -134,7 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: KorSpacing.s3),
                   Text(
-                    'Açık veya koyu temayı seç ya da sistemi takip et.',
+                    l10n.settingsThemeHint,
                     style: muted,
                   ),
                   if (AppLanguageScope.maybeOf(context) case final language?)
@@ -143,9 +147,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: KorSpacing.s3),
                     _SwitchRow(
                       key: SettingsPageKeys.haptics,
-                      title: 'Titreşim geri bildirimi',
-                      subtitle: 'Tamamlama, silme ve kaydırma gibi '
-                          'aksiyonlarda kısa titreşim.',
+                      title: l10n.settingsHaptics,
+                      subtitle: l10n.settingsHapticsHint,
                       value: haptics.enabled,
                       onChanged: haptics.setEnabled,
                     ),
@@ -155,19 +158,17 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
                 icon: Icons.notifications_outlined,
-                title: 'Bildirimler',
+                title: l10n.settingsNotifications,
                 children: [
                   _SwitchRow(
-                    title: 'Hatırlatma bildirimleri',
-                    subtitle: 'Kapalıyken zamanlanmış hatırlatmalar '
-                        'gönderilmez. Açıkken sistem bildirim ayarları '
-                        'geçerlidir (ses, öncelik).',
+                    title: l10n.settingsReminderNotifications,
+                    subtitle: l10n.settingsReminderNotificationsHint,
                     value: state.settings.notificationsEnabled,
                     onChanged: cubit.setNotificationsEnabled,
                   ),
                   const SizedBox(height: KorSpacing.s2),
                   Text(
-                    'Konum hatırlatmaları için de bildirimler açık olmalı.',
+                    l10n.settingsLocationNeedsNotifications,
                     style: muted,
                   ),
                 ],
@@ -176,14 +177,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: KorSpacing.s5),
                 GroupedCard(
                   icon: Icons.widgets_outlined,
-                  title: 'Ana ekran widget\'ı',
+                  title: l10n.settingsHomeWidget,
                   children: [
                     Text(
-                      'Dört widget var: Bugün, kaydırılabilir Liste, '
-                      'Sıradaki ve Hızlı ekle. Daireye dokunarak işi '
-                      'tamamlarsın, "+" hızlı ekler. Liste\'nin '
-                      'boyutunu ana ekranda kenarlarından sürükleyerek '
-                      'değiştirebilirsin.',
+                      l10n.settingsHomeWidgetHint,
                       style: muted,
                     ),
                     const SizedBox(height: KorSpacing.s4),
@@ -194,7 +191,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         pinner: widget.widgetPinner,
                       ),
                       icon: const Icon(Icons.add_to_home_screen_rounded),
-                      label: const Text('Widget ekle'),
+                      label: Text(l10n.settingsAddWidget),
                     ),
                   ],
                 ),
@@ -202,12 +199,10 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
                 icon: Icons.settings_backup_restore_rounded,
-                title: 'Yedekle ve geri yükle',
+                title: l10n.settingsBackup,
                 children: [
                   Text(
-                    'Hatırlatıcılarını, doğum günlerini ve ayarlarını bir '
-                    'dosyaya yedekle; yeni bir cihazda veya yeniden '
-                    'kurulumdan sonra geri yükle.',
+                    l10n.settingsBackupHint,
                     style: muted,
                   ),
                   const SizedBox(height: KorSpacing.s4),
@@ -220,14 +215,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           key: SettingsPageKeys.backupExport,
                           onPressed: () => _backup.export(buttonContext),
                           icon: const Icon(Icons.ios_share_rounded),
-                          label: const Text('Yedekle'),
+                          label: Text(l10n.settingsBackupExport),
                         ),
                       ),
                       OutlinedButton.icon(
                         key: SettingsPageKeys.backupImport,
                         onPressed: () => _backup.import(context, cubit),
                         icon: const Icon(Icons.restore_rounded),
-                        label: const Text('Geri yükle'),
+                        label: Text(l10n.backupRestore),
                       ),
                     ],
                   ),
@@ -236,7 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: KorSpacing.s5),
               GroupedCard(
                 icon: Icons.info_outline_rounded,
-                title: 'Diğer',
+                title: l10n.settingsOther,
                 padding: const EdgeInsets.fromLTRB(
                   KorSpacing.s5,
                   KorSpacing.s3,
@@ -247,14 +242,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   _LinkRow(
                     key: SettingsPageKeys.privacyPolicy,
                     icon: Icons.privacy_tip_outlined,
-                    title: 'Gizlilik politikası',
+                    title: l10n.settingsPrivacy,
                     external: true,
                     onTap: () => _openPrivacyPolicy(context),
                   ),
                   _LinkRow(
                     key: SettingsPageKeys.licenses,
                     icon: Icons.description_outlined,
-                    title: 'Lisanslar',
+                    title: l10n.settingsLicenses,
                     onTap: () => _openLicenses(context),
                   ),
                 ],
@@ -265,7 +260,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   Semantics(
                     button: true,
-                    label: 'Tüm verileri sıfırla',
+                    label: l10n.resetTitle,
                     excludeSemantics: true,
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
@@ -276,7 +271,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         color: scheme.error,
                       ),
                       title: Text(
-                        'Tüm verileri sıfırla',
+                        l10n.resetTitle,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: scheme.error,
                         ),
@@ -337,7 +332,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final opened = await widget.linkOpener(AppLinks.privacyPolicy);
     if (opened || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bağlantı açılamadı.')),
+      SnackBar(content: Text(context.l10n.settingsLinkFailed)),
     );
   }
 
@@ -351,7 +346,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (!context.mounted) return;
     showLicensePage(
       context: context,
-      applicationName: 'Hatırlatıcı',
+      applicationName: context.l10n.appTitle,
       applicationVersion: version,
       applicationLegalese: appLegalese,
     );

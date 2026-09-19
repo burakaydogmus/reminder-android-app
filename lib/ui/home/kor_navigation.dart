@@ -1,6 +1,7 @@
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -18,24 +19,29 @@ class KorDestination {
     required this.selectedIcon,
   });
 
-  final String label;
+  /// Tab name in the app language.
+  final String Function(AppLocalizations l10n) label;
   final IconData icon;
   final IconData selectedIcon;
 }
 
+String _todayLabel(AppLocalizations l10n) => l10n.todayTitle;
+String _calendarLabel(AppLocalizations l10n) => l10n.calendarTitle;
+String _listsLabel(AppLocalizations l10n) => l10n.listsTitle;
+
 const kShellDestinations = <KorDestination>[
   KorDestination(
-    label: 'Bugün',
+    label: _todayLabel,
     icon: Icons.today_outlined,
     selectedIcon: Icons.today_rounded,
   ),
   KorDestination(
-    label: 'Takvim',
+    label: _calendarLabel,
     icon: Icons.calendar_month_outlined,
     selectedIcon: Icons.calendar_month_rounded,
   ),
   KorDestination(
-    label: 'Listeler',
+    label: _listsLabel,
     icon: Icons.format_list_bulleted_rounded,
     selectedIcon: Icons.view_list_rounded,
   ),
@@ -127,8 +133,8 @@ class _PillNavItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: destination.label,
-      hint: 'Sekme ${index + 1} / $count',
+      label: destination.label(context.l10n),
+      hint: context.l10n.navTabHint(index + 1, count),
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: KorSpacing.s1),
@@ -160,7 +166,7 @@ class _PillNavItem extends StatelessWidget {
                   const SizedBox(width: KorSpacing.s3),
                   Flexible(
                     child: Text(
-                      destination.label,
+                      destination.label(context.l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge?.copyWith(color: fg),
@@ -193,17 +199,18 @@ Future<void> showNewItemMenu(
     box.localToGlobal(Offset.zero, ancestor: overlay),
     box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
   );
+  final l10n = context.l10n;
   final kind = await showMenu<_NewItemKind>(
     context: context,
     position: RelativeRect.fromRect(rect, Offset.zero & overlay.size),
-    items: const [
+    items: [
       PopupMenuItem(
         value: _NewItemKind.quick,
         child: Row(
           children: [
-            Icon(Icons.bolt_rounded),
-            SizedBox(width: KorSpacing.s4),
-            Text('Hızlı ekle'),
+            const Icon(Icons.bolt_rounded),
+            const SizedBox(width: KorSpacing.s4),
+            Text(l10n.newItemQuick),
           ],
         ),
       ),
@@ -211,9 +218,9 @@ Future<void> showNewItemMenu(
         value: _NewItemKind.reminder,
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded),
-            SizedBox(width: KorSpacing.s4),
-            Text('Hatırlatıcı'),
+            const Icon(Icons.check_circle_outline_rounded),
+            const SizedBox(width: KorSpacing.s4),
+            Text(l10n.newItemReminder),
           ],
         ),
       ),
@@ -221,9 +228,9 @@ Future<void> showNewItemMenu(
         value: _NewItemKind.birthday,
         child: Row(
           children: [
-            Icon(CategoryVisuals.birthdayIcon),
-            SizedBox(width: KorSpacing.s4),
-            Text('Doğum günü'),
+            const Icon(CategoryVisuals.birthdayIcon),
+            const SizedBox(width: KorSpacing.s4),
+            Text(l10n.newItemBirthday),
           ],
         ),
       ),
@@ -249,9 +256,9 @@ Map<CustomSemanticsAction, VoidCallback> newItemSemanticsActions(
   DateTime Function()? now,
 }) =>
     {
-      const CustomSemanticsAction(label: 'Ayrıntılı hatırlatıcı'): () =>
+      CustomSemanticsAction(label: context.l10n.newItemDetailedReminder): () =>
           showReminderEditorSheet(context, now: now),
-      const CustomSemanticsAction(label: 'Yeni doğum günü'): () =>
+      CustomSemanticsAction(label: context.l10n.birthdayNew): () =>
           showBirthdayEditorSheet(context),
     };
 
@@ -270,9 +277,8 @@ class NewItemFab extends StatelessWidget {
     void menu() => showNewItemMenu(context, now: clock);
     return Semantics(
       button: true,
-      label: 'Yeni hatırlatıcı',
-      hint: 'Hızlı ekleme açılır. Uzun basınca ayrıntılı hatırlatıcı veya '
-          'doğum günü seçilir',
+      label: context.l10n.editorNewTitle,
+      hint: context.l10n.newItemFabHint,
       onTap: capture,
       onLongPress: menu,
       customSemanticsActions: newItemSemanticsActions(context, now: clock),

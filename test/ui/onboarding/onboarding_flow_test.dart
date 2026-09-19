@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
@@ -299,16 +300,16 @@ void main() {
       await tester.pumpWidget(h.app(home: _Host().flow(initialPage: 1)));
       await tester.pump();
 
-      expect(find.text(CaptureDemo.cardTitle), findsNothing);
+      expect(find.text(CaptureDemo.cardTitle(AppL10n.turkish)), findsNothing);
       expect(
-        find.text(CaptureDemo.sentence, findRichText: true),
+        find.text(CaptureDemo.sentence(AppL10n.turkish), findRichText: true),
         findsNothing,
       );
 
       await tester.pumpAndSettle();
-      expect(find.text(CaptureDemo.cardTitle), findsOneWidget);
+      expect(find.text(CaptureDemo.cardTitle(AppL10n.turkish)), findsOneWidget);
       expect(
-        find.text(CaptureDemo.sentence, findRichText: true),
+        find.text(CaptureDemo.sentence(AppL10n.turkish), findRichText: true),
         findsOneWidget,
       );
     });
@@ -322,10 +323,10 @@ void main() {
       await tester.pumpWidget(h.app(home: _Host().flow(initialPage: 1)));
       await tester.pump();
 
-      expect(find.text(CaptureDemo.cardTitle), findsOneWidget);
-      expect(find.text(CaptureDemo.cardMeta), findsOneWidget);
+      expect(find.text(CaptureDemo.cardTitle(AppL10n.turkish)), findsOneWidget);
+      expect(find.text(CaptureDemo.cardMeta(AppL10n.turkish)), findsOneWidget);
       expect(
-        find.text(CaptureDemo.sentence, findRichText: true),
+        find.text(CaptureDemo.sentence(AppL10n.turkish), findRichText: true),
         findsOneWidget,
       );
       expect(tester.hasRunningAnimations, isFalse);

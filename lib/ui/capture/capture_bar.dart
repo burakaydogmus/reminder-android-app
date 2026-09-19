@@ -1,6 +1,7 @@
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_glass_surface.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -36,9 +37,8 @@ class CaptureBar extends StatelessWidget {
     return Semantics(
       key: barKey,
       button: true,
-      label: 'Hızlı ekle',
-      hint: 'Ne hatırlatayım? Uzun basınca ayrıntılı hatırlatıcı veya doğum '
-          'günü seçilir',
+      label: context.l10n.captureBarLabel,
+      hint: context.l10n.captureBarHint,
       onTap: onTap,
       onLongPress: onLongPress,
       customSemanticsActions: semanticsActions,
@@ -63,7 +63,7 @@ class CaptureBar extends StatelessWidget {
                   child: MediaQuery.withClampedTextScaling(
                     maxScaleFactor: maxTextScale,
                     child: Text(
-                      'Ne hatırlatayım?',
+                      context.l10n.captureFieldHint,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyLarge?.copyWith(
