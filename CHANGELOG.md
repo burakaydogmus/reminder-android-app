@@ -18,6 +18,18 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Özel kategoriler:** Listeler › Kategorilerim'de "+ Yeni kategori" ile kendi kategorini
+  oluştur: ad (en fazla 24 karakter), 12 renkten biri ve 18 ikondan biri, canlı önizlemeyle.
+  "Düzenle" ile kategorileri sürükleyerek (ya da ekran okuyucunun "Yukarı/Aşağı taşı"
+  eylemleriyle) sırala; kendi kategorilerini düzenle veya sil — silinen kategorinin
+  hatırlatıcıları onaydan sonra "Diğer"e taşınır. Hatırlatıcı düzenleyicisindeki kategori
+  chip'leri artık tüm kategorileri senin sıranla gösterir ve "+ Yeni" ile oradan da kategori
+  eklenir; aramanın kategori filtresi ve takvim noktaları kendi kategorilerini de tanır. Hızlı
+  yakalamada `#spor` kendi "Spor" kategorine eşleşir; bilinmeyen `#etiket` chip'ine dokununca
+  kategori o adla oluşturulur. **Geçiş:** eski "Diğer + özel ad" kayıtları her farklı ad için
+  (büyük/küçük harf ve Türkçe karakter farkı gözetmeden) bir kategoriye dönüşür (renk: Diğer,
+  ikon: etiket); eski ad veritabanında korunur. Yedek biçimi sürüm 2 (kategoriler dahil); sürüm
+  1 yedekler de aynı kuralla içe aktarılır. (F4.3)
 - **Hızlı yakalama:** "cuma 18:00 ekmek ve süt al #market !!" gibi yazman yeterli. Android'de
   "+" düğmesi, iOS'ta sekme çubuğunun üstündeki cam **"Ne hatırlatayım?"** çubuğu hızlı ekleme
   sayfasını açar; tanınan tarih/saat, tekrar, `#kategori`, `!` öncelik ve `@yer` metnin içinde
