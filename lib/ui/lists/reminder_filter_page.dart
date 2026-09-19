@@ -5,6 +5,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/empty_state.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
@@ -24,18 +25,40 @@ class ReminderFilterPage extends StatelessWidget {
   /// `null` → Tamamlananlar.
   final String? categoryId;
 
-  String get _title => categoryId == null
+  String _titleOf(BuildContext context) => categoryId == null
       ? 'Tamamlananlar'
-      : ReminderCategoryIds.defaultLabel(categoryId!);
+      : CategoryVisuals.labelOf(context, categoryId!);
+
+  /// App bar "Kategoriyi düzenle" for user categories (F4.3); leaves the
+  /// page when the category was deleted.
+  Widget? _editAction(BuildContext context) {
+    final id = categoryId;
+    if (id == null || ReminderCategoryIds.isBuiltIn(id)) return null;
+    final category = CategoryVisuals.catalogOf(context).byId(id);
+    if (category == null) return null;
+    return IconButton(
+      tooltip: 'Kategoriyi düzenle',
+      icon: const Icon(Icons.edit_outlined),
+      onPressed: () async {
+        await showCategoryEditorSheet(context, existing: category);
+        if (!context.mounted) return;
+        final exists =
+            context.read<ReminderCubit>().state.categories.contains(id);
+        if (!exists) Navigator.of(context).pop();
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final now = NowScope.now(context);
+    final title = _titleOf(context);
+    final edit = _editAction(context);
 
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(actions: [if (edit != null) edit]),
       body: BlocBuilder<ReminderCubit, ReminderState>(
         builder: (context, state) {
           final List<Reminder> open;
@@ -90,7 +113,7 @@ class ReminderFilterPage extends StatelessWidget {
                             Semantics(
                               header: true,
                               child: Text(
-                                _title,
+                                title,
                                 style: theme.textTheme.headlineLarge,
                               ),
                             ),
@@ -115,7 +138,7 @@ class ReminderFilterPage extends StatelessWidget {
                           body: 'Tamamladığın hatırlatmalar burada birikir.',
                         )
                       : EmptyState(
-                          title: '$_title listesi boş',
+                          title: '$title listesi boş',
                           body: 'Eklemek için aşağıdaki düğmeye dokun.',
                           actionLabel: 'Hatırlatıcı ekle',
                           onAction: () => showReminderEditorSheet(
