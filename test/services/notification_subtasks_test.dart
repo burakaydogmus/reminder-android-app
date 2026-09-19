@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/subtask.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -34,12 +35,14 @@ void main() {
   group('reminderNotificationBody', () {
     test('no subtasks: note or fallback as before', () {
       expect(
-        NotificationService.reminderNotificationBody(buildReminder()),
+        NotificationService.reminderNotificationBody(
+            buildReminder(), AppL10n.turkish),
         'Hatırlatma zamanı',
       );
       expect(
         NotificationService.reminderNotificationBody(
           buildReminder(note: '  Kart puanı  '),
+          AppL10n.turkish,
         ),
         'Kart puanı',
       );
@@ -50,12 +53,14 @@ void main() {
       expect(
         NotificationService.reminderNotificationBody(
           buildReminder(subtasks: subtasks),
+          AppL10n.turkish,
         ),
         '2 madde kaldı',
       );
       expect(
         NotificationService.reminderNotificationBody(
           buildReminder(note: 'Kart puanı', subtasks: subtasks),
+          AppL10n.turkish,
         ),
         'Kart puanı · 2 madde kaldı',
       );
@@ -65,6 +70,7 @@ void main() {
       expect(
         NotificationService.reminderNotificationBody(
           buildReminder(subtasks: buildSubtasks(['A'], done: {0})),
+          AppL10n.turkish,
         ),
         'Hatırlatma zamanı',
       );
@@ -74,13 +80,15 @@ void main() {
   group('reminderSubtaskBigText', () {
     test('null without open subtasks', () {
       expect(
-        NotificationService.reminderSubtaskBigText(buildReminder(), 'x'),
+        NotificationService.reminderSubtaskBigText(
+            buildReminder(), 'x', AppL10n.turkish),
         isNull,
       );
       expect(
         NotificationService.reminderSubtaskBigText(
           buildReminder(subtasks: buildSubtasks(['A'], done: {0})),
           'x',
+          AppL10n.turkish,
         ),
         isNull,
       );
@@ -94,7 +102,8 @@ void main() {
         ),
       );
       expect(
-        NotificationService.reminderSubtaskBigText(r, '7 madde kaldı'),
+        NotificationService.reminderSubtaskBigText(
+            r, '7 madde kaldı', AppL10n.turkish),
         '7 madde kaldı\n• Süt\n• Çay\n• Un\n• Tuz\n• Şeker\n'
         '… ve 2 madde daha',
       );

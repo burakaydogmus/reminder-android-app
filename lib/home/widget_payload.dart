@@ -3,6 +3,8 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 
 /// Android ana ekran widget'larının veri sözleşmesi (F5.1).
@@ -29,9 +31,16 @@ import 'package:reminder/ui/reminders/category_visuals.dart';
 ///              "overdue": false, "category": "market",
 ///              "subtasks": "2/6", "recurring": true}],
 ///   "birthdays": [{"id": "…", "name": "Ayşe", "label": "Bugün",
-///                  "date": 1789941600000, "age": 36}]
+///                  "date": 1789941600000, "age": 36}],
+///   "lang": "tr"
 /// }
 /// ```
+///
+/// **Dil (F6.1):** etiketler ("Gecikti", "Bugün", "12 Eki") uygulama dilinde
+/// yazılır; `lang` (`tr` / `en`) Kotlin tarafının kendi metinlerini
+/// (`values/strings.xml` / `values-en/strings.xml`) aynı dilde çözmesi
+/// içindir — cihaz dili farklı olsa bile. Alan eklemek uyumludur; eski
+/// widget'lar `lang` yoksa cihaz dilini kullanır.
 ///
 /// Alan eklemek geriye uyumludur; anlamı değişen bir değişiklikte [version]
 /// ve anahtar artırılır.
@@ -49,26 +58,6 @@ abstract final class WidgetPayload {
   static const String sectionUntimed = 'untimed';
   static const String sectionLater = 'later';
 
-  /// Gecikmiş öğenin zaman etiketi.
-  static const String overdueLabel = 'Gecikti';
-  static const String todayLabel = 'Bugün';
-  static const String tomorrowLabel = 'Yarın';
-
-  static const List<String> _months = [
-    'Oca',
-    'Şub',
-    'Mar',
-    'Nis',
-    'May',
-    'Haz',
-    'Tem',
-    'Ağu',
-    'Eyl',
-    'Eki',
-    'Kas',
-    'Ara',
-  ];
-
   /// Widget verisini üretir (saf fonksiyon).
   ///
   /// Açık (tamamlanmamış) hatırlatıcılar bölümlere ayrılır — Bugün
@@ -82,6 +71,7 @@ abstract final class WidgetPayload {
     required List<Birthday> birthdays,
     required bool notificationsEnabled,
     required DateTime now,
+    required AppLocalizations l10n,
     CategoryCatalog? categories,
   }) {
     final catalog = categories ?? CategoryCatalog.builtIns;
@@ -107,10 +97,10 @@ abstract final class WidgetPayload {
     }
 
     final items = <Map<String, Object?>>[
-      for (final r in overdue) _item(r, sectionOverdue, now, catalog),
-      for (final r in today) _item(r, sectionToday, now, catalog),
-      for (final r in untimed) _item(r, sectionUntimed, now, catalog),
-      for (final r in later) _item(r, sectionLater, now, catalog),
+      for (final r in overdue) _item(r, sectionOverdue, now, catalog, l10n),
+      for (final r in today) _item(r, sectionToday, now, catalog, l10n),
+      for (final r in untimed) _item(r, sectionUntimed, now, catalog, l10n),
+      for (final r in later) _item(r, sectionLater, now, catalog, l10n),
     ];
 
     final todayCount = today.length + untimed.length;
@@ -120,6 +110,7 @@ abstract final class WidgetPayload {
       untimed: untimed,
       later: later,
       now: now,
+      l10n: l10n,
     );
 
     return {
@@ -133,7 +124,8 @@ abstract final class WidgetPayload {
       },
       'next': next,
       'items': items.take(maxItems).toList(growable: false),
-      'birthdays': _birthdays(birthdays, now),
+      'birthdays': _birthdays(birthdays, now, l10n),
+      'lang': l10n.isTurkish ? 'tr' : 'en',
     };
   }
 
@@ -146,6 +138,7 @@ abstract final class WidgetPayload {
     required List<Reminder> untimed,
     required List<Reminder> later,
     required DateTime now,
+    required AppLocalizations l10n,
   }) {
     final Reminder? next = today.isNotEmpty
         ? today.first
@@ -168,8 +161,8 @@ abstract final class WidgetPayload {
       'day': at == null
           ? null
           : isOverdue
-              ? overdueLabel
-              : dayLabel(at, now),
+              ? l10n.reminderOverdue
+              : dayLabel(at, now, l10n),
       'dueAt': at?.millisecondsSinceEpoch,
       'overdue': isOverdue,
       'more': inToday ? todayOpen - 1 : todayOpen,
@@ -181,13 +174,14 @@ abstract final class WidgetPayload {
     String section,
     DateTime now,
     CategoryCatalog catalog,
+    AppLocalizations l10n,
   ) {
     final at = r.remindAt?.toLocal();
     return {
       'id': r.id,
       'title': r.title,
       'section': section,
-      'time': timeLabel(at, now),
+      'time': timeLabel(at, now, l10n),
       'clock': at == null ? null : clock(at),
       'dueAt': at?.millisecondsSinceEpoch,
       'overdue': section == sectionOverdue,
@@ -204,6 +198,7 @@ abstract final class WidgetPayload {
   static List<Map<String, Object?>> _birthdays(
     List<Birthday> birthdays,
     DateTime now,
+    AppLocalizations l10n,
   ) {
     final soon = <(Birthday, int)>[];
     for (final b in birthdays) {
@@ -225,7 +220,7 @@ abstract final class WidgetPayload {
         {
           'id': b.id,
           'name': b.name,
-          'label': days == 0 ? todayLabel : tomorrowLabel,
+          'label': days == 0 ? l10n.dayToday : l10n.dayTomorrow,
           'date': DateTime(now.year, now.month, now.day + days)
               .millisecondsSinceEpoch,
           'age': _ageOn(b, DateTime(now.year, now.month, now.day + days)),
@@ -241,21 +236,21 @@ abstract final class WidgetPayload {
 
   /// Satırdaki zaman etiketi: gecikmiş → "Gecikti", bugün → "16:00", yarın
   /// → "Yarın", sonrası → "12 Eki"; zamansız → `null`.
-  static String? timeLabel(DateTime? at, DateTime now) {
+  static String? timeLabel(DateTime? at, DateTime now, AppLocalizations l10n) {
     if (at == null) return null;
-    if (at.isBefore(now)) return overdueLabel;
+    if (at.isBefore(now)) return l10n.reminderOverdue;
     if (_isSameDay(at, now)) return clock(at);
-    return dayLabel(at, now);
+    return dayLabel(at, now, l10n);
   }
 
-  /// "Bugün" / "Yarın" / "12 Eki" (yıl farklıysa "12 Oca 2027").
-  static String dayLabel(DateTime at, DateTime now) {
-    if (_isSameDay(at, now)) return todayLabel;
+  /// "Bugün" / "Yarın" / "12 Eki" (yıl farklıysa "12 Oca 2027"); English
+  /// "Today" / "Tomorrow" / "Oct 12".
+  static String dayLabel(DateTime at, DateTime now, AppLocalizations l10n) {
+    if (_isSameDay(at, now)) return l10n.dayToday;
     if (_isSameDay(at, DateTime(now.year, now.month, now.day + 1))) {
-      return tomorrowLabel;
+      return l10n.dayTomorrow;
     }
-    final base = '${at.day} ${_months[at.month - 1]}';
-    return at.year == now.year ? base : '$base ${at.year}';
+    return KorFormat.shortDate(at, now, l10n);
   }
 
   /// Tabular 24 saat biçimi: "09:05".

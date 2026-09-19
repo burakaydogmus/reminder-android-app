@@ -6,8 +6,10 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/home/widget_payload.dart';
+import 'package:reminder/l10n/l10n.dart';
 
 import '../helpers/factories.dart';
+import '../helpers/l10n_setup.dart';
 
 final _now = DateTime(2026, 9, 13, 14);
 
@@ -18,6 +20,7 @@ Map<String, Object?> _build({
   DateTime? now,
 }) =>
     WidgetPayload.build(
+      l10n: AppL10n.turkish,
       reminders: reminders,
       birthdays: birthdays,
       notificationsEnabled: notificationsEnabled,
@@ -34,6 +37,8 @@ Map<String, Object?>? _next(Map<String, Object?> payload) =>
     payload['next'] as Map<String, Object?>?;
 
 void main() {
+  setUpAll(initTestDateFormatting);
+
   final overdue = buildReminder(
     id: 'overdue',
     title: 'Elektrik faturasını öde',
@@ -168,6 +173,7 @@ void main() {
       final gym = buildReminder(id: 'gym', categoryId: 'gym');
       Map<Object?, Map<String, Object?>> byId(CategoryCatalog? categories) => {
             for (final i in _items(WidgetPayload.build(
+              l10n: AppL10n.turkish,
               reminders: [gym],
               birthdays: const [],
               notificationsEnabled: true,
@@ -322,11 +328,13 @@ void main() {
 
     test('dayLabel crosses month and year ends', () {
       expect(
-        WidgetPayload.dayLabel(DateTime(2027, 1, 1, 8), DateTime(2026, 12, 31)),
+        WidgetPayload.dayLabel(
+            DateTime(2027, 1, 1, 8), DateTime(2026, 12, 31), AppL10n.turkish),
         'Yarın',
       );
       expect(
-        WidgetPayload.dayLabel(DateTime(2026, 2, 3), DateTime(2026, 1, 1)),
+        WidgetPayload.dayLabel(
+            DateTime(2026, 2, 3), DateTime(2026, 1, 1), AppL10n.turkish),
         '3 Şub',
       );
     });

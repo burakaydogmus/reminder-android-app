@@ -7,6 +7,8 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/home/widget_payload.dart';
+import 'package:reminder/l10n/app_language.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/sync_interfaces.dart';
 
 /// Ana ekran widget'larına giden veri anahtarı (F5.1, [WidgetPayload] v2).
@@ -23,31 +25,37 @@ const String _androidPackage = 'com.burakaydogmus.reminder';
 /// `AppWidgetProvider` sınıfıdır.
 enum ReminderHomeWidget {
   /// Bugün 4×2: başlık "Bugün · N", hap "+", 2 satır.
-  today('Bugün', '4×2 · bugünün ilk iki işi ve "+"',
-      '$_androidPackage.ReminderTodayWidgetProvider'),
+  today('$_androidPackage.ReminderTodayWidgetProvider'),
 
   /// Liste 4×4 (3×3–5×6): kaydırılabilir Kaçanlar / Bugün / Doğum günü.
   ///
   /// F5.1 öncesi tek widget'ın sınıfıdır; ana ekranda duran widget'lar
   /// bozulmadan Liste widget'ına dönüşür.
-  list('Liste', '4×4 · kaydırılabilir, boyutu değişir',
-      kReminderListWidgetQualifiedAndroidName),
+  list(kReminderListWidgetQualifiedAndroidName),
 
   /// Sıradaki 2×2: sıradaki işin saati ve başlığı.
-  next('Sıradaki', '2×2 · sıradaki iş ve saati',
-      '$_androidPackage.ReminderNextWidgetProvider'),
+  next('$_androidPackage.ReminderNextWidgetProvider'),
 
   /// Hızlı ekle 1×1: yalnız "+".
-  quickAdd('Hızlı ekle', '1×1 · tek dokunuşla yeni hatırlatıcı',
-      '$_androidPackage.ReminderQuickAddWidgetProvider');
+  quickAdd('$_androidPackage.ReminderQuickAddWidgetProvider');
 
-  const ReminderHomeWidget(this.label, this.description, this.qualifiedName);
+  const ReminderHomeWidget(this.qualifiedName);
 
-  /// Türkçe ad (widget seçicideki ad ile aynı).
-  final String label;
+  /// Ad (widget seçicideki ad ile aynı, `values*/strings.xml`).
+  String labelIn(AppLocalizations l10n) => switch (this) {
+        today => l10n.homeWidgetToday,
+        list => l10n.homeWidgetList,
+        next => l10n.homeWidgetNext,
+        quickAdd => l10n.homeWidgetQuickAdd,
+      };
 
   /// Ayarlar'daki seçim satırının kısa açıklaması.
-  final String description;
+  String descriptionIn(AppLocalizations l10n) => switch (this) {
+        today => l10n.homeWidgetTodayDescription,
+        list => l10n.homeWidgetListDescription,
+        next => l10n.homeWidgetNextDescription,
+        quickAdd => l10n.homeWidgetQuickAddDescription,
+      };
 
   final String qualifiedName;
 }
@@ -64,6 +72,7 @@ Future<void> syncRemindersToHomeWidget(
   required bool notificationsEnabled,
   CategoryCatalog? categories,
   DateTime Function() now = DateTime.now,
+  AppLocalizations? l10n,
 }) async {
   if (!Platform.isAndroid) return;
 
@@ -73,6 +82,9 @@ Future<void> syncRemindersToHomeWidget(
     notificationsEnabled: notificationsEnabled,
     categories: categories,
     now: now(),
+    // F6.1: labels in the stored "Dil" (or system) language, also in the
+    // widget callback isolate.
+    l10n: l10n ?? await BackgroundLocalizations.load(),
   );
   await HomeWidget.saveWidgetData(kHomeWidgetPayloadKey, jsonEncode(payload));
   await HomeWidget.saveWidgetData<String>(_legacyPayloadKey, null);

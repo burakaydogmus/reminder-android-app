@@ -10,6 +10,8 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/notification_ids.dart';
+import 'package:reminder/l10n/app_language.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_fingerprint_store.dart';
 import 'package:reminder/services/notification_payload.dart';
@@ -29,6 +31,14 @@ import 'package:reminder/services/schedule_sync.dart';
 /// aksiyonları taşır (Android düğmeleri, iOS kategorisi); doğum günleri
 /// taşımaz. Yanıtlar `notification_actions.dart` içinde işlenir.
 ///
+/// **Dil (F6.1):** başlık, gövde, kanal adları ve aksiyon düğmeleri kayıtlı
+/// "Dil" seçimine (yoksa sistem diline) göre Türkçe veya İngilizcedir;
+/// [BackgroundLocalizations] ile her senkronda ve her konum bildiriminde
+/// yeniden çözülür (arka plan isolate'leri dahil). Dil parmak izine girer:
+/// dil değişince bekleyen bildirimler yeni dilde yeniden kurulur. iOS aksiyon
+/// kategorisi [initialize] anındaki dille kaydedilir (bir sonraki açılışta
+/// güncellenir).
+///
 /// **Tam zamanlı alarm yedeği (F6.2c):** Android 12+'da "Alarmlar ve
 /// hatırlatıcılar" izni yoksa bildirimler `inexactAllowWhileIdle` ile kurulur
 /// (birkaç dakika gecikebilir, ama gelir); izin varsa `exactAllowWhileIdle`.
@@ -40,33 +50,40 @@ class NotificationService implements NotificationSync {
     this._plugin,
     this._fingerprints,
     Future<bool> Function()? canScheduleExact,
+    this._localizations,
   ) : _canScheduleExactOverride = canScheduleExact;
 
   static final NotificationService instance = NotificationService._(
     FlutterLocalNotificationsPlugin(),
     const NotificationFingerprintStore(),
     null,
+    BackgroundLocalizations.load,
   );
 
   /// Gerçek plugin yerine sahte bir plugin ile çalışan örnek (testler).
   /// [canScheduleExact] tam zamanlı alarm iznini taklit eder (varsayılan:
-  /// izin var).
+  /// izin var); [localizations] bildirim dilini verir (varsayılan: Türkçe).
   @visibleForTesting
   factory NotificationService.forTesting(
     FlutterLocalNotificationsPlugin plugin, {
     NotificationFingerprintStore fingerprints =
         const NotificationFingerprintStore(),
     Future<bool> Function()? canScheduleExact,
+    Future<AppLocalizations> Function()? localizations,
   }) =>
       NotificationService._(
         plugin,
         fingerprints,
         canScheduleExact ?? () async => true,
+        localizations ?? () async => AppL10n.turkish,
       );
 
   final FlutterLocalNotificationsPlugin _plugin;
   final NotificationFingerprintStore _fingerprints;
   final Future<bool> Function()? _canScheduleExactOverride;
+
+  /// Bildirim metinlerinin dili (F6.1): kayıtlı "Dil" + sistem dili.
+  final Future<AppLocalizations> Function() _localizations;
 
   bool _initialized = false;
 
@@ -84,7 +101,8 @@ class NotificationService implements NotificationSync {
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
-      notificationCategories: darwinNotificationCategories,
+      notificationCategories:
+          darwinNotificationCategories(await _localizations()),
     );
 
     await _plugin.initialize(
@@ -117,27 +135,27 @@ class NotificationService implements NotificationSync {
   /// Konum (geofence) ile tetiklenen anlık bildirim.
   Future<void> showGeofenceEntry(Reminder r) async {
     if (!_initialized) await initialize();
+    final l10n = await _localizations();
 
     const channelId = 'reminders_geo_v1';
-    const channelName = 'Konum hatırlatmaları';
-    const channelDescription = 'Seçtiğiniz yere geldiğinizde';
 
     final place = r.locationPlaceLabel?.trim();
     final body = reminderNotificationBody(
       r,
+      l10n,
       context: (place != null && place.isNotEmpty) ? place : null,
-      fallback: 'Kayıtlı konuma girdiniz',
+      fallback: l10n.notifGeoFallback,
     );
-    final bigText = reminderSubtaskBigText(r, body);
+    final bigText = reminderSubtaskBigText(r, body, l10n);
 
     final android = AndroidNotificationDetails(
       channelId,
-      channelName,
-      channelDescription: channelDescription,
+      l10n.notifChannelLocation,
+      channelDescription: l10n.notifChannelLocationDescription,
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
-      actions: androidReminderActions,
+      actions: androidReminderActions(l10n),
       styleInformation:
           bigText == null ? null : BigTextStyleInformation(bigText),
     );
@@ -153,7 +171,7 @@ class NotificationService implements NotificationSync {
 
     await _plugin.show(
       id: r.geoNotificationId,
-      title: r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
+      title: r.title.trim().isEmpty ? l10n.notifTitleFallback : r.title.trim(),
       body: body,
       notificationDetails: details,
       payload: ReminderPayload(r.id).encode(),
@@ -210,11 +228,12 @@ class NotificationService implements NotificationSync {
     final desired = <int, _ScheduleSpec>{};
     if (notificationsEnabled) {
       final now = tz.TZDateTime.now(tz.local);
+      final l10n = await _localizations();
       for (final r in reminders) {
         if (r.isDone) continue;
         final at = reminderFireTime(r, now);
         if (at == null) continue;
-        final spec = _reminderSpec(r, tz.TZDateTime.from(at, tz.local));
+        final spec = _reminderSpec(r, tz.TZDateTime.from(at, tz.local), l10n);
         desired[spec.id] = spec;
       }
 
@@ -222,7 +241,7 @@ class NotificationService implements NotificationSync {
       // ayrı bildirim, `DateTimeComponents.dateAndTime` ile her yıl yeniden
       // tetiklenir.
       for (final b in birthdays) {
-        for (final spec in _birthdaySpecs(b)) {
+        for (final spec in _birthdaySpecs(b, l10n)) {
           desired[spec.id] = spec;
         }
       }
@@ -322,17 +341,14 @@ class NotificationService implements NotificationSync {
   @visibleForTesting
   static const scheduleFingerprintVersion = _ScheduleSpec._version;
 
-  List<_ScheduleSpec> _birthdaySpecs(Birthday b) {
+  List<_ScheduleSpec> _birthdaySpecs(Birthday b, AppLocalizations l10n) {
     const channelId = 'reminders_birthdays_v1';
-    const channelName = 'Doğum günü hatırlatmaları';
-    const channelDescription =
-        'Yıllık olarak tekrarlayan doğum günü bildirimleri';
 
     // Doğum günleri aksiyon taşımaz; dokunmak Doğum günleri listesini açar.
-    const android = AndroidNotificationDetails(
+    final android = AndroidNotificationDetails(
       channelId,
-      channelName,
-      channelDescription: channelDescription,
+      l10n.notifChannelBirthdays,
+      channelDescription: l10n.notifChannelBirthdaysDescription,
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
@@ -344,7 +360,7 @@ class NotificationService implements NotificationSync {
       presentSound: true,
     );
 
-    const details = NotificationDetails(android: android, iOS: darwin);
+    final details = NotificationDetails(android: android, iOS: darwin);
 
     final specs = <_ScheduleSpec>[];
     final next = b.nextOccurrence();
@@ -367,8 +383,9 @@ class NotificationService implements NotificationSync {
       specs.add(_ScheduleSpec(
         id: b.notificationIdFor(offset),
         channelId: channelId,
-        title: birthdayNotificationTitle(b, offset),
-        body: birthdayNotificationBody(offset),
+        locale: l10n.localeName,
+        title: birthdayNotificationTitle(b, offset, l10n),
+        body: birthdayNotificationBody(offset, l10n),
         scheduledDate: scheduled,
         details: details,
         matchDateTimeComponents: DateTimeComponents.dateAndTime,
@@ -385,22 +402,29 @@ class NotificationService implements NotificationSync {
   /// başlık ve gövde yaşa/yıla bağlı bilgi içermez (F1.8); yaş uygulama içinde
   /// gösterilir.
   @visibleForTesting
-  static String birthdayNotificationTitle(Birthday b, int offsetMinutes) {
-    if (offsetMinutes == 0) return '🎂 ${b.name}';
-    return '🎂 Yaklaşıyor: ${b.name}';
+  static String birthdayNotificationTitle(
+    Birthday b,
+    int offsetMinutes,
+    AppLocalizations l10n,
+  ) {
+    if (offsetMinutes == 0) return l10n.notifBirthdayTitle(b.name);
+    return l10n.notifBirthdayTitleSoon(b.name);
   }
 
   /// Doğum günü bildirim gövdesi; yalnızca offset'e bağlıdır (yaş içermez).
   @visibleForTesting
-  static String birthdayNotificationBody(int offsetMinutes) {
-    if (offsetMinutes <= 0) return 'Bugün doğum günü.';
-    if (offsetMinutes < 60) return '$offsetMinutes dakika sonra doğum günü.';
+  static String birthdayNotificationBody(
+    int offsetMinutes,
+    AppLocalizations l10n,
+  ) {
+    if (offsetMinutes <= 0) return l10n.notifBirthdayToday;
+    if (offsetMinutes < 60) return l10n.notifBirthdayInMinutes(offsetMinutes);
     if (offsetMinutes < 1440) {
-      return '${offsetMinutes ~/ 60} saat sonra doğum günü.';
+      return l10n.notifBirthdayInHours(offsetMinutes ~/ 60);
     }
     final days = offsetMinutes ~/ 1440;
-    if (days == 1) return 'Yarın doğum günü.';
-    return '$days gün sonra doğum günü.';
+    if (days == 1) return l10n.notifBirthdayTomorrow;
+    return l10n.notifBirthdayInDays(days);
   }
 
   /// Tamamlanmamış zamanlı hatırlatıcının bildirim anı; zamanlanmayacaksa
@@ -457,50 +481,59 @@ class NotificationService implements NotificationSync {
   /// yerine yalnızca "4 madde kaldı" yazılır.
   @visibleForTesting
   static String reminderNotificationBody(
-    Reminder r, {
+    Reminder r,
+    AppLocalizations l10n, {
     String? context,
-    String fallback = 'Hatırlatma zamanı',
+    String? fallback,
   }) {
     final note = r.note?.trim();
     final lead = (note != null && note.isNotEmpty) ? note : context;
     final open = r.subtasks.openCount;
-    if (open == 0) return lead ?? fallback;
-    final remaining = '$open madde kaldı';
-    return lead == null ? remaining : '$lead · $remaining';
+    if (open == 0) return lead ?? fallback ?? l10n.notifBodyFallback;
+    final remaining = l10n.notifSubtasksLeft(open);
+    return lead == null
+        ? remaining
+        : l10n.notifBodyWithSubtasks(lead, remaining);
   }
 
   /// Android genişletilmiş metni (BigTextStyle): [body] ve altında ilk
   /// [maxListedSubtasks] açık madde ("• Süt"), fazlası "… ve N madde daha".
   /// Açık madde yoksa `null` (düz bildirim).
   @visibleForTesting
-  static String? reminderSubtaskBigText(Reminder r, String body) {
+  static String? reminderSubtaskBigText(
+    Reminder r,
+    String body,
+    AppLocalizations l10n,
+  ) {
     final open = r.subtasks.open;
     if (open.isEmpty) return null;
     final lines = [
       body,
       for (final s in open.take(maxListedSubtasks)) '• ${s.title.trim()}',
       if (open.length > maxListedSubtasks)
-        '… ve ${open.length - maxListedSubtasks} madde daha',
+        l10n.notifSubtasksMore(open.length - maxListedSubtasks),
     ];
     return lines.join('\n');
   }
 
-  _ScheduleSpec _reminderSpec(Reminder r, tz.TZDateTime scheduled) {
+  _ScheduleSpec _reminderSpec(
+    Reminder r,
+    tz.TZDateTime scheduled,
+    AppLocalizations l10n,
+  ) {
     const channelId = 'reminders_channel_v1';
-    const channelName = 'Hatırlatmalar';
-    const channelDescription = 'Zamanlanmış hatırlatıcı bildirimleri';
 
-    final body = reminderNotificationBody(r);
-    final bigText = reminderSubtaskBigText(r, body);
+    final body = reminderNotificationBody(r, l10n);
+    final bigText = reminderSubtaskBigText(r, body, l10n);
 
     final android = AndroidNotificationDetails(
       channelId,
-      channelName,
-      channelDescription: channelDescription,
+      l10n.notifChannelReminders,
+      channelDescription: l10n.notifChannelRemindersDescription,
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
       playSound: true,
-      actions: androidReminderActions,
+      actions: androidReminderActions(l10n),
       styleInformation:
           bigText == null ? null : BigTextStyleInformation(bigText),
     );
@@ -517,7 +550,8 @@ class NotificationService implements NotificationSync {
     return _ScheduleSpec(
       id: r.notificationId,
       channelId: channelId,
-      title: r.title.trim().isEmpty ? 'Hatırlatıcı' : r.title.trim(),
+      locale: l10n.localeName,
+      title: r.title.trim().isEmpty ? l10n.notifTitleFallback : r.title.trim(),
       body: body,
       scheduledDate: scheduled,
       details: details,
@@ -534,6 +568,7 @@ class _ScheduleSpec {
   const _ScheduleSpec({
     required this.id,
     required this.channelId,
+    required this.locale,
     required this.title,
     required this.body,
     required this.scheduledDate,
@@ -555,10 +590,16 @@ class _ScheduleSpec {
   ///   listeler; madde metni parmak izine girdi.
   /// - v5 (F6.2c): Android zamanlama modu izne göre seçilir (exact /
   ///   inexact) ve senkronda belirlenen mod parmak izine girer.
-  static const _version = 5;
+  /// - v6 (F6.1): metinler, kanal adları ve aksiyonlar uygulama dilinde;
+  ///   dil parmak izine girdi (dil değişince hepsi yeniden kurulur).
+  static const _version = 6;
 
   final int id;
   final String channelId;
+
+  /// Metinlerin dili (`tr` / `en`); kanal adları ve aksiyon düğmeleri de
+  /// ona göre olduğu için parmak izine girer.
+  final String locale;
   final String title;
   final String body;
   final tz.TZDateTime scheduledDate;
@@ -582,6 +623,7 @@ class _ScheduleSpec {
     final canonical = jsonEncode([
       'v$_version',
       channelId,
+      locale,
       mode.name,
       title,
       body,

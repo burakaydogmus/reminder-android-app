@@ -58,7 +58,8 @@ class PlacesNearbyService {
         final lng = (loc['lng'] as num).toDouble();
         out.add(
           NearbyPlaceResult(
-            name: m['name'] as String? ?? 'İşletme',
+            // Empty when unnamed; the picker shows a localized fallback.
+            name: m['name'] as String? ?? '',
             location: LatLng(lat, lng),
             vicinity: m['vicinity'] as String?,
           ),
