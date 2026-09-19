@@ -176,7 +176,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     Text(
                       'Dört widget var: Bugün, kaydırılabilir Liste, '
                       'Sıradaki ve Hızlı ekle. Daireye dokunarak işi '
-                      'tamamlarsın, "+" yeni hatırlatıcı açar. Liste'nin '
+                      'tamamlarsın, "+" yeni hatırlatıcı açar. Liste\'nin '
                       'boyutunu ana ekranda kenarlarından sürükleyerek '
                       'değiştirebilirsin.',
                       style: muted,
@@ -286,24 +286,6 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       ),
     );
-  }
-
-  Future<void> _pinHomeWidget(BuildContext context) async {
-    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
-    if (!context.mounted) return;
-    if (supported) {
-      await HomeWidget.requestPinWidget(
-        qualifiedAndroidName: kReminderListWidgetQualifiedAndroidName,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Ana ekranda boş bir alana uzun basın → Widget\'lar → Hatırlatıcıyı seçin.',
-          ),
-        ),
-      );
-    }
   }
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {
