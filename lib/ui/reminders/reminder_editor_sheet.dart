@@ -41,9 +41,15 @@ abstract final class ReminderEditorKeys {
 ///
 /// [now] is the clock for past-time checks; defaults to the caller's
 /// [NowScope] clock (tests pass a fixed one).
+///
+/// [draft] prefills a **new** reminder (quick capture's "Tüm ayrıntılar",
+/// F4.6b): the form starts from `existing ?? draft`, but saving still adds a
+/// new reminder and a past draft time is blocked like any new time — only
+/// [existing] decides add vs. update and the overdue-time allowance.
 Future<void> showReminderEditorSheet(
   BuildContext context, {
   Reminder? existing,
+  Reminder? draft,
   String? initialCategoryId,
   DateTime? initialRemindAt,
   DateTime Function()? now,
@@ -58,6 +64,7 @@ Future<void> showReminderEditorSheet(
     sheetAnimationStyle: context.korMotion.sheetStyleOf(context),
     builder: (ctx) => _ReminderEditorBody(
       existing: existing,
+      draft: draft,
       initialCategoryId: initialCategoryId,
       initialRemindAt: initialRemindAt,
       clock: clock,
@@ -67,12 +74,16 @@ Future<void> showReminderEditorSheet(
 
 class _ReminderEditorBody extends StatefulWidget {
   final Reminder? existing;
+
+  /// Prefill for a new reminder; ignored when [existing] is set.
+  final Reminder? draft;
   final String? initialCategoryId;
   final DateTime? initialRemindAt;
   final DateTime Function() clock;
 
   const _ReminderEditorBody({
     this.existing,
+    this.draft,
     this.initialCategoryId,
     this.initialRemindAt,
     this.clock = DateTime.now,
@@ -122,7 +133,9 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   @override
   void initState() {
     super.initState();
-    final e = widget.existing;
+    // The form starts from the reminder being edited, or a new reminder's
+    // draft (quick capture); only `existing` makes it an update.
+    final e = widget.existing ?? widget.draft;
     _titleCtrl = TextEditingController(text: e?.title ?? '');
     _noteCtrl = TextEditingController(text: e?.note ?? '');
     _customCategoryCtrl = TextEditingController(
@@ -130,13 +143,15 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     );
     _categoryId =
         e?.categoryId ?? widget.initialCategoryId ?? ReminderCategoryIds.other;
-    final remindAt = e != null ? e.remindAt : widget.initialRemindAt;
+    final remindAt = widget.existing != null
+        ? widget.existing!.remindAt
+        : (widget.draft?.remindAt ?? widget.initialRemindAt);
     _schedule = remindAt != null;
     if (remindAt != null) {
       final dt = remindAt.toLocal();
       _date = DateTime(dt.year, dt.month, dt.day);
       _time = TimeOfDay(hour: dt.hour, minute: dt.minute);
-      if (e != null) {
+      if (widget.existing != null) {
         _originalRemindAt =
             DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute);
       }

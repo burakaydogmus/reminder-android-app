@@ -18,6 +18,15 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Hızlı yakalama:** "cuma 18:00 ekmek ve süt al #market !!" gibi yazman yeterli. Android'de
+  "+" düğmesi, iOS'ta sekme çubuğunun üstündeki cam **"Ne hatırlatayım?"** çubuğu hızlı ekleme
+  sayfasını açar; tanınan tarih/saat, tekrar, `#kategori`, `!` öncelik ve `@yer` metnin içinde
+  renklenir ve altta chip olarak görünür (chip'e dokununca seçici açılır, "×" o kelimeyi düz
+  metne çevirir). Enter ya da ↑ kaydeder; alan temizlenir, sayfa açık kalır ve üstte
+  "Eklendi: … · Geri al" görünür. `#market` listelerinde "Maddelere böl?" önerisi, geçmiş
+  saatte uyarı ve "Yarın 09:00 mı?" önerisi, "Tüm ayrıntılar" ile dolu gelen tam düzenleyici.
+  Bilinmeyen `#etiket` şimdilik "Diğer"e eklenir; `@yer` nota yazılır (konum bildirimi kurmaz).
+  Uzun basınca: Hızlı ekle / Hatırlatıcı / Doğum günü. (F4.6b)
 - **Hareket ve titreşim:** kartın tamamlama dairesi dokununca hafifçe basılıyor, 9 dilimli
   "kurabiye" şekline dönüşüp kategori rengiyle doluyor ve ✓ çiziliyor; kart yanlış dokunuşu fark
   etmen için 0,9 sn yerinde bekledikten sonra tamamlanıyor (bu sürede tekrar dokunmak iptal
