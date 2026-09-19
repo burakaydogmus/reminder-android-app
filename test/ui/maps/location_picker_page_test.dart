@@ -1,10 +1,10 @@
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:reminder/config/app_links.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
+import 'package:reminder/ui/maps/osm_attribution.dart';
 
 import '../ui_harness.dart';
 
@@ -63,9 +63,10 @@ void main() {
       testWidgets(
           'shows "© OpenStreetMap contributors" and links to the '
           'copyright page', (tester) async {
+        final semantics = tester.ensureSemantics();
         final opened = await pumpPicker(tester);
 
-        final attribution = find.byType(SimpleAttributionWidget);
+        final attribution = find.byType(OsmAttribution);
         expect(attribution, findsOneWidget);
         expect(
           find.descendant(of: attribution, matching: find.textContaining('©')),
@@ -74,8 +75,14 @@ void main() {
         final source = find.text('OpenStreetMap contributors');
         expect(source, findsOneWidget);
         expect(
-          tester.widget<SimpleAttributionWidget>(attribution).onTap,
-          isNotNull,
+          tester.getSemantics(
+              find.bySemanticsLabel('© OpenStreetMap contributors')),
+          isSemantics(
+            isLink: true,
+            label: '© OpenStreetMap contributors',
+            hint: 'Telif hakkı sayfasını açar',
+            hasTapAction: true,
+          ),
         );
 
         await tester.tap(source);
@@ -85,6 +92,30 @@ void main() {
           AppLinks.osmCopyright.toString(),
           'https://www.openstreetmap.org/copyright',
         );
+        semantics.dispose();
+      });
+
+      testWidgets('attribution has a 48 dp tap area around small text (F4.5)',
+          (tester) async {
+        final semantics = tester.ensureSemantics();
+        final opened = await pumpPicker(tester);
+
+        final node = tester.getSemantics(
+          find.bySemanticsLabel('© OpenStreetMap contributors'),
+        );
+        expect(node.rect.width, greaterThanOrEqualTo(48));
+        expect(node.rect.height, greaterThanOrEqualTo(48));
+        expect(
+          tester.getSize(find.text('OpenStreetMap contributors')).height,
+          lessThan(24),
+        );
+
+        // A tap above the visible box, inside the 48 dp area, opens the link.
+        final box = tester.getRect(find.text('OpenStreetMap contributors'));
+        await tester.tapAt(Offset(box.center.dx, box.top - 16));
+        await tester.pump();
+        expect(opened, [AppLinks.osmCopyright]);
+        semantics.dispose();
       });
 
       testWidgets('attribution stays clear of "Konumuma git"', (tester) async {
