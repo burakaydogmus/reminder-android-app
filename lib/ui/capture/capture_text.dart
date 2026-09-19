@@ -39,9 +39,10 @@ abstract final class CaptureText {
       config: config,
     );
     final originals = [for (final (s, e) in ranges) input.substring(s, e)];
+    final title = _uncapitalizeAfterMask(result.title, input, ranges, result);
     return CaptureParseResult(
       input: input,
-      title: _capitalized(_restore(result.title, originals)),
+      title: _capitalized(_restore(title, originals)),
       tokens: result.tokens,
       dateTime: result.dateTime,
       hasExplicitTime: result.hasExplicitTime,
@@ -91,6 +92,38 @@ abstract final class CaptureText {
       }
     }
     return merged;
+  }
+
+  /// When the masked title starts with a mask run, the parser capitalized
+  /// the first plain word after it (`▯▯▯▯ ekmek` → `▯▯▯▯ Ekmek`); give that
+  /// letter back its typed case. The first plain word is the first input
+  /// character outside masked ranges, tokens and whitespace.
+  static String _uncapitalizeAfterMask(
+    String title,
+    String input,
+    List<(int, int)> masked,
+    CaptureParseResult result,
+  ) {
+    if (!title.startsWith(_mask)) return title;
+    bool covered(int i) =>
+        masked.any((r) => i >= r.$1 && i < r.$2) ||
+        result.tokens.any((t) => i >= t.start && i < t.end);
+    String? typed;
+    for (var i = 0; i < input.length; i++) {
+      if (covered(i) || input[i].trim().isEmpty) continue;
+      typed = input[i];
+      break;
+    }
+    if (typed == null) return title;
+    for (var q = 0; q < title.length; q++) {
+      final c = title[q];
+      if (c == _mask || c.trim().isEmpty) continue;
+      if (c != typed && c == _capitalized(typed)) {
+        return '${title.substring(0, q)}$typed${title.substring(q + 1)}';
+      }
+      return title;
+    }
+    return title;
   }
 
   static String _restore(String text, List<String> originals) {
