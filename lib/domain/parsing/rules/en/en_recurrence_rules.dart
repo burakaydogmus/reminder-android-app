@@ -72,8 +72,6 @@ extension _EnRecurrenceRules on _EnScanner {
     'totals',
     'check',
     'checkin',
-    'log',
-    'journal',
     'quota',
     'special',
     'deal',

@@ -22,9 +22,12 @@ part of '../../capture_parser.dart';
 ///   `afternoon 3` = 15:00. `this …` and `tonight` also fix the date to
 ///   today.
 /// - A bare day part is **not** a time when it is part of a noun phrase:
-///   after `a`/`an`/`the`/`one`/`last`/`yesterday`/`every`/`each`/`some`
+///   after `a`/`an`/`the`/`one`/`last`/`yesterday`/`each`/`some`
 ///   (`a morning`, `the morning meeting`), or before a compound noun
 ///   (`morning run`, `evening class`, `night cream`, `afternoon tea`, …).
+///   The compound-noun guard only applies to a **bare** day part — after
+///   `this`/`in the`/`at` or a date the phrase is unambiguous, so
+///   `this morning stretch` is 09:00 + "Stretch".
 extension _EnTimeRules on _EnScanner {
   static final RegExp _time = RegExp(
     r'^(\d{1,2})(?:[:.](\d{2}))?(a\.?m\.?|p\.?m\.?)?$',
@@ -363,9 +366,16 @@ extension _EnTimeRules on _EnScanner {
 
       final withClock = daypartClock(dpIndex + 1, part);
       if (withClock != null) return build(withClock.end, withClock.clock, 1);
-      final following = next(dpIndex + 1);
-      if (following != null && _compoundNouns.contains(following)) return null;
       final contextual = prefixed || afterDateLike(i);
+      final following = next(dpIndex + 1);
+      // Only a **bare** day part can be a compound noun: `this morning` and
+      // `tomorrow morning` are unambiguous, so `this morning stretch` is a
+      // time while `morning stretch` on its own is text.
+      if (!contextual &&
+          following != null &&
+          _compoundNouns.contains(following)) {
+        return null;
+      }
       return build(
         dpIndex + 1,
         _Clock(defaultHour(part), 0),

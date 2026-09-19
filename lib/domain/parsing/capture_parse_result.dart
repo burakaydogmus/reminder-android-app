@@ -115,7 +115,7 @@ class CaptureParserConfig {
     this.afternoonHour = 15,
     this.eveningHour = 20,
     this.nightHour = 22,
-    this.categoryAliases = defaultCategoryAliases,
+    this.categoryAliases,
     this.listCategoryIds = const {ReminderCategoryIds.market},
   });
 
@@ -125,10 +125,15 @@ class CaptureParserConfig {
   final int eveningHour;
   final int nightHour;
 
-  /// Category id → names a `#tag` may use. Compared folded (case and Turkish
+  /// Category id → names a `#tag` may use. Compared folded (case and
   /// diacritics ignored, spaces removed). F4.3 custom categories can pass
-  /// their own map.
-  final Map<String, List<String>> categoryAliases;
+  /// their own map; `null` uses the built-in aliases of the parse locale
+  /// ([builtInAliasesOf]).
+  final Map<String, List<String>>? categoryAliases;
+
+  /// The aliases this config uses when parsing with [locale].
+  Map<String, List<String>> aliasesFor(CaptureLocale locale) =>
+      categoryAliases ?? builtInAliasesOf(locale);
 
   /// Category ids whose `#tag` turns a comma/`ve` list into a
   /// "Maddelere böl?" suggestion.

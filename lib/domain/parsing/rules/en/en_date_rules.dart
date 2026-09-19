@@ -204,7 +204,11 @@ extension _EnDateRules on _EnScanner {
             confidence: 0.9,
           );
         }
-        final dom = ordinalDay(next(j + 1));
+        // `the 3rd of May` is a named date, not a day of the month.
+        final ordinal = next(j + 1);
+        final named = ordinal == null ? null : _dayFirst(j + 1, ordinal);
+        if (named != null) return named;
+        final dom = ordinalDay(ordinal);
         final at = dom == null ? null : nextDayOfMonth(dom);
         return at == null
             ? null

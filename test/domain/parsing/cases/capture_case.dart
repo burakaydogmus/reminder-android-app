@@ -59,10 +59,14 @@ RecurrenceSpec everyDays(int n) =>
     RecurrenceSpec(kind: RecurrenceKind.everyNDays, interval: n);
 
 /// Registers one test per case under the current group.
-void runCases(List<CaptureCase> cases, {DateTime? now}) {
+void runCases(
+  List<CaptureCase> cases, {
+  DateTime? now,
+  CaptureLocale locale = CaptureLocale.turkish,
+}) {
   for (final c in cases) {
     test(c.input.isEmpty ? '(empty)' : c.input, () {
-      final r = CaptureParser.parse(c.input, now: now ?? kNow);
+      final r = CaptureParser.parse(c.input, now: now ?? kNow, locale: locale);
       expectCase(r, c);
     });
   }
