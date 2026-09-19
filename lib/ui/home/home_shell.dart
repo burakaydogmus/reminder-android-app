@@ -11,6 +11,8 @@ import 'package:reminder/services/notification_payload.dart';
 import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
+import 'package:reminder/ui/capture/capture_bar.dart';
+import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/fade_through_indexed_stack.dart';
 import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
@@ -27,8 +29,9 @@ import 'package:reminder/ui/today/today_page.dart';
 /// App shell (§3.2): Bugün / Takvim / Listeler. Ayarlar opens from the gear
 /// in each tab header.
 ///
-/// Android: floating pill navigation + squircle FAB. iOS (F5.4): floating
-/// [KorGlassTabBar] + separate search circle + FAB; the tab bar shrinks while
+/// Android: floating pill navigation + squircle FAB (tap → quick capture,
+/// F4.6b). iOS (F5.4): floating [KorGlassTabBar] + separate search circle +
+/// the "Ne hatırlatayım?" capture bar above it (no FAB); the tab bar shrinks while
 /// content scrolls down and expands on scroll up, at the top, on tab switch
 /// and always with VoiceOver. Back from Takvim/Listeler returns to Bugün.
 ///
@@ -231,7 +234,6 @@ class _HomeShellState extends State<HomeShell> {
         // Content scrolls under the floating nav on both platforms.
         extendBody: true,
         body: body,
-        floatingActionButton: cupertino ? const NewItemFab() : null,
         bottomNavigationBar: cupertino
             ? _glassChrome(context)
             : SafeArea(
@@ -258,7 +260,7 @@ class _HomeShellState extends State<HomeShell> {
                       ),
                     ),
                     const SizedBox(width: KorSpacing.s4),
-                    const NewItemFab(),
+                    NewItemFab(clock: widget.clock),
                   ],
                 ),
               ),
@@ -280,6 +282,14 @@ class _HomeShellState extends State<HomeShell> {
           collapsed: _collapsed && !MediaQuery.accessibleNavigationOf(context),
           onExpand: () => _setCollapsed(false),
           onSearch: () => openSearch(context),
+          accessory: (context, size) => CaptureBar(
+            width: size.width,
+            height: size.height,
+            onTap: () => showQuickCaptureSheet(context, now: widget.clock),
+            onLongPress: () => showNewItemMenu(context, now: widget.clock),
+            semanticsActions:
+                newItemSemanticsActions(context, now: widget.clock),
+          ),
         ),
       ),
     );
