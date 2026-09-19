@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "appTitle": "Reminders",
+  "shortcutNewReminder": "New reminder",
+  "shortcutMarketList": "Shopping list",
+  "shortcutToday": "Today",
+  "shortcutNewBirthday": "New birthday",
+  "settingsLanguageTitle": "Language",
+  "settingsLanguageSystem": "System",
+  "settingsLanguageTurkish": "Türkçe",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageHint": "System uses Turkish when the device language is Turkish, English otherwise."
+}

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:quick_actions/quick_actions.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/app_shortcuts.dart';
 import 'package:reminder/services/widget_launch_router.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
@@ -55,7 +56,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     router = WidgetLaunchRouter();
     quickActions = _FakeQuickActions();
-    await ShortcutRouter(router: router).attach(quickActions);
+    await ShortcutRouter(router: router)
+        .attach(quickActions, l10n: AppL10n.turkish);
   });
 
   Future<UiHarness> pumpShell(WidgetTester tester) async {
@@ -141,7 +143,10 @@ void main() {
     final coldRouter = WidgetLaunchRouter();
     await ShortcutRouter(
       router: coldRouter,
-    ).attach(_FakeQuickActions(launchType: 'new_birthday'));
+    ).attach(
+      _FakeQuickActions(launchType: 'new_birthday'),
+      l10n: AppL10n.turkish,
+    );
     final h = await UiHarness.create(now: _clock);
     await tester.pumpWidget(
       h.app(

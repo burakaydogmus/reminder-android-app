@@ -9,6 +9,8 @@ import 'package:reminder/data/backup/backup_io.dart';
 import 'package:reminder/data/backup/backup_service.dart';
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
+import 'package:reminder/l10n/app_language.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/settings/backup_actions.dart';
 import 'package:reminder/ui/settings/permissions_group.dart';
@@ -26,6 +28,7 @@ abstract final class SettingsPageKeys {
   static const licenses = Key('settings.licenses');
   static const haptics = Key('settings.haptics');
   static const pinWidget = Key('settings.pinWidget');
+  static const language = Key('settings.language');
 }
 
 /// Ayarlar (§3.3.9): grouped cards for İzinler, Görünüm, Bildirimler, Ana
@@ -134,6 +137,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Açık veya koyu temayı seç ya da sistemi takip et.',
                     style: muted,
                   ),
+                  if (AppLanguageScope.maybeOf(context) case final language?)
+                    ..._languageRow(context, language, muted),
                   if (HapticsScope.maybeOf(context) case final haptics?) ...[
                     const SizedBox(height: KorSpacing.s3),
                     _SwitchRow(
@@ -286,6 +291,46 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       ),
     );
+  }
+
+  /// "Dil" (F6.1): Sistem / Türkçe / English.
+  List<Widget> _languageRow(
+    BuildContext context,
+    AppLanguageController language,
+    TextStyle? muted,
+  ) {
+    final l10n = context.l10n;
+    return [
+      const SizedBox(height: KorSpacing.s5),
+      Text(l10n.settingsLanguageTitle,
+          style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: KorSpacing.s3),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<AppLanguage>(
+          key: SettingsPageKeys.language,
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+              value: AppLanguage.system,
+              label: Text(l10n.settingsLanguageSystem),
+            ),
+            ButtonSegment(
+              value: AppLanguage.turkish,
+              label: Text(l10n.settingsLanguageTurkish),
+            ),
+            ButtonSegment(
+              value: AppLanguage.english,
+              label: Text(l10n.settingsLanguageEnglish),
+            ),
+          ],
+          selected: {language.language},
+          onSelectionChanged: (s) => language.setLanguage(s.first),
+        ),
+      ),
+      const SizedBox(height: KorSpacing.s3),
+      Text(l10n.settingsLanguageHint, style: muted),
+    ];
   }
 
   Future<void> _openPrivacyPolicy(BuildContext context) async {

@@ -1,0 +1,40 @@
+{
+  "@@locale": "tr",
+  "appTitle": "Hatırlatıcı",
+  "@appTitle": {
+    "description": "App name (task switcher, MaterialApp.title)."
+  },
+  "shortcutNewReminder": "Yeni hatırlatıcı",
+  "@shortcutNewReminder": {
+    "description": "App icon shortcut (Android launcher / iOS quick action)."
+  },
+  "shortcutMarketList": "Market listesi",
+  "@shortcutMarketList": {
+    "description": "App icon shortcut; opens quick capture prefilled with #market."
+  },
+  "shortcutToday": "Bugün",
+  "@shortcutToday": {
+    "description": "App icon shortcut."
+  },
+  "shortcutNewBirthday": "Yeni doğum günü",
+  "@shortcutNewBirthday": {
+    "description": "App icon shortcut."
+  },
+  "settingsLanguageTitle": "Dil",
+  "@settingsLanguageTitle": {
+    "description": "Ayarlar › Görünüm: language setting title."
+  },
+  "settingsLanguageSystem": "Sistem",
+  "@settingsLanguageSystem": {
+    "description": "Language segment: follow the device language."
+  },
+  "settingsLanguageTurkish": "Türkçe",
+  "@settingsLanguageTurkish": {
+    "description": "Language segment; always the endonym."
+  },
+  "settingsLanguageEnglish": "English",
+  "@settingsLanguageEnglish": {
+    "description": "Language segment; always the endonym."
+  },
+  "settingsLanguageHint": "Sistem, cihaz dili Türkçeyse Türkçe, değilse İngilizce kullanır."
+}

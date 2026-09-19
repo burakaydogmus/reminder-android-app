@@ -9,6 +9,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
 import 'package:reminder/app.dart';
 import 'package:reminder/config/app_licenses.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
+import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/services/app_shortcuts.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -41,6 +42,9 @@ Future<void> main() async {
         )
       : Future<void>.value();
   await initializeDateFormatting('tr_TR');
+  await initializeDateFormatting('en_US');
+  // F6.1: the stored "Dil" choice, so the first frame is already localized.
+  final language = await AppLanguageStore().load();
   await configureLocalTimezone();
   await NotificationService.instance.initialize();
   // F3.2: a tap that launched the app opens its reminder once HomeShell is up.
@@ -55,9 +59,11 @@ Future<void> main() async {
   }
   // F5.3: app icon shortcuts (both platforms) use the same router, so they
   // also wait for onboarding and HomeShell.
-  await ShortcutRouter(
-    router: WidgetLaunchRouter.instance,
-  ).attach(const PluginQuickActions());
+  final shortcuts = ShortcutRouter(router: WidgetLaunchRouter.instance);
+  await shortcuts.attach(
+    const PluginQuickActions(),
+    l10n: await BackgroundLocalizations.load(),
+  );
   // No permission prompts at launch (F1.6): notification, exact alarm and
   // location permissions are asked in context via PermissionFlows.
   await GeofenceService.instance.initialize();
@@ -66,7 +72,12 @@ Future<void> main() async {
   runApp(
     PermissionScope(
       service: PlatformPermissionService.platform(),
-      child: const App(),
+      child: App(
+        initialLanguage: language,
+        // F6.1: shortcut titles follow the in-app language.
+        onLanguageChanged: (_) async =>
+            shortcuts.publish(await BackgroundLocalizations.load()),
+      ),
     ),
   );
 }

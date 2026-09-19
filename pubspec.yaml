@@ -12,6 +12,10 @@ dependencies:
     sdk: flutter
   # Material/Cupertino widgets and their localization delegates.
   material_ui: ^1.2.0
+  # F6.1: the gen-l10n output (lib/l10n/app_localizations.dart) imports
+  # flutter_localizations (material_ui depends on it too).
+  flutter_localizations:
+    sdk: flutter
   cupertino_ui: ^1.0.2
   cupertino_icons: ^1.0.9
   animations: ^3.0.0
@@ -74,6 +78,8 @@ flutter_launcher_icons:
 flutter:
 
   uses-material-design: true
+  # F6.1: gen-l10n (l10n.yaml) runs on pub get and builds.
+  generate: true
 
   assets:
     - assets/launcher/icon.png
