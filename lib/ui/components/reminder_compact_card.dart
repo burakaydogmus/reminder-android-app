@@ -7,6 +7,7 @@ import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/components/strike_through_title.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
@@ -121,10 +122,11 @@ class ReminderCompactCard extends StatelessWidget {
     void edit() => showReminderEditorSheet(context, existing: reminder);
     void togglePin() => togglePinnedWithUndo(context, reminder);
 
-    final titleStyle = theme.textTheme.titleSmall?.copyWith(
-      color: done ? scheme.onSurfaceVariant : scheme.onSurface,
-      decoration: done ? TextDecoration.lineThrough : null,
-    );
+    TextStyle? titleStyleOf(bool struck) =>
+        theme.textTheme.titleSmall?.copyWith(
+          color: struck ? scheme.onSurfaceVariant : scheme.onSurface,
+          decoration: struck ? TextDecoration.lineThrough : null,
+        );
     final metaStyle = theme.textTheme.labelMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -193,20 +195,25 @@ class ReminderCompactCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text.rich(
-                                  TextSpan(
-                                    children: [
-                                      if (reminder.pinned)
-                                        PriorityPinVisuals.titlePin(
-                                          scheme,
-                                          size: 14,
-                                        ),
-                                      title ?? TextSpan(text: reminder.title),
-                                    ],
+                                // §3.5: the line is drawn across the title
+                                // when the reminder is completed.
+                                StrikeThroughTitle(
+                                  done: done,
+                                  builder: (context, struck) => Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        if (reminder.pinned)
+                                          PriorityPinVisuals.titlePin(
+                                            scheme,
+                                            size: 14,
+                                          ),
+                                        title ?? TextSpan(text: reminder.title),
+                                      ],
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: titleStyleOf(struck),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: titleStyle,
                                 ),
                                 Text.rich(
                                   subtitle ??

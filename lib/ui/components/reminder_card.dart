@@ -7,6 +7,7 @@ import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
+import 'package:reminder/ui/components/strike_through_title.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/reminder_actions.dart';
@@ -234,22 +235,29 @@ class ReminderCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text.rich(
-                                  TextSpan(
-                                    children: [
-                                      if (reminder.pinned)
-                                        PriorityPinVisuals.titlePin(scheme),
-                                      TextSpan(text: reminder.title),
-                                    ],
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color:
-                                        done ? scheme.onSurfaceVariant : null,
-                                    decoration: done
-                                        ? TextDecoration.lineThrough
-                                        : null,
+                                // §3.5: the line is drawn across the title
+                                // when the reminder is completed.
+                                StrikeThroughTitle(
+                                  done: done,
+                                  builder: (context, struck) => Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        if (reminder.pinned)
+                                          PriorityPinVisuals.titlePin(scheme),
+                                        TextSpan(text: reminder.title),
+                                      ],
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
+                                      color: struck
+                                          ? scheme.onSurfaceVariant
+                                          : null,
+                                      decoration: struck
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
                                   ),
                                 ),
                                 if (stackTime) timeWidget,
