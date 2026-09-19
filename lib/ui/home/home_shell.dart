@@ -10,6 +10,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/notification_payload.dart';
 import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/services/widget_launch_router.dart';
+import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/capture/capture_bar.dart';
@@ -42,7 +43,8 @@ import 'package:reminder/ui/today/today_page.dart';
 /// Listeler › Doğum günleri. Home screen widget taps (F5.1) arrive through
 /// [widgetRouter] the same way: "+" opens quick capture, a row its
 /// editor, a birthday row Doğum günleri and the notifications-off strip
-/// Ayarlar (İzinler on top).
+/// Ayarlar (İzinler on top). App icon shortcuts (F5.3) use the same
+/// router: quick capture (optionally prefilled), Bugün, a new birthday.
 ///
 /// The iOS search circle opens the same search page as the Bugün/Listeler
 /// header button (`openSearch`, F3.6).
@@ -178,9 +180,18 @@ class _HomeShellState extends State<HomeShell> {
 
   Future<void> _openFromWidget(WidgetLaunchTarget target) async {
     switch (target) {
-      case NewReminderTarget():
+      case NewReminderTarget(:final initialText):
         // "+" opens quick capture (F4.6b), like the FAB.
-        await showQuickCaptureSheet(context, now: widget.clock);
+        await showQuickCaptureSheet(
+          context,
+          now: widget.clock,
+          initialText: initialText,
+        );
+      case TodayTarget():
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        _select(0);
+      case NewBirthdayTarget():
+        await showBirthdayEditorSheet(context);
       case OpenReminderTarget(:final reminderId):
         await _open(ReminderPayload(reminderId));
       case OpenBirthdayTarget(:final birthdayId):

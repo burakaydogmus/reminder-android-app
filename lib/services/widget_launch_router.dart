@@ -11,6 +11,10 @@ import 'package:flutter/foundation.dart';
 /// - `permissions` → Ayarlar (İzinler grubu en üstte).
 ///
 /// `toggle?id=` uygulamayı açmaz (arka plan callback'i), burada yok sayılır.
+///
+/// Uygulama simgesi kısayolları (F5.3, `services/app_shortcuts.dart`) adres
+/// değil, doğrudan hedef bırakır ([WidgetLaunchRouter.openTarget]): "Market
+/// listesi" metinli [NewReminderTarget], [TodayTarget], [NewBirthdayTarget].
 sealed class WidgetLaunchTarget {
   const WidgetLaunchTarget();
 
@@ -40,18 +44,50 @@ sealed class WidgetLaunchTarget {
   }
 }
 
-/// "+" → hızlı yakalama.
+/// "+" → hızlı yakalama; [initialText] alanı doldurur (F5.3 "Market
+/// listesi" → `#market `).
 final class NewReminderTarget extends WidgetLaunchTarget {
-  const NewReminderTarget();
+  const NewReminderTarget({this.initialText = ''});
+
+  final String initialText;
 
   @override
-  bool operator ==(Object other) => other is NewReminderTarget;
+  bool operator ==(Object other) =>
+      other is NewReminderTarget && other.initialText == initialText;
 
   @override
-  int get hashCode => (NewReminderTarget).hashCode;
+  int get hashCode => Object.hash(NewReminderTarget, initialText);
 
   @override
-  String toString() => 'NewReminderTarget()';
+  String toString() => 'NewReminderTarget($initialText)';
+}
+
+/// Kısayol "Bugün" (F5.3) → Bugün sekmesi, açık sayfalar kapanır.
+final class TodayTarget extends WidgetLaunchTarget {
+  const TodayTarget();
+
+  @override
+  bool operator ==(Object other) => other is TodayTarget;
+
+  @override
+  int get hashCode => (TodayTarget).hashCode;
+
+  @override
+  String toString() => 'TodayTarget()';
+}
+
+/// Kısayol "Yeni doğum günü" (F5.3) → boş doğum günü düzenleyicisi.
+final class NewBirthdayTarget extends WidgetLaunchTarget {
+  const NewBirthdayTarget();
+
+  @override
+  bool operator ==(Object other) => other is NewBirthdayTarget;
+
+  @override
+  int get hashCode => (NewBirthdayTarget).hashCode;
+
+  @override
+  String toString() => 'NewBirthdayTarget()';
 }
 
 /// Satıra dokunma → hatırlatıcının düzenleyicisi.
@@ -102,8 +138,8 @@ final class PermissionsTarget extends WidgetLaunchTarget {
   String toString() => 'PermissionsTarget()';
 }
 
-/// Widget'tan açılışları arayüze iletir (F5.1); `NotificationTapRouter`
-/// (F3.2) ile aynı kalıp.
+/// Widget'tan (F5.1) ve uygulama simgesi kısayollarından (F5.3) açılışları
+/// arayüze iletir; `NotificationTapRouter` (F3.2) ile aynı kalıp.
 ///
 /// Platform kaynağı ([attach]) hedefi [open] ile bırakır; `HomeShell` dinler
 /// ve [take] ile bir kez alır. `HomeShell` yalnız onboarding bittikten sonra
@@ -125,6 +161,11 @@ class WidgetLaunchRouter extends ChangeNotifier {
   void open(Uri? uri) {
     final target = WidgetLaunchTarget.parse(uri);
     if (target == null) return;
+    openTarget(target);
+  }
+
+  /// [target]'ı bırakır (öncekinin yerini alır); kısayollar (F5.3).
+  void openTarget(WidgetLaunchTarget target) {
     _pending = target;
     notifyListeners();
   }

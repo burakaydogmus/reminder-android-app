@@ -9,6 +9,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart'
 import 'package:reminder/app.dart';
 import 'package:reminder/config/app_licenses.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
+import 'package:reminder/services/app_shortcuts.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/notification_tap_router.dart';
@@ -52,6 +53,11 @@ Future<void> main() async {
       clicks: HomeWidget.widgetClicked,
     );
   }
+  // F5.3: app icon shortcuts (both platforms) use the same router, so they
+  // also wait for onboarding and HomeShell.
+  await ShortcutRouter(
+    router: WidgetLaunchRouter.instance,
+  ).attach(const PluginQuickActions());
   // No permission prompts at launch (F1.6): notification, exact alarm and
   // location permissions are asked in context via PermissionFlows.
   await GeofenceService.instance.initialize();
