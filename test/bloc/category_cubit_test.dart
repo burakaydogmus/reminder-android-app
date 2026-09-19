@@ -77,6 +77,16 @@ void main() {
     expect(ids(cubit).last, 'gym');
     expect(cubit.state.categories.byId('gym')!.position, 6);
     expect(lastSaved().map((c) => c.id), ids(cubit));
+    // The home widget gets the new catalog (category colours).
+    final widgetCategories = verify(
+      () => homeWidget.sync(
+        any(),
+        birthdays: any(named: 'birthdays'),
+        notificationsEnabled: any(named: 'notificationsEnabled'),
+        categories: captureAny(named: 'categories'),
+      ),
+    ).captured.last as CategoryCatalog;
+    expect(widgetCategories.contains('gym'), isTrue);
   });
 
   test('saveCategory updates in place and ignores built-ins', () async {

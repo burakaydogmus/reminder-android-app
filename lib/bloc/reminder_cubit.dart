@@ -128,6 +128,7 @@ class ReminderCubit extends Cubit<ReminderState> {
       reminders: reminders,
       birthdays: birthdays,
       settings: settings,
+      categories: state.categories,
     );
   }
 
@@ -140,6 +141,7 @@ class ReminderCubit extends Cubit<ReminderState> {
       reminders: s.reminders,
       birthdays: s.birthdays,
       settings: s.settings,
+      categories: s.categories,
     );
   }
 
@@ -278,7 +280,11 @@ class ReminderCubit extends Cubit<ReminderState> {
     );
     emit(state.copyWith(reminders: reminders, categories: categories));
     await _repository.saveCategories(categories.ordered);
-    if (moved > 0) await _persistAndSync();
+    if (moved > 0) {
+      await _persistAndSync();
+    } else {
+      await _refreshHomeWidget();
+    }
     return moved;
   }
 
@@ -287,7 +293,17 @@ class ReminderCubit extends Cubit<ReminderState> {
     if (next == state.categories) return;
     emit(state.copyWith(categories: next));
     await _repository.saveCategories(next.ordered);
+    await _refreshHomeWidget();
   }
+
+  /// Kategori rengi değişince widget'taki noktalar da güncellensin; bildirim
+  /// ve geofence'e dokunulmaz.
+  Future<void> _refreshHomeWidget() => _schedules.refreshHomeWidget(
+        reminders: state.reminders,
+        birthdays: state.birthdays,
+        settings: state.settings,
+        categories: state.categories,
+      );
 
   Future<void> setNotificationsEnabled(bool enabled) async {
     emit(state.copyWith(

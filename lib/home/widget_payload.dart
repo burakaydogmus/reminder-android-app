@@ -1,5 +1,6 @@
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -81,7 +82,9 @@ abstract final class WidgetPayload {
     required List<Birthday> birthdays,
     required bool notificationsEnabled,
     required DateTime now,
+    CategoryCatalog? categories,
   }) {
+    final catalog = categories ?? CategoryCatalog.builtIns;
     final overdue = <Reminder>[];
     final today = <Reminder>[];
     final untimed = <Reminder>[];
@@ -104,10 +107,10 @@ abstract final class WidgetPayload {
     }
 
     final items = <Map<String, Object?>>[
-      for (final r in overdue) _item(r, sectionOverdue, now),
-      for (final r in today) _item(r, sectionToday, now),
-      for (final r in untimed) _item(r, sectionUntimed, now),
-      for (final r in later) _item(r, sectionLater, now),
+      for (final r in overdue) _item(r, sectionOverdue, now, catalog),
+      for (final r in today) _item(r, sectionToday, now, catalog),
+      for (final r in untimed) _item(r, sectionUntimed, now, catalog),
+      for (final r in later) _item(r, sectionLater, now, catalog),
     ];
 
     final todayCount = today.length + untimed.length;
@@ -173,7 +176,12 @@ abstract final class WidgetPayload {
     };
   }
 
-  static Map<String, Object?> _item(Reminder r, String section, DateTime now) {
+  static Map<String, Object?> _item(
+    Reminder r,
+    String section,
+    DateTime now,
+    CategoryCatalog catalog,
+  ) {
     final at = r.remindAt?.toLocal();
     return {
       'id': r.id,
@@ -183,7 +191,8 @@ abstract final class WidgetPayload {
       'clock': at == null ? null : clock(at),
       'dueAt': at?.millisecondsSinceEpoch,
       'overdue': section == sectionOverdue,
-      'category': CategoryVisuals.colorKeyFor(r.categoryId).storageKey,
+      // F4.3: user categories resolve through the catalog.
+      'category': CategoryVisuals.colorKeyFor(r.categoryId, catalog).storageKey,
       'subtasks': subtaskProgress(r.subtasks),
       'recurring': r.isRecurring,
     };

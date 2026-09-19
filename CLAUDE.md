@@ -903,7 +903,12 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (48 cells, 6 columns, spoken names), [Sil] (existing only; confirm "Bu kategorideki N
   hatırlatıcı Diğer'e taşınacak.") · [Kaydet]. Reminder editor: chips for every
   category in catalog order + "+ Yeni" (creates and selects); the old "Özel ad" field
-  is gone. Search's category filter lists the catalog.
+  is gone. Search's category filter lists the catalog. Home widget colours:
+  `ScheduleSync.syncAll` / `refreshHomeWidget(categories:)` → `HomeWidgetSync.sync(
+  categories:)` → `WidgetPayload.build(categories:)` (`null` = built-ins); the cubit
+  passes `state.categories` (and refreshes the widget after category edits), the
+  widget and notification-action isolates load them from the repository. Mock stubs
+  match `categories: any(named: 'categories')` (`test/helpers/mocks.dart`).
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
   `kor-design-proposal.md` §3.3.11.
 

@@ -71,6 +71,7 @@ void stubHomeWidgetSync(MockHomeWidgetSync homeWidget) {
       any(),
       birthdays: any(named: 'birthdays'),
       notificationsEnabled: any(named: 'notificationsEnabled'),
+      categories: any(named: 'categories'),
     ),
   ).thenAnswer((_) async {});
 }
@@ -81,6 +82,7 @@ Future<void> anyHomeWidgetSync(MockHomeWidgetSync homeWidget) =>
       any(),
       birthdays: any(named: 'birthdays'),
       notificationsEnabled: any(named: 'notificationsEnabled'),
+      categories: any(named: 'categories'),
     );
 
 /// Tek `homeWidget.sync` çağrısının hatırlatıcı listesini yakalar.
@@ -90,5 +92,6 @@ List<Reminder> capturedHomeWidgetReminders(MockHomeWidgetSync homeWidget) =>
         captureAny(),
         birthdays: any(named: 'birthdays'),
         notificationsEnabled: any(named: 'notificationsEnabled'),
+        categories: any(named: 'categories'),
       ),
     ).captured.single as List<Reminder>;

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
 import 'package:reminder/services/geofence_service.dart';
@@ -244,6 +245,8 @@ Future<bool> handleNotificationAction(
     reminders: updated,
     birthdays: birthdays,
     settings: settings,
+    // F4.3: user-category colours in the home widget.
+    categories: CategoryCatalog(await repository.loadCategories()),
   );
   notifyAppOfWidgetChange(); // F1.3: açık uygulama depodan yeniden yüklesin.
   return true;

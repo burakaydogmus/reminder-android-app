@@ -9,6 +9,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/reminder_home_widget_callback.dart';
 import 'package:reminder/home/widget_change_signal.dart';
@@ -213,14 +214,17 @@ void main() {
             any(),
             birthdays: captureAny(named: 'birthdays'),
             notificationsEnabled: captureAny(named: 'notificationsEnabled'),
+            categories: captureAny(named: 'categories'),
           ),
         ).captured;
-        expect(captured, hasLength(2));
+        expect(captured, hasLength(3));
         expect(
           (captured[0] as List<Birthday>).map((b) => b.id),
           ['bday'],
         );
         expect(captured[1], isFalse);
+        // F4.3: the stored categories travel along (built-ins here).
+        expect(captured[2], CategoryCatalog.builtIns);
       });
     }
 
