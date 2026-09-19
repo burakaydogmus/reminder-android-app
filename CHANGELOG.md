@@ -18,6 +18,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Dört Android widget'ı:** **Bugün** (4×2: "Bugün · N", ilk iki iş, sağ üstte "+" hap),
+  kaydırılabilir **Liste** (4×4, 3×3–5×6 arası boyutlanır: Kaçanlar, Bugün, Doğum günü, Sonra;
+  8 satır sınırı kalktı), **Sıradaki** (2×2: sıradaki işin saati ve başlığı, "+N daha") ve
+  **Hızlı ekle** (1×1, yalnız "+"). Daireye dokunmak uygulamayı açmadan tamamlar (tekrarlayanlar
+  sonraki tarihe geçer), satıra dokunmak hatırlatıcıyı, doğum günü satırı Doğum günleri'ni, "+"
+  yeni hatırlatıcıyı açar. Bildirimler kapalıysa "Bildirimler kapalı — açmak için dokun" şeridi
+  Ayarlar'a götürür. Android 12+'da sistem dinamik renkleri ve köşe yarıçapı, koyu tema desteği;
+  "Gecikti", "Yarın" ve bölümler uygulama açılmadan saat geçtikçe güncellenir. Ana ekrandaki
+  eski widget kendiliğinden Liste olur. Ayarlar › "Widget ekle" dört widget'tan birini seçtirir.
+  (F5.1)
 - **Hareket ve titreşim:** kartın tamamlama dairesi dokununca hafifçe basılıyor, 9 dilimli
   "kurabiye" şekline dönüşüp kategori rengiyle doluyor ve ✓ çiziliyor; kart yanlış dokunuşu fark
   etmen için 0,9 sn yerinde bekledikten sonra tamamlanıyor (bu sürede tekrar dokunmak iptal

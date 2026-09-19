@@ -133,8 +133,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     notifications, exact alarms, location) with pure decision helpers;
     `PlatformPermissionService` over flutter_local_notifications + permission_handler.
   - `places_nearby_service.dart` — Google Places Nearby over HTTP.
-  - `reminder_home_widget_sync.dart` — pushes data to the `home_widget`
-    (`syncRemindersToHomeWidget`); `PlatformHomeWidgetSync` implements `HomeWidgetSync`.
+  - `reminder_home_widget_sync.dart` — writes the widget payload and refreshes the four
+    Android widgets (`syncRemindersToHomeWidget`, `ReminderHomeWidget`);
+    `PlatformHomeWidgetSync` implements `HomeWidgetSync`. See **Android home screen
+    widgets (F5.1)**.
+  - `widget_launch_router.dart` — `WidgetLaunchTarget` / `WidgetLaunchRouter`: widget taps
+    that open the app (F5.1).
+- `home/widget_payload.dart` — `WidgetPayload.build`, the widgets' data contract (F5.1).
 - `home/reminder_home_widget_callback.dart` — background entry point
   (`@pragma('vm:entry-point')`) for widget interactions (toggle a reminder while the
   app is closed). Runs in a separate isolate, so the thin entry point builds the real
@@ -471,6 +476,59 @@ does not recognise; keep that cleanup if the sync changes again.
   after its first frame): a reminder payload opens `showReminderEditorSheet` once the
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
+## Android home screen widgets (F5.1)
+
+Four `AppWidgetProvider`s in `android/app/src/main/kotlin/com/burakaydogmus/reminder/`,
+all extending `ReminderWidgetProvider` (reads the payload, draws every instance, arms
+the refresh alarm). Dart lists them in `ReminderHomeWidget` (`reminder_home_widget_sync.dart`,
+same labels as the widget picker) and refreshes all four after every sync.
+
+| Widget | Provider | Size | Content |
+|---|---|---|---|
+| Bugün | `ReminderTodayWidgetProvider` | 4×2 | "Bugün · N" + 56×40 pill "+", first two of overdue + today + untimed, 48dp check circles |
+| Liste | `ReminderListWidgetProvider` (**pre-F5.1 class name kept** so placed widgets keep working) | 4×4, 3×3–5×6 | scrollable Kaçanlar / Bugün / Doğum günü / Sonra |
+| Sıradaki | `ReminderNextWidgetProvider` | 2×2 | "SIRADAKİ", 28sp time, 2-line title, "+N daha", round "+" |
+| Hızlı ekle | `ReminderQuickAddWidgetProvider` | 1×1 | "+" only |
+
+- **Data contract:** `WidgetPayload.build` (`lib/home/widget_payload.dart`, pure, tested)
+  → JSON under `widget_payload_v2` (`v: 2`, ≤ 60 items with section, labels, `dueAt`,
+  category colour key, subtask progress, recurring flag; counts; next; today/tomorrow
+  birthdays; `notificationsEnabled`). Kotlin `WidgetPayload.kt` parses it and **recomputes
+  every time-dependent field at draw time** from `dueAt` / `date` (sections, "Gecikti",
+  "Yarın", counts, next) because widgets outlive the last sync. Adding fields is
+  compatible; changing a meaning bumps the version and the key. The pre-F5.1 key
+  `reminders_active_json` is deleted on sync.
+- **URIs** (`reminderwidget://`): `toggle?id=` → background callback
+  (`handleReminderHomeWidgetToggle`, shared `completeReminder`; it also passes birthdays
+  and settings to the widget sync); `new`, `open?id=`, `birthday?id=`, `permissions`
+  open the app with `HomeWidgetLaunchIntent` (direct activity PendingIntents, no
+  trampoline). `WidgetLaunchRouter` (`services/widget_launch_router.dart`, attached in
+  `main.dart` on Android) queues the target like `NotificationTapRouter`; `HomeShell`
+  takes it (so it waits for onboarding): `new` → new reminder editor (switch to quick
+  capture when F4.6b lands), `open` → editor after the first load, `birthday` →
+  Doğum günleri, `permissions` → Ayarlar.
+- **Liste collection:** API 31+ `RemoteViews.RemoteCollectionItems`; API 26–30
+  `ReminderListWidgetService` (`RemoteViewsService` + factory), both built by `ListRows`.
+  Collection children cannot carry their own PendingIntents, so rows use one mutable
+  template (`ReminderWidgetClickReceiver`) + fill-in URIs: `toggle` is forwarded to
+  `HomeWidgetBackgroundReceiver`, `open`/`birthday` start the activity (BAL grant from the
+  launcher's send; the sender opts in on API 34+). Every other tap is a direct
+  activity PendingIntent.
+- **Refresh:** `updatePeriodMillis = 0`. After each draw `ReminderWidgetRefreshReceiver`
+  arms **one non-waking inexact alarm** (`AlarmManager.RTC`, `set`) at the next `dueAt`
+  or midnight, whichever is first; it is delivered when the device wakes, so no battery
+  is spent while nobody looks. Reboots/app updates drop alarms, but the system then
+  sends `APPWIDGET_UPDATE`, which re-arms it; `TIME_SET` / `TIMEZONE_CHANGED` redraw.
+- **Look:** Kor colours in `values/` + `values-night/`; Android 12+ `@android:color/system_*`
+  (neutral surface, accent pill) and `system_app_widget_background_radius` in
+  `values-v31/` + `values-night-v31/`; category colours stay Kor. On API 31+ text/tint
+  colours are set as resources (`RemoteViews.setColor`) so theme switches re-resolve.
+  Strings and TalkBack descriptions in `values/strings.xml`.
+- Settings › "Widget ekle" (`ui/settings/widget_pin_sheet.dart`) lets the user pick one
+  of the four and pins it (`HomeWidgetPinner`, fake in tests); onboarding still pins Liste.
+- R8: providers, the list service and the widget receivers are kept by name in
+  `proguard-rules.pro`. Kotlin is only compiled by CI (`build-android-release`).
 
 ## Quick-capture parser (F4.6a)
 
@@ -812,6 +870,7 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   debug key plus a Gradle warning (never publish those). R8 + `shrinkResources` are on;
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
-- Widget and geofence behaviour differs per platform; the home widget is Android-only today.
+- Widget and geofence behaviour differs per platform; the home widgets are Android-only today
+  (iOS WidgetKit is F5.2).
 - Store readiness (privacy policy, data safety answers, permissions/policy review, listing drafts,
   licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change.
