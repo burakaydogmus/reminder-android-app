@@ -81,3 +81,20 @@ List<Subtask> buildSubtasks(List<String> titles, {Set<int> done = const {}}) {
       ),
   ];
 }
+
+/// Kullanıcı kategorisi (F4.3); varsayılan renk `lacivert`, ikon `fitness`.
+ReminderCategory buildCategory({
+  String id = 'c1',
+  String name = 'Spor',
+  String colorKey = 'lacivert',
+  String iconKey = CategoryIconKeys.fitness,
+  int position = 6,
+}) {
+  return ReminderCategory(
+    id: id,
+    name: name,
+    colorKey: colorKey,
+    iconKey: iconKey,
+    position: position,
+  );
+}
