@@ -381,6 +381,7 @@ class ColorSwatchButton extends StatelessWidget {
       inMutuallyExclusiveGroup: true,
       label: CategoryColorNames.of(colorKey),
       excludeSemantics: true,
+      onTap: onTap,
       child: InkResponse(
         onTap: onTap,
         radius: KorSizes.minTouch / 2,
@@ -441,6 +442,7 @@ class _IconCell extends StatelessWidget {
       inMutuallyExclusiveGroup: true,
       label: CategoryIcons.spokenNames[iconKey],
       excludeSemantics: true,
+      onTap: onTap,
       child: InkResponse(
         onTap: onTap,
         radius: KorSizes.minTouch / 2,

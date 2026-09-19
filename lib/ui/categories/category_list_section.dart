@@ -92,6 +92,7 @@ class _CategoryListSectionState extends State<CategoryListSection> {
           button: true,
           label: 'Yeni kategori',
           excludeSemantics: true,
+          onTap: () => showCategoryEditorSheet(context),
           child: InkWell(
             key: CategoryListKeys.newCategory,
             onTap: () => showCategoryEditorSheet(context),
@@ -150,6 +151,7 @@ class _CategoryRow extends StatelessWidget {
       button: true,
       label: '${category.name}, $count açık',
       excludeSemantics: true,
+      onTap: onTap,
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(
