@@ -25,7 +25,7 @@ class CaptureDraft {
   /// The new reminder (not saved).
   final Reminder reminder;
 
-  /// An explicit one-off time that is already behind `now` (`dün`,
+  /// An explicit one-off time that is already behind `now` (`17 eylül 2025`,
   /// `bugün 9'da` after 09:00). Never saved silently: the sheet shows the
   /// F1.8b warning and a "Yarın HH:mm mı?" suggestion (design §3.3.4).
   final bool isPast;
@@ -188,7 +188,7 @@ abstract final class CaptureToReminder {
   }
 
   /// Title of an accepted "Maddelere böl?" list (design §3.3.3):
-  /// "Market alışverişi" for Market, "<Kategori> listesi" otherwise.
+  /// "Market alışverişi" for Market, "`<Kategori>` listesi" otherwise.
   static String listTitle(String categoryId) =>
       categoryId == ReminderCategoryIds.market
           ? 'Market alışverişi'

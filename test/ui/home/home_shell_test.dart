@@ -5,6 +5,7 @@ import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
+import 'package:reminder/ui/capture/capture_bar.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/kor_glass_surface.dart';
 import 'package:reminder/ui/home/kor_glass_tab_bar.dart';
@@ -126,7 +127,7 @@ void main() {
         semantics.dispose();
       });
 
-      testWidgets('FAB long-press offers Hatırlatıcı and Doğum günü', (
+      testWidgets('FAB long-press offers Hızlı ekle, Hatırlatıcı, Doğum günü', (
         tester,
       ) async {
         final h = await UiHarness.create();
@@ -137,6 +138,7 @@ void main() {
 
         await tester.longPress(find.byType(FloatingActionButton));
         await tester.pumpAndSettle();
+        expect(find.text('Hızlı ekle'), findsOneWidget);
         expect(find.text('Hatırlatıcı'), findsOneWidget);
         expect(find.text('Doğum günü'), findsOneWidget);
       });
@@ -197,7 +199,9 @@ void main() {
 
         expect(find.byType(KorGlassTabBar), findsOneWidget);
         expect(find.byType(KorPillNavigation), findsNothing);
-        expect(find.byType(NewItemFab), findsOneWidget);
+        // F4.6b: iOS adds through the capture bar, not a FAB.
+        expect(find.byType(NewItemFab), findsNothing);
+        expect(find.byType(CaptureBar), findsOneWidget);
         for (final label in ['Bugün', 'Takvim', 'Listeler']) {
           expect(tab(label), findsOneWidget);
         }
