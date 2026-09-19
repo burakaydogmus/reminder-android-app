@@ -63,31 +63,37 @@ class KorPillNavigation extends StatelessWidget {
     final elevation = theme.brightness == Brightness.dark
         ? KorElevation.dark
         : KorElevation.light;
+    Widget item(int i) => _PillNavItem(
+          destination: destinations[i],
+          selected: i == selectedIndex,
+          index: i,
+          count: destinations.length,
+          onTap: () => onSelected(i),
+        );
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: KorSizes.navBarHeight),
-        padding: const EdgeInsets.symmetric(horizontal: KorSpacing.s3),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHigh,
-          borderRadius: KorRadius.fullAll,
-          boxShadow: elevation.level2,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var i = 0; i < destinations.length; i++)
-              Flexible(
-                child: _PillNavItem(
-                  destination: destinations[i],
-                  selected: i == selectedIndex,
-                  index: i,
-                  count: destinations.length,
-                  onTap: () => onSelected(i),
-                ),
-              ),
-          ],
+      // The pill floats over the list: a tap on it between items must not
+      // reach the card underneath.
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: KorSizes.navBarHeight),
+          padding: const EdgeInsets.symmetric(horizontal: KorSpacing.s3),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh,
+            borderRadius: KorRadius.fullAll,
+            boxShadow: elevation.level2,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Only the selected item (icon + label) shrinks; equal shares
+              // cut its label to "B…" on a 390 dp phone (F4.5 audit).
+              for (var i = 0; i < destinations.length; i++)
+                if (i == selectedIndex) Flexible(child: item(i)) else item(i),
+            ],
+          ),
         ),
       ),
     );
