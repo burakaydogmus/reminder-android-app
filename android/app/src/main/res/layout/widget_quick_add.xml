@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hızlı ekle 1×1 (F5.1, §3.4): yalnız "+" → yeni hatırlatıcı. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/widget_add"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/widget_pill_round"
+        android:clickable="true"
+        android:contentDescription="@string/widget_cd_add"
+        android:focusable="true"
+        android:scaleType="center"
+        android:src="@drawable/widget_ic_add" />
+</FrameLayout>

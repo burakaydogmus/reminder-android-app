@@ -61,7 +61,11 @@ void main() {
               reminders,
               notificationsEnabled: enabled,
             ),
-        () => homeWidget.sync(reminders),
+        () => homeWidget.sync(
+              reminders,
+              birthdays: birthdays,
+              notificationsEnabled: enabled,
+            ),
       ]);
       verifyNoMoreInteractions(notifications);
       verifyNoMoreInteractions(geofence);
@@ -70,9 +74,19 @@ void main() {
   }
 
   test('refreshHomeWidget only updates the widget', () async {
-    await schedules.refreshHomeWidget(reminders);
+    await schedules.refreshHomeWidget(
+      reminders: reminders,
+      birthdays: birthdays,
+      settings: const AppSettings(notificationsEnabled: false),
+    );
 
-    verify(() => homeWidget.sync(reminders)).called(1);
+    verify(
+      () => homeWidget.sync(
+        reminders,
+        birthdays: birthdays,
+        notificationsEnabled: false,
+      ),
+    ).called(1);
     verifyZeroInteractions(notifications);
     verifyZeroInteractions(geofence);
   });
@@ -99,7 +113,7 @@ void main() {
       ).thenAnswer((inv) async {
         log.add('geofence:${ids(inv.positionalArguments.first)}');
       });
-      when(() => homeWidget.sync(any())).thenAnswer((inv) async {
+      when(() => anyHomeWidgetSync(homeWidget)).thenAnswer((inv) async {
         log.add('widget:${ids(inv.positionalArguments.first)}');
       });
       schedules = ScheduleSync(

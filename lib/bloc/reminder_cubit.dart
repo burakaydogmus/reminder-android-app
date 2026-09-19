@@ -318,6 +318,10 @@ class ReminderCubit extends Cubit<ReminderState> {
       categories: CategoryCatalog.builtIns,
       clock: _now,
     ));
-    await _homeWidget.sync(const []);
+    await _homeWidget.sync(
+      const [],
+      birthdays: const [],
+      notificationsEnabled: const AppSettings().notificationsEnabled,
+    );
   }
 }

@@ -13,6 +13,7 @@ import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/notification_tap_router.dart';
 import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/services/widget_launch_router.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/util/local_timezone.dart';
 
@@ -44,6 +45,13 @@ Future<void> main() async {
   // F3.2: a tap that launched the app opens its reminder once HomeShell is up.
   await NotificationTapRouter.instance
       .openFromLaunch(NotificationService.instance.appLaunchDetails);
+  // F5.1: widget "+", row and permission taps open their screen in HomeShell.
+  if (Platform.isAndroid) {
+    await WidgetLaunchRouter.instance.attach(
+      initialLaunch: HomeWidget.initiallyLaunchedFromHomeWidget,
+      clicks: HomeWidget.widgetClicked,
+    );
+  }
   // No permission prompts at launch (F1.6): notification, exact alarm and
   // location permissions are asked in context via PermissionFlows.
   await GeofenceService.instance.initialize();

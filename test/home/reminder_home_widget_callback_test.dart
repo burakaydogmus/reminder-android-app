@@ -100,10 +100,7 @@ void main() {
       );
 
   List<String> widgetIds() =>
-      (verify(() => homeWidget.sync(captureAny())).captured.single
-              as List<Reminder>)
-          .map((r) => r.id)
-          .toList();
+      capturedHomeWidgetReminders(homeWidget).map((r) => r.id).toList();
 
   group('reminderIdFromWidgetUri', () {
     test('reads the id of a toggle uri', () {
@@ -200,6 +197,30 @@ void main() {
         expect(plugin.pending.keys.toSet(), before);
         verifyZeroInteractions(geofence);
         expect(widgetIds(), ['first', 'second', 'finished']);
+      });
+    }
+
+    for (final id in ['first', 'missing']) {
+      test('"$id": the widget gets birthdays and the notification flag (F5.1)',
+          () async {
+        await repository
+            .saveSettings(const AppSettings(notificationsEnabled: false));
+
+        await toggle(id);
+
+        final captured = verify(
+          () => homeWidget.sync(
+            any(),
+            birthdays: captureAny(named: 'birthdays'),
+            notificationsEnabled: captureAny(named: 'notificationsEnabled'),
+          ),
+        ).captured;
+        expect(captured, hasLength(2));
+        expect(
+          (captured[0] as List<Birthday>).map((b) => b.id),
+          ['bday'],
+        );
+        expect(captured[1], isFalse);
       });
     }
 

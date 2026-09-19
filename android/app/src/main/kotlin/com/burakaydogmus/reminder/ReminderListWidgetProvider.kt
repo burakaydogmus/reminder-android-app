@@ -1,130 +1,81 @@
 package com.burakaydogmus.reminder
 
-import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
-import android.view.View
 import android.widget.RemoteViews
-import es.antonborri.home_widget.HomeWidgetBackgroundReceiver
-import es.antonborri.home_widget.HomeWidgetLaunchIntent
-import es.antonborri.home_widget.HomeWidgetProvider
-import org.json.JSONArray
 
-class ReminderListWidgetProvider : HomeWidgetProvider() {
-
-  override fun onUpdate(
+/**
+ * Liste 4×4, 3×3–5×6 arası boyutlanır (F5.1): kaydırılabilir Kaçanlar / Bugün /
+ * Doğum günü / Sonra bölümleri.
+ *
+ * F5.1 öncesi tek widget'ın sınıfı (adı değişmez), böylece ana ekranda duran
+ * widget'lar kendiliğinden Liste olur.
+ *
+ * Koleksiyon: API 31+ `RemoteViews.RemoteCollectionItems` (satırlar doğrudan
+ * RemoteViews içinde, servis yok); API 26–30 [ReminderListWidgetService]
+ * (`RemoteViewsService` + `RemoteViewsFactory`). Satırlar iki yolda da
+ * [ListRows] ile çizilir. Koleksiyon öğeleri kendi PendingIntent'ini taşıyamaz;
+ * tıklamalar tek şablon ([ReminderWidgetClickReceiver.template]) + satır başına
+ * fill-in adresidir.
+ */
+class ReminderListWidgetProvider : ReminderWidgetProvider() {
+  override fun build(
       context: Context,
       appWidgetManager: AppWidgetManager,
-      appWidgetIds: IntArray,
-      widgetData: SharedPreferences,
+      widgetId: Int,
+      snapshot: WidgetPayload.Snapshot,
+  ): RemoteViews {
+    val views = RemoteViews(context.packageName, R.layout.widget_list)
+    ReminderTodayWidgetProvider.bindHeader(context, views, snapshot.todayOpen.size)
+    WidgetViews.bindAdd(context, views, R.id.widget_add)
+    WidgetViews.bindNotificationsStrip(
+        context,
+        views,
+        R.id.widget_notifications_off,
+        snapshot.notificationsEnabled,
+    )
+
+    if (Build.VERSION.SDK_INT >= 31) {
+      val items =
+          RemoteViews.RemoteCollectionItems.Builder()
+              .setHasStableIds(true)
+              .setViewTypeCount(ListRows.VIEW_TYPE_COUNT)
+      for (row in ListRows.build(context, snapshot)) {
+        items.addItem(row.id, row.views)
+      }
+      views.setRemoteAdapter(R.id.widget_list, items.build())
+    } else {
+      val intent =
+          Intent(context, ReminderListWidgetService::class.java)
+              .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+      // Farklı widget'lar farklı fabrika alsın diye (Intent eşitliği ekstraları saymaz).
+      intent.data = Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME))
+      @Suppress("DEPRECATION") views.setRemoteAdapter(R.id.widget_list, intent)
+    }
+    views.setEmptyView(R.id.widget_list, R.id.widget_empty)
+    views.setOnClickPendingIntent(
+        R.id.widget_empty,
+        WidgetViews.launch(context, WidgetViews.newUri),
+    )
+    views.setPendingIntentTemplate(
+        R.id.widget_list,
+        ReminderWidgetClickReceiver.template(context),
+    )
+    return views
+  }
+
+  override fun afterUpdate(
+      context: Context,
+      appWidgetManager: AppWidgetManager,
+      widgetIds: IntArray,
   ) {
-    appWidgetIds.forEach { widgetId ->
-      val views = RemoteViews(context.packageName, R.layout.reminder_widget_layout)
-
-      // Kök layout'a tıklama bağlamayın: çocuk satırların PendingIntent'lerini yutar.
-      val openApp =
-          HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, null)
-      views.setOnClickPendingIntent(R.id.widget_header, openApp)
-
-      val json = widgetData.getString("reminders_active_json", null) ?: "[]"
-
-      val rows = parseRows(json)
-
-      if (rows.isEmpty()) {
-        views.setViewVisibility(R.id.widget_empty, View.VISIBLE)
-        for (i in rowIds.indices) {
-          views.setViewVisibility(rowIds[i], View.GONE)
-        }
-      } else {
-        views.setViewVisibility(R.id.widget_empty, View.GONE)
-        for (i in rowIds.indices) {
-          if (i < rows.size) {
-            val row = rows[i]
-            views.setViewVisibility(rowIds[i], View.VISIBLE)
-            views.setTextViewText(textIds[i], row.title)
-            val toggle = toggleIntent(context, row.id)
-            // Satır + kutu + metin: dokunma alanı geniş ve kök ile çakışmaz.
-            views.setOnClickPendingIntent(rowIds[i], toggle)
-            views.setOnClickPendingIntent(checkIds[i], toggle)
-            views.setOnClickPendingIntent(textIds[i], toggle)
-          } else {
-            views.setViewVisibility(rowIds[i], View.GONE)
-          }
-        }
-      }
-
-      appWidgetManager.updateAppWidget(widgetId, views)
+    if (Build.VERSION.SDK_INT < 31) {
+      // Fabrika `onDataSetChanged` ile veriyi yeniden okur.
+      @Suppress("DEPRECATION")
+      appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_list)
     }
-  }
-
-  private data class Row(val id: String, val title: String)
-
-  private fun parseRows(json: String): List<Row> {
-    return try {
-      val arr = JSONArray(json)
-      val out = ArrayList<Row>(arr.length())
-      for (i in 0 until arr.length()) {
-        val o = arr.getJSONObject(i)
-        val id = o.getString("id")
-        val title = o.optString("title", "").ifEmpty { "…" }
-        out.add(Row(id, title))
-      }
-      out
-    } catch (_: Exception) {
-      emptyList()
-    }
-  }
-
-  private fun toggleIntent(context: Context, reminderId: String): PendingIntent {
-    val intent = Intent(context, HomeWidgetBackgroundReceiver::class.java)
-    intent.action = "es.antonborri.home_widget.action.BACKGROUND"
-    intent.data =
-        Uri.parse("reminderwidget://toggle?id=" + Uri.encode(reminderId))
-    var flags = PendingIntent.FLAG_UPDATE_CURRENT
-    if (Build.VERSION.SDK_INT >= 23) {
-      flags = flags or PendingIntent.FLAG_IMMUTABLE
-    }
-    val req = (31 * reminderId.hashCode()) xor reminderId.length
-    return PendingIntent.getBroadcast(context, req, intent, flags)
-  }
-
-  companion object {
-    private val rowIds =
-        intArrayOf(
-            R.id.widget_row_0,
-            R.id.widget_row_1,
-            R.id.widget_row_2,
-            R.id.widget_row_3,
-            R.id.widget_row_4,
-            R.id.widget_row_5,
-            R.id.widget_row_6,
-            R.id.widget_row_7,
-        )
-    private val checkIds =
-        intArrayOf(
-            R.id.widget_check_0,
-            R.id.widget_check_1,
-            R.id.widget_check_2,
-            R.id.widget_check_3,
-            R.id.widget_check_4,
-            R.id.widget_check_5,
-            R.id.widget_check_6,
-            R.id.widget_check_7,
-        )
-    private val textIds =
-        intArrayOf(
-            R.id.widget_text_0,
-            R.id.widget_text_1,
-            R.id.widget_text_2,
-            R.id.widget_text_3,
-            R.id.widget_text_4,
-            R.id.widget_text_5,
-            R.id.widget_text_6,
-            R.id.widget_text_7,
-        )
   }
 }

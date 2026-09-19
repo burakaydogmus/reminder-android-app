@@ -66,5 +66,29 @@ void stubGeofenceSync(MockGeofenceSync geofence) {
 }
 
 void stubHomeWidgetSync(MockHomeWidgetSync homeWidget) {
-  when(() => homeWidget.sync(any())).thenAnswer((_) async {});
+  when(
+    () => homeWidget.sync(
+      any(),
+      birthdays: any(named: 'birthdays'),
+      notificationsEnabled: any(named: 'notificationsEnabled'),
+    ),
+  ).thenAnswer((_) async {});
 }
+
+/// `homeWidget.sync` çağrısının argümanlarından bağımsız eşleştiricisi.
+Future<void> anyHomeWidgetSync(MockHomeWidgetSync homeWidget) =>
+    homeWidget.sync(
+      any(),
+      birthdays: any(named: 'birthdays'),
+      notificationsEnabled: any(named: 'notificationsEnabled'),
+    );
+
+/// Tek `homeWidget.sync` çağrısının hatırlatıcı listesini yakalar.
+List<Reminder> capturedHomeWidgetReminders(MockHomeWidgetSync homeWidget) =>
+    verify(
+      () => homeWidget.sync(
+        captureAny(),
+        birthdays: any(named: 'birthdays'),
+        notificationsEnabled: any(named: 'notificationsEnabled'),
+      ),
+    ).captured.single as List<Reminder>;

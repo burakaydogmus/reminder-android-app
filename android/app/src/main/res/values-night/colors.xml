@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ana ekran widget'ları (F5.1), Kor koyu tema. -->
+    <color name="widget_surface">#1D1B17</color>
+    <color name="widget_on_surface">#EDE6DC</color>
+    <color name="widget_on_surface_variant">#B9B0A4</color>
+    <color name="widget_outline">#857D72</color>
+    <color name="widget_primary">#FF9B63</color>
+    <color name="widget_pill">#6A2A08</color>
+    <color name="widget_on_pill">#FFDCC8</color>
+
+    <color name="widget_cat_market">#8ED68A</color>
+    <color name="widget_cat_ev">#6FD6D2</color>
+    <color name="widget_cat_is">#9EC2F7</color>
+    <color name="widget_cat_saglik">#FF9EC2</color>
+    <color name="widget_cat_gunluk">#F2BE6B</color>
+    <color name="widget_cat_diger">#C2B1FF</color>
+    <color name="widget_cat_dogumgunu">#F2A3E4</color>
+</resources>

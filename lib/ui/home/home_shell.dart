@@ -9,6 +9,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/services/notification_payload.dart';
 import 'package:reminder/services/notification_tap_router.dart';
+import 'package:reminder/services/widget_launch_router.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/capture/capture_bar.dart';
@@ -20,6 +21,7 @@ import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/lists/lists_page.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/search/search_page.dart';
+import 'package:reminder/ui/settings/settings_page.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 import 'package:reminder/ui/theme/adaptive/platform_chrome.dart';
 import 'package:reminder/ui/theme/tokens/kor_elevation.dart';
@@ -37,7 +39,10 @@ import 'package:reminder/ui/today/today_page.dart';
 ///
 /// Notification taps (F3.2) arrive through [tapRouter]: a reminder payload
 /// opens its editor (after the first load), a birthday payload opens
-/// Listeler › Doğum günleri.
+/// Listeler › Doğum günleri. Home screen widget taps (F5.1) arrive through
+/// [widgetRouter] the same way: "+" opens quick capture, a row its
+/// editor, a birthday row Doğum günleri and the notifications-off strip
+/// Ayarlar (İzinler on top).
 ///
 /// The iOS search circle opens the same search page as the Bugün/Listeler
 /// header button (`openSearch`, F3.6).
@@ -46,6 +51,7 @@ class HomeShell extends StatefulWidget {
     super.key,
     this.clock = DateTime.now,
     this.tapRouter,
+    this.widgetRouter,
     this.reminderLoadTimeout = const Duration(seconds: 5),
     this.enableGlassScope = true,
     this.a11yPrefs,
@@ -56,6 +62,10 @@ class HomeShell extends StatefulWidget {
 
   /// Notification tap targets; defaults to [NotificationTapRouter.instance].
   final NotificationTapRouter? tapRouter;
+
+  /// Home screen widget launch targets; defaults to
+  /// [WidgetLaunchRouter.instance].
+  final WidgetLaunchRouter? widgetRouter;
 
   /// How long a tapped reminder is awaited in the cubit state (cold start:
   /// the first `load()` may still be running).
@@ -88,6 +98,9 @@ class _HomeShellState extends State<HomeShell> {
   NotificationTapRouter get _router =>
       widget.tapRouter ?? NotificationTapRouter.instance;
 
+  WidgetLaunchRouter get _widgetRouter =>
+      widget.widgetRouter ?? WidgetLaunchRouter.instance;
+
   @override
   void initState() {
     super.initState();
@@ -96,13 +109,18 @@ class _HomeShellState extends State<HomeShell> {
       if (mounted) setState(() => _tick++);
     });
     _router.addListener(_openTapTarget);
+    _widgetRouter.addListener(_openWidgetTarget);
     // A cold-start tap was queued before the shell existed.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _openTapTarget());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _openTapTarget();
+      _openWidgetTarget();
+    });
   }
 
   @override
   void dispose() {
     _router.removeListener(_openTapTarget);
+    _widgetRouter.removeListener(_openWidgetTarget);
     _ticker?.cancel();
     _ownedPrefs?.dispose();
     super.dispose();
@@ -149,6 +167,29 @@ class _HomeShellState extends State<HomeShell> {
     final target = _router.take();
     if (target == null) return;
     unawaited(_open(target));
+  }
+
+  void _openWidgetTarget() {
+    if (!mounted) return;
+    final target = _widgetRouter.take();
+    if (target == null) return;
+    unawaited(_openFromWidget(target));
+  }
+
+  Future<void> _openFromWidget(WidgetLaunchTarget target) async {
+    switch (target) {
+      case NewReminderTarget():
+        // "+" opens quick capture (F4.6b), like the FAB.
+        await showQuickCaptureSheet(context, now: widget.clock);
+      case OpenReminderTarget(:final reminderId):
+        await _open(ReminderPayload(reminderId));
+      case OpenBirthdayTarget(:final birthdayId):
+        await _open(BirthdayPayload(birthdayId));
+      case PermissionsTarget():
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+        );
+    }
   }
 
   Future<void> _open(NotificationPayload target) async {

@@ -66,8 +66,7 @@ void main() {
     expect(geo.map((r) => r.id), reminderIds, reason: 'geofence sync');
     verifyNoMoreInteractions(geofence);
 
-    final widget = verify(() => homeWidget.sync(captureAny())).captured.single
-        as List<Reminder>;
+    final widget = capturedHomeWidgetReminders(homeWidget);
     expect(widget.map((r) => r.id), reminderIds, reason: 'home widget sync');
     verifyNoMoreInteractions(homeWidget);
     return geo;
@@ -750,7 +749,11 @@ void main() {
           () => notifications.cancelAll(),
           () => geofence.syncWithReminders([], notificationsEnabled: false),
           () => repository.clearAll(),
-          () => homeWidget.sync([]),
+          () => homeWidget.sync(
+                [],
+                birthdays: [],
+                notificationsEnabled: true,
+              ),
         ]);
         verifyNoMoreInteractions(geofence);
         verifyNoMoreInteractions(homeWidget);

@@ -99,12 +99,24 @@ class ScheduleSync {
       request.reminders,
       notificationsEnabled: enabled,
     );
-    await _homeWidget.sync(request.reminders);
+    await _homeWidget.sync(
+      request.reminders,
+      birthdays: request.birthdays,
+      notificationsEnabled: enabled,
+    );
   }
 
   /// Zamanlamalara dokunmadan yalnızca widget'ı yeniler (veri değişmediğinde).
-  Future<void> refreshHomeWidget(List<Reminder> reminders) =>
-      _homeWidget.sync(reminders);
+  Future<void> refreshHomeWidget({
+    required List<Reminder> reminders,
+    required List<Birthday> birthdays,
+    required AppSettings settings,
+  }) =>
+      _homeWidget.sync(
+        reminders,
+        birthdays: birthdays,
+        notificationsEnabled: settings.notificationsEnabled,
+      );
 }
 
 /// [ScheduleSync.syncAll] argümanlarının anlık görüntüsü.

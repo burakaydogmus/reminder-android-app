@@ -2,9 +2,38 @@
 <resources>
     <string name="app_name">Hatırlatıcı</string>
     <string name="cancel">İptal</string>
-    <string name="widget_title">Hatırlatıcılar</string>
-    <string name="widget_label">Hatırlatıcı</string>
-    <string name="widget_description">Aktif hatırlatıcılar; kutuya dokunarak tamamlandı işaretleyin. Boyutu ana ekranda yeniden ayarlayabilirsiniz.</string>
-    <string name="widget_empty">Aktif hatırlatıcı yok</string>
-    <string name="widget_check_unchecked">☐</string>
+
+    <!-- Ana ekran widget'ları (F5.1). Adlar Dart ReminderHomeWidget.label ile aynı. -->
+    <string name="widget_today_label">Bugün</string>
+    <string name="widget_list_label">Liste</string>
+    <string name="widget_next_label_name">Sıradaki</string>
+    <string name="widget_quick_add_label">Hızlı ekle</string>
+
+    <string name="widget_today_description">Bugünün ilk iki işi. Daireye dokunarak tamamla, + ile yeni ekle.</string>
+    <string name="widget_list_description">Kaçanlar, bugün ve doğum günleri. Kaydırılabilir; boyutunu kenarlarından değiştirebilirsin.</string>
+    <string name="widget_next_description">Sıradaki iş ve saati; + ile yeni ekle.</string>
+    <string name="widget_quick_add_description">Tek dokunuşla yeni hatırlatıcı.</string>
+
+    <string name="widget_next_label">SIRADAKİ</string>
+    <string name="widget_today_header">Bugün · %1$d</string>
+    <string name="widget_more">+%1$d daha</string>
+    <string name="widget_empty_today">Bugün boş. Eklemek için +</string>
+    <string name="widget_notifications_off">Bildirimler kapalı — açmak için dokun</string>
+    <string name="widget_overdue">Gecikti</string>
+    <string name="widget_today">Bugün</string>
+    <string name="widget_tomorrow">Yarın</string>
+
+    <string name="widget_section_overdue">Kaçanlar</string>
+    <string name="widget_section_today">Bugün</string>
+    <string name="widget_section_birthdays">Doğum günü</string>
+    <string name="widget_section_later">Sonra</string>
+    <string name="widget_birthday_age">%1$s · %2$d yaşına giriyor</string>
+
+    <!-- TalkBack -->
+    <string name="widget_cd_add">Yeni hatırlatıcı</string>
+    <string name="widget_cd_complete">Tamamla: %1$s</string>
+    <string name="widget_cd_subtasks">%1$s madde</string>
+    <string name="widget_cd_recurring">tekrarlanan</string>
+    <string name="widget_cd_today">Bugün, %1$d açık iş. Uygulamayı aç.</string>
+    <string name="widget_cd_birthday">Doğum günü: %1$s, %2$s</string>
 </resources>
