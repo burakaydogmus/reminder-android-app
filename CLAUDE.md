@@ -7,7 +7,8 @@ Guidance for AI agents and contributors working in this repository.
 Flutter reminder app ("Hatırlatıcı"): to-dos/shopping items with optional scheduled
 notifications, location-triggered (geofence) reminders, recurring birthday reminders
 and an Android home screen widget. Local storage only (Drift/SQLite, see **Data**).
-Targets **Android + iOS**. UI strings are **Turkish (`tr_TR`)**.
+Targets **Android + iOS**. UI strings are **Turkish and English** (ARB, see
+**Localization**); Turkish is the template language.
 
 The development plan lives in [`ROADMAP.md`](ROADMAP.md) — read it before starting work.
 
@@ -85,8 +86,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   first occurrence strictly after `after`; the **time comes from `anchor`** (the
   reminder's `remindAt`) and dates are built from calendar fields
   (`DateTime(y, m, d + n, h, min)`), never `Duration` adds, so the wall-clock time
-  survives DST. Interval grids start at the anchor's day/week/month. `summary` is the
-  Turkish label ("Her gün", "2 haftada bir Pzt, Çar", "Her ayın 17'si");
+  survives DST. Interval grids start at the anchor's day/week/month. The display
+  text lives in the UI: `RecurrenceText.summary(rule, l10n)` ("Her gün", "2 haftada bir
+  Pzt, Çar", "Her ayın 17'si" / "Every 2 weeks on Mon, Wed", F6.1);
   `alignedTo(date)` adapts the rule when the whole series moves to another date.
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`.
@@ -306,7 +308,7 @@ The sync is **diff-based** (F1.7):
   `notification_schedule_fingerprints_v1` (`NotificationFingerprintStore`, reloaded
   before reading); they are written after scheduling. Missing/corrupt store → all
   desired entries are rescheduled. Changing how notifications are built (channel
-  settings, actions, …) → bump `_ScheduleSpec._version` (currently 5).
+  settings, actions, …) → bump `_ScheduleSpec._version` (currently 6; v6 = F6.1 language).
 - **Schedule mode (F6.2c):** chosen **once per sync** from `canScheduleExactNotifications()`
   (injectable via `NotificationService.forTesting(canScheduleExact:)`): permitted (or not
   Android 12+) → `exactAllowWhileIdle`, otherwise `inexactAllowWhileIdle` (may be a few
@@ -598,7 +600,8 @@ same labels as the widget picker) and refreshes all four after every sync.
   `getIdentifier`, kept from `shrinkResources` by `res/raw/keep.xml` (`@drawable/*`);
   iOS `Assets.xcassets/shortcut_*.imageset` (the same glyph as SVG, template rendering,
   vector preserved) — the plugin only supports `UIApplicationShortcutIcon(templateImageName:)`,
-  not SF Symbols. Titles are Turkish literals (F6.1 will localise them).
+  not SF Symbols. Titles come from the ARB (`AppShortcut.titleIn(l10n)`, F6.1): `attach`
+  publishes them in the resolved language, `publish` again after a language change.
 
 ## Quick-capture parser (F4.6a)
 
@@ -675,6 +678,68 @@ same labels as the widget picker) and refreshes all four after every sync.
   through `KorGlassSurface`, 52 high) is `KorGlassTabBar.accessory`, above the
   capsule inside the fixed-height chrome; collapsing moves it down to 48 between the
   collapsed tab and the search circle. Long-press opens the same menu.
+
+## Localization (F6.1)
+
+- **Rule: no hardcoded user-visible strings.** Every text a user can see or hear
+  (labels, snackbars, tooltips, semantics labels/hints, empty states, notification
+  titles/bodies/actions/channel names, widget payload labels, shortcut titles) comes from
+  `lib/l10n/app_tr.arb` (template) and `lib/l10n/app_en.arb`.
+  `test/l10n/arb_parity_test.dart` fails on missing/extra keys, empty values, undeclared
+  placeholders and on Turkish string literals in `lib/ui`, `lib/services`, `lib/home`
+  (allowlist: grammar tables in `kor_format.dart`, `recurrence_text.dart`,
+  `snooze_options.dart`, `capture_text.dart`). The quick-capture parser
+  (`lib/domain/parsing/`) is Turkish by design and not affected.
+- **Adding a string:** add the key to `app_tr.arb` (with `@key.description` when the context
+  is not obvious, and `placeholders` for arguments; counts use ICU plurals —
+  `{count, plural, =1{…} other{…}}`, Turkish usually only `other`), then the same key to
+  `app_en.arb`. `flutter pub get` (or `flutter gen-l10n`) regenerates
+  `lib/l10n/app_localizations*.dart` (`flutter: generate: true` + `l10n.yaml`, formatted);
+  commit the generated files — CI fails when they are stale. `flutter_localizations` is a
+  direct dependency only because the generated file imports it; the app's Material/Cupertino
+  delegates still come from `material_ui` (`App.localizationsDelegates`).
+- **Using strings:** `context.l10n.key` (`lib/l10n/l10n.dart`; without `AppLocalizations`
+  in the tree — isolated widget tests — it falls back to Turkish). Pure helpers take an
+  `AppLocalizations l10n` parameter instead of a context (`KorFormat.when(at, now, l10n)`,
+  `RecurrenceText.summary(rule, l10n)`, `PriorityPinVisuals.label(p, l10n)`,
+  `SnoozeOption.labelIn(l10n)`, enum `labelIn(l10n)`). Domain models carry no display
+  strings. Built-in categories are shown through `CategoryVisuals.nameOf/labelOf/labelIn`
+  (translated), user categories keep the typed name; the stored built-in names stay
+  Turkish (parser aliases, search also matches the translated name).
+- **Dates and times:** `KorFormat` with patterns from the ARB (`dateFormat*` keys, e.g.
+  `d MMMM` / `MMMM d`) in the `l10n.intlLocale` (`tr_TR` / `en_US`); times are 24 h in both
+  languages; spoken times use `KorFormat.spokenTime` (`saat 16:00` / `at 16:00`); upper case
+  via `l10n.upper` (Turkish İ/I rules for `tr`). `main` and background entry points
+  initialize both date symbol sets.
+- **Language choice:** `lib/l10n/app_language.dart` — `AppLanguage` (Sistem / Türkçe /
+  English), persisted by `AppLanguageStore` in SharedPreferences `app_language_v1` (like the
+  haptics flag, not in Drift: background isolates read it without the database; no schema
+  bump). "Sistem" = Turkish when the first preferred device language is Turkish, English
+  otherwise (`AppLocales.resolve`); `MaterialApp.locale` is `null` then, so device changes
+  apply. `main` reads the stored choice before `runApp` (`App(initialLanguage:)`);
+  `AppLanguageScope` (above `MaterialApp`) serves Ayarlar › Görünüm › Dil; a change reloads
+  the cubit (→ resync of notification texts and the widget) and republishes the shortcut
+  titles (`ShortcutRouter.publish`).
+- **Background texts:** code without a `BuildContext` resolves the same choice through
+  `BackgroundLocalizations.load()` (reloads SharedPreferences, reads the system locales via
+  `PlatformDispatcher`/`Platform.localeName`, loads date symbols): `NotificationService`
+  (per sync and per geofence entry; injectable via `forTesting(localizations:)`, Turkish by
+  default), `syncRemindersToHomeWidget`, shortcuts. The language is in the notification
+  fingerprint (`_ScheduleSpec._version` 6), so switching reschedules everything once. iOS
+  action categories are registered at `initialize` (next launch after a change).
+- **Native strings:** Android `res/values/strings.xml` (Turkish) + `res/values-en/strings.xml`
+  — keep them in sync. The widget payload carries `lang`; Kotlin draws with
+  `WidgetPayload.localized(context, lang)`, so widgets follow the app language even when the
+  device language differs (launcher labels and the widget picker follow the device).
+  `res/xml/locales_config.xml` (`android:localeConfig`) enables the Android 13+ per-app
+  language setting. iOS: `ios/Runner/{tr,en}.lproj/InfoPlist.strings` (location usage
+  descriptions; in `project.pbxproj` as a variant group), `CFBundleLocalizations` tr + en.
+- **Tests:** `UiHarness.app(language:)` defaults to Turkish, so existing expectations stay
+  Turkish; pass `AppLanguage.english` for English. The a11y audit runs every entry in both
+  languages (`A11yVariant.language`, `auditLanguages`) — English strings are longer, so
+  overflow must hold in both. English smoke tests: `test/ui/english_screens_test.dart`.
+  Pure tests pass `AppL10n.turkish` / `AppL10n.english`; call `initTestDateFormatting`
+  (`test/helpers/l10n_setup.dart`) when they format dates.
 
 ## Workflow rules (from ROADMAP.md)
 
@@ -851,16 +916,18 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   birthday editor has a "Yıl bilinmiyor" chip (`Birthday.unknownYear`).
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
-  icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
+  icon), localized semantics labels (ARB), times via `KorFormat` (24 h, tabular figures,
   `KorFormat.spokenTime` for screen readers — any semantics label with a time says
-  "saat 16:00"), `KorFormat.upperTr` instead of `toUpperCase()`, no fixed heights for
+  "saat 16:00" / "at 16:00"), `l10n.upper` (or `KorFormat.upperTr` for Turkish-only
+  text) instead of `toUpperCase()`, no fixed heights for
   text (use `minHeight`), honour `MediaQuery.disableAnimationsOf`. Text + action rows
   must survive 200 % text: `Expanded`/`Flexible` for the text, or `OverflowBar` so the
   action drops below (`SectionHeader` does this; `ReminderCard.stacksTime` puts the time
   under the title above 1.3). Surfaces floating over lists absorb taps. Rules, their tests
   and the manual TalkBack/VoiceOver checks: [`docs/a11y-checklist.md`](docs/a11y-checklist.md).
 - **A11y audit (F4.5):** `test/ui/a11y/` — `a11yAudit(description, pump, platforms:,
-  surface:)` runs one test per light/dark × text scale 1.0/2.0 × platform and
+  languages:, surface:)` runs one test per light/dark × text scale 1.0/2.0 × platform ×
+  language (Türkçe + English, F6.1; pass `variant.language` to `UiHarness.app`) and
   `expectAccessible` checks overflow, `android`/`iOSTapTargetGuideline`,
   `labeledTapTargetGuideline`, `textContrastGuideline` and bare `HH:mm` in semantics.
   Sample data and `pumpAuditShell` / `auditOpener` live in `a11y_sample_data.dart`
@@ -884,7 +951,7 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   date moves the date to the first chosen day (visible in the date chip); changing the
   date of a recurring reminder moves the **whole series** (`alignedTo`). "Yalnızca
   bu sefer" (B7) is not built yet. Turning scheduling off clears the rule. The card
-  meta line shows a repeat icon + `summary`; completing a recurring reminder keeps
+  meta line shows a repeat icon + `RecurrenceText.summary`; completing a recurring reminder keeps
   the card and `toggleReminderDoneWithUndo` shows "Sonraki: Cmt 20 Eyl 16:00" in the
   single undo snackbar, whose undo restores the previous `remindAt` (and the
   subtasks the advance reset).
@@ -958,7 +1025,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   widget and notification-action isolates load them from the repository. Mock stubs
   match `categories: any(named: 'categories')` (`test/helpers/mocks.dart`).
 - **Copy:** Turkish, second person singular ("Seçtiğin…"), empty-state texts from
-  `kor-design-proposal.md` §3.3.11.
+  `kor-design-proposal.md` §3.3.11; English copy is second person, plain and short (see
+  **Localization**).
 
 ## Geofencing
 

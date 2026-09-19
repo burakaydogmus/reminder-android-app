@@ -133,8 +133,9 @@ Diğer tüm fazların temeli.
 
 ## Faz 6 — Yayın hazırlığı
 
-- [ ] **F6.1 Yerelleştirme** · `feat/i18n`
+- [x] **F6.1 Yerelleştirme** · `feat/i18n`
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
+  *Not:* Ayarlar › Görünüm › Dil (Sistem / Türkçe / English, SharedPreferences `app_language_v1`, şema değişmedi); bildirim, aksiyon, konum, widget ve kısayol metinleri arka planda da kayıtlı dili kullanır. Hızlı yakalama ayrıştırıcısı şimdilik yalnızca Türkçe (İngilizce ayrıştırma sonraki iş).
 - [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
   [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
 - [x] **F6.2b Mağaza uyumluluğu (atıf, gizlilik bağlantısı, lisanslar)** · `fix/store-compliance`

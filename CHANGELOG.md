@@ -18,6 +18,15 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **İngilizce dil desteği:** Uygulama Türkçe ve İngilizce. Varsayılan olarak cihaz dilini izler
+  (Türkçe cihazda Türkçe, diğer tüm dillerde İngilizce); Ayarlar › Görünüm › **Dil** ile
+  Sistem / Türkçe / English seçilebilir, seçim anında uygulanır ve saklanır. Tarihler ve saatler
+  seçilen dilde yazılır (Türkçe büyük harf kuralları korunur: "BUGÜN · PAZARTESİ"). Bildirimler,
+  bildirim düğmeleri, konum bildirimleri, doğum günü bildirimleri, Android widget'ları ve
+  uygulama simgesi kısayolları da aynı dildedir; dil değişince bekleyen bildirimler yeni dilde
+  yeniden kurulur. Android 13+ uygulama dili ayarı ve iOS'ta konum izin metinleri (tr/en) de
+  desteklenir. Hızlı yakalamanın doğal dil anlama özelliği şimdilik yalnızca Türkçe; uygulama
+  İngilizceyken yakalama alanının altında "Natural language: Turkish only" notu görünür. (F6.1)
 - **Uygulama simgesi kısayolları:** Uygulama simgesine uzun basınca (Android kısayolları, iOS
   hızlı işlemleri) dört seçenek çıkar: **Yeni hatırlatıcı** hızlı yakalamayı açar, **Market
   listesi** hızlı yakalamayı `#market ` yazılı açar (yalnızca maddeleri yaz), **Bugün** Bugün
