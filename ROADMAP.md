@@ -142,6 +142,8 @@ Diğer tüm fazların temeli.
   Haritada tıklanabilir "© OpenStreetMap contributors" (telif sayfası); Ayarlar › Diğer: "Gizlilik politikası" (`lib/config/app_links.dart`) ve "Lisanslar" (`showLicensePage`); Google Sans Flex OFL `LicenseRegistry`'de. §8 madde 4, 7 (atıf), 9.
 - [x] **F6.2c Tam zamanlı alarm yedeği** · `fix/exact-alarm-fallback`
   İzin yoksa `inexactAllowWhileIdle` (mod senkron başına seçilir, parmak izinde; v5), exact kurulum hatasında bildirim başına yedek; izin değişince (ön plana dönüş, Ayarlar'dan dönüş) yeniden senkron. Manifestten `USE_EXACT_ALARM` kaldırıldı; açıklama sayfası ve Ayarlar satırı gecikmeyi anlatıyor. §8 madde 1–2.
+- [x] **F6.4 Veri düzeltmesi ve biriken iyileştirmeler** · `feat/polish-batch`
+  Doğum günü yılı artık gerçekten opsiyonel: şema **v6** (`birthdays.date` metni → `birth_month` / `birth_day` + nullable `birth_year`; v5 → v6 geçişi nöbetçi yıl 4'ü `NULL` yapar), `Birthday.year` nullable, yedek biçimi v2 kalır (JSON'da geriye dönük `date` + yeni `birthYear`; eski yedekler dönüştürülerek okunur). Ayrıca: madde silmede "Geri al" (`UndoSnackBar`), iOS bildiriminde açık maddeler (`DarwinNotificationDetails.subtitle`, parmak izi v7), §3.5 başlık üstü çizgisinin animasyonu (`StrikeThroughTitle`, Reduce Motion'da anında), SQLite yabancı anahtarları `beforeOpen`'da açıldı.
 - [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
   Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması (+ `AppLinks.privacyPolicy` güncellemesi), arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
