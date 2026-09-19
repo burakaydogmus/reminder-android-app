@@ -1,4 +1,4 @@
-part of '../turkish_capture_parser.dart';
+part of '../../capture_parser.dart';
 
 /// Day phrases and relative offsets.
 ///
@@ -25,7 +25,7 @@ part of '../turkish_capture_parser.dart';
 ///   locative suffix follows (`17.09'da` = 17:09).
 /// - `3 gün sonra`, `iki hafta sonra`, `1 ay sonra` (dates);
 ///   `2 saat sonra`, `yarım saat sonra`, `10 dk sonra` (instants, time tokens).
-extension _DateRules on _Scanner {
+extension _TrDateRules on _TrScanner {
   static final RegExp _weekday = RegExp(
     r"^(pazartesi|sali|carsamba|persembe|cumartesi|cuma|pazar)"
     r"(?:'?(ya|ye|a|e|da|de|dan|den))?$",

@@ -2198,11 +2198,11 @@ abstract class AppLocalizations {
   /// **'Ne hatırlatayım?'**
   String get captureFieldHint;
 
-  /// Shown under the quick capture field when the app is not Turkish: the parser only understands Turkish.
+  /// Helper line under the quick capture field: examples of the natural-language phrases the parser understands, in the app language.
   ///
   /// In tr, this message translates to:
-  /// **'Doğal dil: Türkçe'**
-  String get captureParserHint;
+  /// **'Örnek: yarın 9\'da, her pazartesi, #market'**
+  String get captureParserExamples;
 
   /// No description provided for @captureCategory.
   ///

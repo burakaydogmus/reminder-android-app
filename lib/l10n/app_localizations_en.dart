@@ -1354,8 +1354,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureFieldHint => 'What should I remind you of?';
 
   @override
-  String get captureParserHint =>
-      'Natural language: Turkish only (e.g. “yarın 9\'da”)';
+  String get captureParserExamples =>
+      'Example: tomorrow at 9, every monday, #market';
 
   @override
   String get captureCategory => 'Category';

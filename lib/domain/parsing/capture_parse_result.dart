@@ -5,7 +5,8 @@
 /// (priority).
 library;
 
-import '../model/reminder_category.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/parsing/capture_locale.dart';
 
 /// What a recognized piece of the input means.
 enum CaptureTokenKind { date, time, recurrence, category, priority, place }
@@ -142,6 +143,30 @@ class CaptureParserConfig {
     ReminderCategoryIds.errands: ['günlük', 'errands'],
     ReminderCategoryIds.other: ['diğer', 'other'],
   };
+
+  /// [defaultCategoryAliases] plus the English labels of the built-ins
+  /// (F4.6c). The Turkish aliases stay: a user may type `#market` with the
+  /// app in English, and the **stored** built-in names are Turkish.
+  static const Map<String, List<String>> englishCategoryAliases = {
+    ReminderCategoryIds.market: [
+      'market',
+      'alışveriş',
+      'groceries',
+      'grocery',
+      'shopping',
+    ],
+    ReminderCategoryIds.home: ['ev', 'ev işleri', 'home', 'house', 'chores'],
+    ReminderCategoryIds.work: ['iş', 'work', 'office'],
+    ReminderCategoryIds.health: ['sağlık', 'health'],
+    ReminderCategoryIds.errands: ['günlük', 'errands', 'errand'],
+    ReminderCategoryIds.other: ['diğer', 'other', 'misc'],
+  };
+
+  /// The built-in aliases of [locale].
+  static Map<String, List<String>> builtInAliasesOf(CaptureLocale locale) =>
+      locale == CaptureLocale.turkish
+          ? defaultCategoryAliases
+          : englishCategoryAliases;
 }
 
 class CaptureParseResult {

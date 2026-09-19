@@ -1,4 +1,4 @@
-part of '../turkish_capture_parser.dart';
+part of '../../capture_parser.dart';
 
 /// Clock times and day parts.
 ///
@@ -21,7 +21,7 @@ part of '../turkish_capture_parser.dart';
 ///   suffixed forms (`akşamki`, `akşamın`), after `bir/o/şu/dün/geçen/bütün/
 ///   tüm/aynı/hangi/bazı` (`bir akşam`), or before a compound noun
 ///   (`akşam yemeği`, `öğle arası`, `gece kremi`, `sabah sporu`, …).
-extension _TimeRules on _Scanner {
+extension _TrTimeRules on _TrScanner {
   static final RegExp _clock =
       RegExp(r"^(\d{1,2})([:.])(\d{2})(?:'?(da|de|ta|te|a|e|ya|ye))?$");
   static final RegExp _hourSuffixed = RegExp(r"^(\d{1,2})'?(da|de|ta|te)$");

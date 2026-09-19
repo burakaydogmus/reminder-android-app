@@ -1,4 +1,4 @@
-part of '../turkish_capture_parser.dart';
+part of '../capture_parser.dart';
 
 int daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 
