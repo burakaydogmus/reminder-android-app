@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -239,6 +240,78 @@ void main() {
           ),
         );
         expect(up.enabled, isFalse);
+      });
+
+      testWidgets('deleting an item offers "Geri al" (F6.4)', (tester) async {
+        await _pumpCard(
+          tester,
+          initial: buildSubtasks(['A', 'B', 'C']),
+          theme: theme,
+        );
+        await _rowMenu(tester, 's2', 'Sil');
+        expect(_titles(tester), ['A', 'C']);
+        expect(find.text('“B” silindi'), findsOneWidget);
+
+        await tester.tap(find.text('Geri al'));
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['A', 'B', 'C']);
+        // Back at its old place, positions renumbered.
+        expect([for (final s in _items(tester)) s.position], [0, 1, 2]);
+      });
+
+      testWidgets('undoing a delete keeps edits made meanwhile',
+          (tester) async {
+        await _pumpCard(
+          tester,
+          initial: buildSubtasks(['A', 'B', 'C']),
+          theme: theme,
+        );
+        await _rowMenu(tester, 's1', 'Sil');
+        expect(_titles(tester), ['B', 'C']);
+
+        await tester.enterText(
+          find.byKey(SubtasksCardKeys.field('s3')),
+          'C düzenlendi',
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Geri al'));
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['A', 'B', 'C düzenlendi']);
+      });
+
+      testWidgets('delete vibrates heavily, undo lightly', (tester) async {
+        final calls = <MethodCall>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            calls.add(call);
+            return null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null),
+        );
+        List<String> haptics() => [
+              for (final c in calls)
+                if (c.method == 'HapticFeedback.vibrate') c.arguments as String,
+            ];
+
+        await _pumpCard(
+          tester,
+          initial: buildSubtasks(['A', 'B']),
+          theme: theme,
+        );
+        await _rowMenu(tester, 's2', 'Sil');
+        expect(haptics(), ['HapticFeedbackType.heavyImpact']);
+
+        await tester.tap(find.text('Geri al'));
+        await tester.pumpAndSettle();
+        expect(haptics(), [
+          'HapticFeedbackType.heavyImpact',
+          'HapticFeedbackType.lightImpact',
+        ]);
       });
 
       testWidgets('dragging the handle reorders', (tester) async {
