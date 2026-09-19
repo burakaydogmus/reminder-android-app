@@ -19,7 +19,8 @@ final _birthdays = [
   buildBirthday(
     id: 'annem',
     name: 'Annem',
-    date: DateTime(Birthday.unknownYear, 10, 3),
+    date: DateTime(1990, 10, 3),
+    yearKnown: false,
   ),
 ];
 

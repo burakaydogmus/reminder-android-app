@@ -1735,11 +1735,24 @@ class $BirthdaysTable extends Birthdays
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  static const VerificationMeta _birthMonthMeta =
+      const VerificationMeta('birthMonth');
   @override
-  late final GeneratedColumn<String> date = GeneratedColumn<String>(
-      'date', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<int> birthMonth = GeneratedColumn<int>(
+      'birth_month', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _birthDayMeta =
+      const VerificationMeta('birthDay');
+  @override
+  late final GeneratedColumn<int> birthDay = GeneratedColumn<int>(
+      'birth_day', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _birthYearMeta =
+      const VerificationMeta('birthYear');
+  @override
+  late final GeneratedColumn<int> birthYear = GeneratedColumn<int>(
+      'birth_year', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _notifyHourMeta =
       const VerificationMeta('notifyHour');
   @override
@@ -1787,7 +1800,9 @@ class $BirthdaysTable extends Birthdays
         id,
         name,
         note,
-        date,
+        birthMonth,
+        birthDay,
+        birthYear,
         notifyHour,
         notifyMinute,
         advanceOffsetsMinutes,
@@ -1821,11 +1836,23 @@ class $BirthdaysTable extends Birthdays
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
     }
-    if (data.containsKey('date')) {
+    if (data.containsKey('birth_month')) {
       context.handle(
-          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+          _birthMonthMeta,
+          birthMonth.isAcceptableOrUnknown(
+              data['birth_month']!, _birthMonthMeta));
     } else if (isInserting) {
-      context.missing(_dateMeta);
+      context.missing(_birthMonthMeta);
+    }
+    if (data.containsKey('birth_day')) {
+      context.handle(_birthDayMeta,
+          birthDay.isAcceptableOrUnknown(data['birth_day']!, _birthDayMeta));
+    } else if (isInserting) {
+      context.missing(_birthDayMeta);
+    }
+    if (data.containsKey('birth_year')) {
+      context.handle(_birthYearMeta,
+          birthYear.isAcceptableOrUnknown(data['birth_year']!, _birthYearMeta));
     }
     if (data.containsKey('notify_hour')) {
       context.handle(
@@ -1888,8 +1915,12 @@ class $BirthdaysTable extends Birthdays
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
-      date: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      birthMonth: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}birth_month'])!,
+      birthDay: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}birth_day'])!,
+      birthYear: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}birth_year']),
       notifyHour: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}notify_hour'])!,
       notifyMinute: attachedDatabase.typeMapping
@@ -1919,10 +1950,14 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
   final String name;
   final String? note;
 
-  /// Takvim tarihi: `DateTime.toIso8601String()` (yerel değer için saat dilimi
-  /// eki yok). Anlık zaman değil; saat dilimi değişince gün kaymasın diye
-  /// JSON dönemindeki biçimle aynen saklanır.
-  final String date;
+  /// Doğum ayı (1–12).
+  final int birthMonth;
+
+  /// Ayın günü (1–31).
+  final int birthDay;
+
+  /// Doğum yılı; **bilinmiyorsa NULL**.
+  final int? birthYear;
   final int notifyHour;
   final int notifyMinute;
 
@@ -1936,7 +1971,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       {required this.id,
       required this.name,
       this.note,
-      required this.date,
+      required this.birthMonth,
+      required this.birthDay,
+      this.birthYear,
       required this.notifyHour,
       required this.notifyMinute,
       required this.advanceOffsetsMinutes,
@@ -1952,7 +1989,11 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
-    map['date'] = Variable<String>(date);
+    map['birth_month'] = Variable<int>(birthMonth);
+    map['birth_day'] = Variable<int>(birthDay);
+    if (!nullToAbsent || birthYear != null) {
+      map['birth_year'] = Variable<int>(birthYear);
+    }
     map['notify_hour'] = Variable<int>(notifyHour);
     map['notify_minute'] = Variable<int>(notifyMinute);
     map['advance_offsets_minutes'] = Variable<String>(advanceOffsetsMinutes);
@@ -1970,7 +2011,11 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       id: Value(id),
       name: Value(name),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      date: Value(date),
+      birthMonth: Value(birthMonth),
+      birthDay: Value(birthDay),
+      birthYear: birthYear == null && nullToAbsent
+          ? const Value.absent()
+          : Value(birthYear),
       notifyHour: Value(notifyHour),
       notifyMinute: Value(notifyMinute),
       advanceOffsetsMinutes: Value(advanceOffsetsMinutes),
@@ -1990,7 +2035,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       note: serializer.fromJson<String?>(json['note']),
-      date: serializer.fromJson<String>(json['date']),
+      birthMonth: serializer.fromJson<int>(json['birthMonth']),
+      birthDay: serializer.fromJson<int>(json['birthDay']),
+      birthYear: serializer.fromJson<int?>(json['birthYear']),
       notifyHour: serializer.fromJson<int>(json['notifyHour']),
       notifyMinute: serializer.fromJson<int>(json['notifyMinute']),
       advanceOffsetsMinutes:
@@ -2008,7 +2055,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'note': serializer.toJson<String?>(note),
-      'date': serializer.toJson<String>(date),
+      'birthMonth': serializer.toJson<int>(birthMonth),
+      'birthDay': serializer.toJson<int>(birthDay),
+      'birthYear': serializer.toJson<int?>(birthYear),
       'notifyHour': serializer.toJson<int>(notifyHour),
       'notifyMinute': serializer.toJson<int>(notifyMinute),
       'advanceOffsetsMinutes': serializer.toJson<String>(advanceOffsetsMinutes),
@@ -2023,7 +2072,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
           {String? id,
           String? name,
           Value<String?> note = const Value.absent(),
-          String? date,
+          int? birthMonth,
+          int? birthDay,
+          Value<int?> birthYear = const Value.absent(),
           int? notifyHour,
           int? notifyMinute,
           String? advanceOffsetsMinutes,
@@ -2035,7 +2086,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
         id: id ?? this.id,
         name: name ?? this.name,
         note: note.present ? note.value : this.note,
-        date: date ?? this.date,
+        birthMonth: birthMonth ?? this.birthMonth,
+        birthDay: birthDay ?? this.birthDay,
+        birthYear: birthYear.present ? birthYear.value : this.birthYear,
         notifyHour: notifyHour ?? this.notifyHour,
         notifyMinute: notifyMinute ?? this.notifyMinute,
         advanceOffsetsMinutes:
@@ -2050,7 +2103,10 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       note: data.note.present ? data.note.value : this.note,
-      date: data.date.present ? data.date.value : this.date,
+      birthMonth:
+          data.birthMonth.present ? data.birthMonth.value : this.birthMonth,
+      birthDay: data.birthDay.present ? data.birthDay.value : this.birthDay,
+      birthYear: data.birthYear.present ? data.birthYear.value : this.birthYear,
       notifyHour:
           data.notifyHour.present ? data.notifyHour.value : this.notifyHour,
       notifyMinute: data.notifyMinute.present
@@ -2072,7 +2128,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('note: $note, ')
-          ..write('date: $date, ')
+          ..write('birthMonth: $birthMonth, ')
+          ..write('birthDay: $birthDay, ')
+          ..write('birthYear: $birthYear, ')
           ..write('notifyHour: $notifyHour, ')
           ..write('notifyMinute: $notifyMinute, ')
           ..write('advanceOffsetsMinutes: $advanceOffsetsMinutes, ')
@@ -2089,7 +2147,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
       id,
       name,
       note,
-      date,
+      birthMonth,
+      birthDay,
+      birthYear,
       notifyHour,
       notifyMinute,
       advanceOffsetsMinutes,
@@ -2104,7 +2164,9 @@ class BirthdayRow extends DataClass implements Insertable<BirthdayRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.note == this.note &&
-          other.date == this.date &&
+          other.birthMonth == this.birthMonth &&
+          other.birthDay == this.birthDay &&
+          other.birthYear == this.birthYear &&
           other.notifyHour == this.notifyHour &&
           other.notifyMinute == this.notifyMinute &&
           other.advanceOffsetsMinutes == this.advanceOffsetsMinutes &&
@@ -2118,7 +2180,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String?> note;
-  final Value<String> date;
+  final Value<int> birthMonth;
+  final Value<int> birthDay;
+  final Value<int?> birthYear;
   final Value<int> notifyHour;
   final Value<int> notifyMinute;
   final Value<String> advanceOffsetsMinutes;
@@ -2131,7 +2195,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.note = const Value.absent(),
-    this.date = const Value.absent(),
+    this.birthMonth = const Value.absent(),
+    this.birthDay = const Value.absent(),
+    this.birthYear = const Value.absent(),
     this.notifyHour = const Value.absent(),
     this.notifyMinute = const Value.absent(),
     this.advanceOffsetsMinutes = const Value.absent(),
@@ -2145,7 +2211,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     required String id,
     required String name,
     this.note = const Value.absent(),
-    required String date,
+    required int birthMonth,
+    required int birthDay,
+    this.birthYear = const Value.absent(),
     required int notifyHour,
     required int notifyMinute,
     required String advanceOffsetsMinutes,
@@ -2156,7 +2224,8 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
-        date = Value(date),
+        birthMonth = Value(birthMonth),
+        birthDay = Value(birthDay),
         notifyHour = Value(notifyHour),
         notifyMinute = Value(notifyMinute),
         advanceOffsetsMinutes = Value(advanceOffsetsMinutes),
@@ -2167,7 +2236,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? note,
-    Expression<String>? date,
+    Expression<int>? birthMonth,
+    Expression<int>? birthDay,
+    Expression<int>? birthYear,
     Expression<int>? notifyHour,
     Expression<int>? notifyMinute,
     Expression<String>? advanceOffsetsMinutes,
@@ -2181,7 +2252,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (note != null) 'note': note,
-      if (date != null) 'date': date,
+      if (birthMonth != null) 'birth_month': birthMonth,
+      if (birthDay != null) 'birth_day': birthDay,
+      if (birthYear != null) 'birth_year': birthYear,
       if (notifyHour != null) 'notify_hour': notifyHour,
       if (notifyMinute != null) 'notify_minute': notifyMinute,
       if (advanceOffsetsMinutes != null)
@@ -2198,7 +2271,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
       {Value<String>? id,
       Value<String>? name,
       Value<String?>? note,
-      Value<String>? date,
+      Value<int>? birthMonth,
+      Value<int>? birthDay,
+      Value<int?>? birthYear,
       Value<int>? notifyHour,
       Value<int>? notifyMinute,
       Value<String>? advanceOffsetsMinutes,
@@ -2211,7 +2286,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
       id: id ?? this.id,
       name: name ?? this.name,
       note: note ?? this.note,
-      date: date ?? this.date,
+      birthMonth: birthMonth ?? this.birthMonth,
+      birthDay: birthDay ?? this.birthDay,
+      birthYear: birthYear ?? this.birthYear,
       notifyHour: notifyHour ?? this.notifyHour,
       notifyMinute: notifyMinute ?? this.notifyMinute,
       advanceOffsetsMinutes:
@@ -2236,8 +2313,14 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
-    if (date.present) {
-      map['date'] = Variable<String>(date.value);
+    if (birthMonth.present) {
+      map['birth_month'] = Variable<int>(birthMonth.value);
+    }
+    if (birthDay.present) {
+      map['birth_day'] = Variable<int>(birthDay.value);
+    }
+    if (birthYear.present) {
+      map['birth_year'] = Variable<int>(birthYear.value);
     }
     if (notifyHour.present) {
       map['notify_hour'] = Variable<int>(notifyHour.value);
@@ -2273,7 +2356,9 @@ class BirthdaysCompanion extends UpdateCompanion<BirthdayRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('note: $note, ')
-          ..write('date: $date, ')
+          ..write('birthMonth: $birthMonth, ')
+          ..write('birthDay: $birthDay, ')
+          ..write('birthYear: $birthYear, ')
           ..write('notifyHour: $notifyHour, ')
           ..write('notifyMinute: $notifyMinute, ')
           ..write('advanceOffsetsMinutes: $advanceOffsetsMinutes, ')
@@ -3740,7 +3825,9 @@ typedef $$BirthdaysTableCreateCompanionBuilder = BirthdaysCompanion Function({
   required String id,
   required String name,
   Value<String?> note,
-  required String date,
+  required int birthMonth,
+  required int birthDay,
+  Value<int?> birthYear,
   required int notifyHour,
   required int notifyMinute,
   required String advanceOffsetsMinutes,
@@ -3754,7 +3841,9 @@ typedef $$BirthdaysTableUpdateCompanionBuilder = BirthdaysCompanion Function({
   Value<String> id,
   Value<String> name,
   Value<String?> note,
-  Value<String> date,
+  Value<int> birthMonth,
+  Value<int> birthDay,
+  Value<int?> birthYear,
   Value<int> notifyHour,
   Value<int> notifyMinute,
   Value<String> advanceOffsetsMinutes,
@@ -3783,8 +3872,14 @@ class $$BirthdaysTableFilterComposer
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get date => $composableBuilder(
-      column: $table.date, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get birthMonth => $composableBuilder(
+      column: $table.birthMonth, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get birthDay => $composableBuilder(
+      column: $table.birthDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get birthYear => $composableBuilder(
+      column: $table.birthYear, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get notifyHour => $composableBuilder(
       column: $table.notifyHour, builder: (column) => ColumnFilters(column));
@@ -3827,8 +3922,14 @@ class $$BirthdaysTableOrderingComposer
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get date => $composableBuilder(
-      column: $table.date, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get birthMonth => $composableBuilder(
+      column: $table.birthMonth, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get birthDay => $composableBuilder(
+      column: $table.birthDay, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get birthYear => $composableBuilder(
+      column: $table.birthYear, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get notifyHour => $composableBuilder(
       column: $table.notifyHour, builder: (column) => ColumnOrderings(column));
@@ -3872,8 +3973,14 @@ class $$BirthdaysTableAnnotationComposer
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
-  GeneratedColumn<String> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
+  GeneratedColumn<int> get birthMonth => $composableBuilder(
+      column: $table.birthMonth, builder: (column) => column);
+
+  GeneratedColumn<int> get birthDay =>
+      $composableBuilder(column: $table.birthDay, builder: (column) => column);
+
+  GeneratedColumn<int> get birthYear =>
+      $composableBuilder(column: $table.birthYear, builder: (column) => column);
 
   GeneratedColumn<int> get notifyHour => $composableBuilder(
       column: $table.notifyHour, builder: (column) => column);
@@ -3923,7 +4030,9 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String?> note = const Value.absent(),
-            Value<String> date = const Value.absent(),
+            Value<int> birthMonth = const Value.absent(),
+            Value<int> birthDay = const Value.absent(),
+            Value<int?> birthYear = const Value.absent(),
             Value<int> notifyHour = const Value.absent(),
             Value<int> notifyMinute = const Value.absent(),
             Value<String> advanceOffsetsMinutes = const Value.absent(),
@@ -3937,7 +4046,9 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             id: id,
             name: name,
             note: note,
-            date: date,
+            birthMonth: birthMonth,
+            birthDay: birthDay,
+            birthYear: birthYear,
             notifyHour: notifyHour,
             notifyMinute: notifyMinute,
             advanceOffsetsMinutes: advanceOffsetsMinutes,
@@ -3951,7 +4062,9 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             required String id,
             required String name,
             Value<String?> note = const Value.absent(),
-            required String date,
+            required int birthMonth,
+            required int birthDay,
+            Value<int?> birthYear = const Value.absent(),
             required int notifyHour,
             required int notifyMinute,
             required String advanceOffsetsMinutes,
@@ -3965,7 +4078,9 @@ class $$BirthdaysTableTableManager extends RootTableManager<
             id: id,
             name: name,
             note: note,
-            date: date,
+            birthMonth: birthMonth,
+            birthDay: birthDay,
+            birthYear: birthYear,
             notifyHour: notifyHour,
             notifyMinute: notifyMinute,
             advanceOffsetsMinutes: advanceOffsetsMinutes,

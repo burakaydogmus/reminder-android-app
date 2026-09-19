@@ -263,7 +263,8 @@ void main() {
       final tomorrowA = buildBirthday(
         id: 'tomorrowA',
         name: 'Ayşe',
-        date: DateTime(Birthday.unknownYear, 9, 14),
+        date: DateTime(1990, 9, 14),
+        yearKnown: false,
       );
       final tomorrowB = buildBirthday(
         id: 'tomorrowB',

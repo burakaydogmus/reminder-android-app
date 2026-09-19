@@ -4,13 +4,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/common.dart' show CommonDatabase;
 
 import 'package:reminder/domain/category_label_migration.dart';
+import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 
 part 'app_database.g.dart';
 
 // Zaman sütunları iki türdür (dönüşüm `row_mapping.dart` içinde; domain
 // modelleri değişmez):
-// - Kullanıcı/model zamanları (`created_at`, `remind_at`, `birthdays.date`):
+// - Kullanıcı/model zamanları (`created_at`, `remind_at`):
 //   JSON dönemindeki gibi `DateTime.toIso8601String()` metni (TEXT). Yerel
 //   değerde saat dilimi eki yoktur, yani **duvar saati** olarak saklanır: saat
 //   dilimi değişince "18:30" yine 18:30 kalır; `DateTime.parse` aynı alanları
@@ -100,16 +101,24 @@ class Categories extends Table {
 }
 
 /// `Birthday` satırları.
+///
+/// v6 (F6.4): tek `date` metni yerine **gün/ay + isteğe bağlı yıl**. Yılı
+/// bilinmeyen doğum günü artık nöbetçi yıl (4) ile değil, `birth_year IS NULL`
+/// ile saklanır; bkz. `Birthday` ve v5 → v6 geçişi.
 @DataClassName('BirthdayRow')
 class Birthdays extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get note => text().nullable()();
 
-  /// Takvim tarihi: `DateTime.toIso8601String()` (yerel değer için saat dilimi
-  /// eki yok). Anlık zaman değil; saat dilimi değişince gün kaymasın diye
-  /// JSON dönemindeki biçimle aynen saklanır.
-  TextColumn get date => text()();
+  /// Doğum ayı (1–12).
+  IntColumn get birthMonth => integer()();
+
+  /// Ayın günü (1–31).
+  IntColumn get birthDay => integer()();
+
+  /// Doğum yılı; **bilinmiyorsa NULL**.
+  IntColumn get birthYear => integer().nullable()();
   IntColumn get notifyHour => integer()();
   IntColumn get notifyMinute => integer()();
 
@@ -164,7 +173,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -194,11 +203,63 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(categories);
             await migrateCustomCategoryLabels(this);
           }
-          if (to > 5) {
+          if (from < 6) {
+            // v6 (F6.4): `birthdays.date` metni → `birth_month` / `birth_day`
+            // + nullable `birth_year`. Nöbetçi yıl 4 "bilinmiyor" olur.
+            await migrateBirthdayYear(m);
+          }
+          if (to > 6) {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },
+        // Yabancı anahtarlar SQLite'ta varsayılan olarak **kapalıdır**;
+        // burada açılır (F6.4). `beforeOpen` göç adımlarından sonra
+        // çalıştığı için tablo yeniden kuran geçişler (ör. v5 → v6) hâlâ
+        // kısıtlamasız çalışır — drift'in önerdiği sıra budur. PRAGMA
+        // transaction içinde işlemez, bu yüzden burada verilir.
+        //
+        // Etkisi: `subtasks.reminder_id` artık var olmayan bir
+        // hatırlatıcıyı gösteremez ve maddesi olan bir hatırlatıcı satırı
+        // **sert** silinemez (varsayılan `NO ACTION` = kısıtla). Depo zaten
+        // yumuşak siliyor (`deleted_at`), `clearAll` de maddeleri önce
+        // siliyor; bu yüzden davranış değişmiyor, bozuk veri engelleniyor.
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON;');
+        },
       );
+
+  /// v5 → v6 adımı (F6.4): `birthdays` tablosunu yeniden kurar ve ISO
+  /// `date` metnini gün/ay + isteğe bağlı yıl sütunlarına çevirir.
+  ///
+  /// Nöbetçi yıl ([Birthday.legacyUnknownYear] = 4) `NULL` olur, yani "yıl
+  /// bilinmiyor" artık gerçek bir boş değerdir. Çözülemeyen bir `date` metni
+  /// ay/gün 0 bırakır; depo böyle satırları bozuk sayıp atlar (eskiden de
+  /// `DateTime.parse` hatasıyla atlanırdı).
+  Future<void> migrateBirthdayYear(Migrator m) async {
+    const sentinel = Birthday.legacyUnknownYear;
+    await m.alterTable(
+      TableMigration(
+        birthdays,
+        columnTransformer: {
+          birthdays.birthMonth: const CustomExpression<int>(
+            "COALESCE(CAST(strftime('%m', date) AS INTEGER), 0)",
+          ),
+          birthdays.birthDay: const CustomExpression<int>(
+            "COALESCE(CAST(strftime('%d', date) AS INTEGER), 0)",
+          ),
+          birthdays.birthYear: const CustomExpression<int>(
+            "CASE WHEN CAST(strftime('%Y', date) AS INTEGER) = $sentinel "
+            "THEN NULL ELSE CAST(strftime('%Y', date) AS INTEGER) END",
+          ),
+        },
+        newColumns: [
+          birthdays.birthMonth,
+          birthdays.birthDay,
+          birthdays.birthYear,
+        ],
+      ),
+    );
+  }
 
   /// v4 → v5 adımı (F4.3): silinmemiş `other` hatırlatıcılarının
   /// `custom_category_label` değerlerini [CategoryLabelMigration] kuralıyla

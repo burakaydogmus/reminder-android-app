@@ -47,8 +47,12 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
   late final TextEditingController _noteCtrl;
   late DateTime? _date;
 
-  /// "Yıl bilinmiyor" (F4.4): saved with [Birthday.unknownYear], no age.
+  /// "Yıl bilinmiyor" (F4.4): saved as `Birthday.year == null`, no age.
   late bool _yearUnknown;
+
+  /// True while the year inside [_date] is only a placeholder for the picker
+  /// (a stored year-less birthday has no real year to fall back to).
+  late bool _placeholderYear;
   late TimeOfDay _notifyTime;
   late Set<int> _offsets;
   String? _nameError;
@@ -59,8 +63,13 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final e = widget.existing;
     _nameCtrl = TextEditingController(text: e?.name ?? '');
     _noteCtrl = TextEditingController(text: e?.note ?? '');
-    _date = e?.date;
     _yearUnknown = e != null && !e.hasYear;
+    _placeholderYear = _yearUnknown;
+    _date = e == null
+        ? null
+        // The picker needs a real year; a leap year keeps 29 Şubat.
+        : DateTime(
+            e.year ?? _lastLeapYear(DateTime.now().year), e.month, e.day);
     _notifyTime = TimeOfDay(
       hour: e?.notifyHour ?? 9,
       minute: e?.notifyMinute ?? 0,
@@ -78,12 +87,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final date = _date;
-    final base = date == null
-        ? DateTime(now.year - 25, now.month, now.day)
-        : date.year == Birthday.unknownYear
-            // The picker needs a real year; a leap year keeps 29 Şubat.
-            ? DateTime(_lastLeapYear(now.year), date.month, date.day)
-            : date;
+    final base = date ?? DateTime(now.year - 25, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
       initialDate: base,
@@ -91,7 +95,12 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       lastDate: DateTime(now.year + 1, 12, 31),
       helpText: context.l10n.birthdayDatePickerTitle,
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null) {
+      setState(() {
+        _date = picked;
+        _placeholderYear = false;
+      });
+    }
   }
 
   static int _lastLeapYear(int from) {
@@ -106,7 +115,10 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     setState(() {
       _yearUnknown = value;
       // A stored year-less date has no real year to go back to.
-      if (!value && _date?.year == Birthday.unknownYear) _date = null;
+      if (!value && _placeholderYear) {
+        _date = null;
+        _placeholderYear = false;
+      }
     });
   }
 
@@ -153,9 +165,9 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       id: existing?.id ?? const Uuid().v4(),
       name: name,
       note: note.isEmpty ? null : note,
-      date: _yearUnknown
-          ? DateTime(Birthday.unknownYear, _date!.month, _date!.day)
-          : _date!,
+      month: _date!.month,
+      day: _date!.day,
+      year: _yearUnknown ? null : _date!.year,
       notifyHour: _notifyTime.hour,
       notifyMinute: _notifyTime.minute,
       advanceOffsetsMinutes: offsetsSorted,

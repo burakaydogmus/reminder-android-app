@@ -18,6 +18,14 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Maddede "Geri al":** Hatırlatıcı düzenleyicisindeki "Maddeler" kartında bir maddeyi silince
+  artık "“Süt” silindi · Geri al" çubuğu çıkıyor; geri alınca madde eski sırasına dönüyor,
+  bu arada yaptığın düzenlemeler korunuyor. (F6.4)
+- **iOS bildiriminde maddeler:** Açık maddeler Android'de olduğu gibi artık iOS bildiriminde de
+  görünüyor (başlığın altında tek satır: "Süt · Ekmek · … ve 2 madde daha"). Güncellemeden sonra
+  kurulu bildirimler bir kez yeniden kurulur. (F6.4)
+- **Tamamlandı animasyonu:** Bir hatırlatıcı tamamlanınca başlığın üstündeki çizgi soldan sağa
+  çiziliyor (Reduce Motion / animasyonlar kapalıyken anında son hâlini alıyor). (F6.4, §3.5)
 - **İngilizce dil desteği:** Uygulama Türkçe ve İngilizce. Varsayılan olarak cihaz dilini izler
   (Türkçe cihazda Türkçe, diğer tüm dillerde İngilizce); Ayarlar › Görünüm › **Dil** ile
   Sistem / Türkçe / English seçilebilir, seçim anında uygulanır ve saklanır. Tarihler ve saatler
@@ -111,6 +119,13 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Değişti
 
+- **Doğum yılı gerçekten isteğe bağlı saklanıyor:** "Yıl bilinmiyor" işaretli doğum günleri
+  artık sahte bir yılla değil, boş yıl alanıyla kaydediliyor (veritabanı şeması v6). Güncelleme
+  sırasında mevcut kayıtlar kendiliğinden dönüştürülür; eski yedek dosyaları da okunmaya devam
+  eder ve yeni yedekler eski sürümlerle uyumlu kalır. Bildirimler, hatırlatma kimlikleri ve
+  yaş gösterimi değişmiyor. (F6.4)
+- Veritabanında yabancı anahtar kısıtlamaları artık uygulanıyor; hatırlatıcısı olmayan madde
+  satırı oluşamıyor. Kullanıcı tarafında bir davranış değişikliği yok. (F6.4)
 - **"Alarmlar ve hatırlatıcılar" izni artık isteğe bağlı:** izin yoksa (Android 14+'da yeni
   kurulumlarda varsayılan) hatırlatmalar yine gelir, yalnızca birkaç dakika gecikebilir; izin
   verilince bildirimler kendiliğinden tam zamanlıya geçer. Google Play'in kısıtladığı

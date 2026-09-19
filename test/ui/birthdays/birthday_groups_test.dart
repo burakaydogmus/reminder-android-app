@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
@@ -22,7 +21,8 @@ void main() {
     buildBirthday(
       id: 'annem',
       name: 'Annem',
-      date: DateTime(Birthday.unknownYear, 10, 3),
+      date: DateTime(1990, 10, 3),
+      yearKnown: false,
     ),
     buildBirthday(id: 'past', name: 'Ali', date: DateTime(1980, 9, 1)),
   ];

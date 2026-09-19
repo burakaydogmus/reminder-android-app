@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 
@@ -6,6 +8,7 @@ import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/subtask_progress.dart';
+import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -35,7 +38,9 @@ enum _RowAction { up, down, delete }
 ///   Reordering is `ReorderableListView` (drag the handle); its items also
 ///   carry the "Yukarı taşı / Aşağı taşı" semantics actions, and the menu is
 ///   the single-pointer alternative (WCAG 2.5.7). Deleting is menu only (no
-///   swipe).
+///   swipe) and shows an `UndoSnackBar` like the reminder swipe delete
+///   (F3.5): the item goes right away, "Geri al" puts it back at its old
+///   position (later edits are kept).
 /// - "+ Madde ekle": Enter adds the item and keeps the field focused for the
 ///   next one; pasting several lines adds one item per line. When the text
 ///   reads like a list ("süt, ekmek ve yumurta"), a "Maddelere böl" button
@@ -177,8 +182,32 @@ class _SubtasksCardState extends State<SubtasksCard> {
       case _RowAction.down:
         _reorderOpen((open) => open.moved(s.id, 1));
       case _RowAction.delete:
-        _emit(_items.removed(s.id));
+        _deleteWithUndo(s);
     }
+  }
+
+  /// Sil: applies immediately and offers "Geri al" in an [UndoSnackBar],
+  /// like `deleteReminderWithUndo` (delete haptic now, undo haptic on the
+  /// way back). Undo re-inserts the item at its old position in the list as
+  /// it is *then*, so edits made meanwhile survive.
+  void _deleteWithUndo(Subtask s) {
+    final haptics = KorHaptics.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    final index = _items.indexWhere((e) => e.id == s.id);
+    final title =
+        s.title.trim().isEmpty ? l10n.subtaskFallback : s.title.trim();
+    unawaited(haptics.delete());
+    _emit(_items.removed(s.id));
+    UndoSnackBar.show(
+      messenger,
+      message: l10n.undoDeleted(title),
+      onUndo: () {
+        unawaited(haptics.undo());
+        if (_items.any((e) => e.id == s.id)) return;
+        _emit(_items.added(s, index: index < 0 ? null : index));
+      },
+    );
   }
 
   @override

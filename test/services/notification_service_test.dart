@@ -201,6 +201,36 @@ void main() {
       });
     });
 
+    test('a year-less birthday has no age text and keeps its ids (F6.4)',
+        () async {
+      final yearLess = buildBirthday(
+        id: 'z',
+        name: 'Zeynep Aydın',
+        date: DateTime(1990, 5, 10),
+        yearKnown: false,
+        advanceOffsetsMinutes: zeynep.advanceOffsetsMinutes,
+      );
+      expect(yearLess.upcomingAge, null);
+
+      await service.syncSchedules(
+        reminders: const [],
+        birthdays: [yearLess],
+        notificationsEnabled: true,
+      );
+
+      // Same id scheme as a birthday with a year: `birthday:<id>:<offset>`.
+      expect(plugin.pending.keys.toSet(), _birthdayIds(zeynep));
+      for (final offset in yearLess.advanceOffsetsMinutes) {
+        final n = plugin.pending[yearLess.notificationIdFor(offset)]!;
+        expect(n.title, isNot(contains('yaş')));
+        expect(n.body, isNot(contains('yaş')));
+        // The age of the same person with a year must not leak in either.
+        expect(n.title, isNot(contains('${zeynep.upcomingAge}')));
+        expect(n.body, isNot(contains('${zeynep.upcomingAge}')));
+        expect(n.matchDateTimeComponents, DateTimeComponents.dateAndTime);
+      }
+    });
+
     test('scheduled yearly notifications contain no age', () async {
       await service.syncSchedules(
         reminders: const [],
@@ -561,6 +591,8 @@ void main() {
           if (version >= 3) n.id == future.notificationId ? 'null' : '-',
           // v4 (F3.3): Android BigText of open subtasks; none here.
           if (version >= 4) '-',
+          // v7 (F6.4): the iOS subtask subtitle; none here.
+          if (version >= 7) '-',
         ]);
         final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
         return '$hash:${canonical.length}';
@@ -586,7 +618,7 @@ void main() {
 
       // Store written by v5 (before F6.1: no language in the fingerprint;
       // same canonical shape otherwise).
-      expect(NotificationService.scheduleFingerprintVersion, 6);
+      expect(NotificationService.scheduleFingerprintVersion, 7);
       await store.save({
         for (final n in plugin.pending.values)
           n.id: fingerprint(n, version: 5, payload: n.payload),

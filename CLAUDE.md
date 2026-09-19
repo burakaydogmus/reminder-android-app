@@ -75,10 +75,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   unchanged). Nullable fields in `copyWith` take `T? Function()?`
   (`copyWith(note: () => null)` clears). `Birthday`: a Feb 29 birthday falls on
   **Feb 28 in non-leap years** (`occurrenceInYear`, used by `nextOccurrence`,
-  `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests. A birthday
-  without a known year is stored with the sentinel year `Birthday.unknownYear` (4, a
-  leap year so a year-less 29 Şubat works): `hasYear` is false and no age is shown
-  (F4.4; no schema/JSON change).
+  `daysUntilNext`, `upcomingAge`); date helpers take `from:` for tests. A birthday is
+  **month + day + optional year** (`month`, `day`, `year`; `Birthday.onDate(date:,
+  yearKnown:)` builds one from a `DateTime`, `birthDate` is null without a year):
+  a birthday without a known year has `year == null`, `hasYear` false and no age
+  (F4.4, F6.4). Before F6.4 the year was the sentinel `4`
+  (`Birthday.legacyUnknownYear`); it survives only in the JSON `date` field (see
+  **Backup**) and in the v5 → v6 migration.
 - `domain/model/recurrence.dart` — `RecurrenceRule` (F3.1): none / daily / weekly
   (sorted Mon-first weekdays) / monthly (day of month, clamped to the month end:
   31 → 30/28/29), `interval` (every N days/weeks/months; "Özel" = daily N ≥ 2),
@@ -213,6 +216,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
     `OnboardingStore` (see **Onboarding** under UI structure).
   - `components/` — `ReminderCard`, `BirthdayCard`, `BirthdayRow`, `SectionHeader`,
+    `StrikeThroughTitle` (§3.5: a completed title's line is drawn from the start edge
+    over `KorMotion.effectsDefault`; Reduce Motion paints the final state at once —
+    used by `ReminderCard` and `ReminderCompactCard`),
     `GroupedCard`, `EmptyState`, `TabHeader` (gear → Ayarlar), `KorGlassSurface` (iOS
     glass / solid fallback). `common/` — `KorFormat` (Turkish
     date/time, locale-aware upper case), `NowScope` (injectable clock).
@@ -308,7 +314,8 @@ The sync is **diff-based** (F1.7):
   `notification_schedule_fingerprints_v1` (`NotificationFingerprintStore`, reloaded
   before reading); they are written after scheduling. Missing/corrupt store → all
   desired entries are rescheduled. Changing how notifications are built (channel
-  settings, actions, …) → bump `_ScheduleSpec._version` (currently 6; v6 = F6.1 language).
+  settings, actions, …) → bump `_ScheduleSpec._version` (currently 7; v6 = F6.1
+  language, v7 = F6.4 iOS subtask subtitle).
 - **Schedule mode (F6.2c):** chosen **once per sync** from `canScheduleExactNotifications()`
   (injectable via `NotificationService.forTesting(canScheduleExact:)`): permitted (or not
   Android 12+) → `exactAllowWhileIdle`, otherwise `inexactAllowWhileIdle` (may be a few
@@ -332,8 +339,10 @@ The sync is **diff-based** (F1.7):
   kaldı" (`reminderNotificationBody`; just "N madde kaldı" without a note) and
   Android uses `BigTextStyleInformation` listing up to 5 open items + "… ve N madde
   daha" (`reminderSubtaskBigText`); that text is in the fingerprint (`subtasks`), so
-  ticking an item reschedules. Geofence notifications use the same helpers. iOS shows
-  the summary body only.
+  ticking an item reschedules. iOS gets the same items on one line in
+  `DarwinNotificationDetails.subtitle` (`reminderSubtaskSubtitle`, "Süt · Ekmek · …",
+  its own fingerprint field; F6.4) — **not** appended to the body, which is shared with
+  Android. Geofence notifications use the same helpers.
 
 `ScheduleSync.syncAll` runs one sync at a time per instance; calls arriving while
 one runs are coalesced (only the latest snapshot runs, all queued callers complete
@@ -367,8 +376,8 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v5** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json` … `drift_schema_v5.json`): `reminders` and
+- **Schema v6** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v6.json`): `reminders` and
   `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
   `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
   v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
@@ -392,8 +401,19 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   cubit saves the whole catalog, built-ins included, so their order persists; a
   deleted user category is soft-deleted); `clearAll` deletes categories;
   `PrefsMigration` converts legacy labels the same way. The SharedPreferences fallback
-  session has no categories (built-ins only). SQLite foreign keys are not enforced (no `PRAGMA foreign_keys`). **Model times**
-  (`created_at`, `remind_at`, `birthdays.date`) are TEXT in exactly the old JSON format,
+  session has no categories (built-ins only). v6 (F6.4) replaces `birthdays.date`
+  (TEXT) with `birth_month` / `birth_day` (INTEGER) + **nullable** `birth_year`: the
+  `from < 6` step (`AppDatabase.migrateBirthdayYear`, a `TableMigration` that rebuilds
+  the table) splits the ISO text with `strftime` and turns the sentinel year 4 into
+  `NULL`; an unparseable `date` leaves month/day 0 and `birthdayFromRow` throws, so the
+  repository skips that row as before. **SQLite foreign keys are enforced** since F6.4:
+  `PRAGMA foreign_keys = ON` in the `beforeOpen` hook (after the migration steps, so
+  table-rebuild migrations still run unconstrained). `subtasks.reminder_id` therefore
+  cannot point at a missing reminder and a reminder row with subtasks cannot be
+  **hard**-deleted (default `NO ACTION` = restrict) — repository deletes are soft and
+  `clearAll` removes subtasks first, so nothing else changed
+  (`test/data/db/foreign_keys_test.dart`). **Model times**
+  (`created_at`, `remind_at`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
   fields and `isUtc` as the old `fromJson`. Don't convert them to UTC/epoch — that
@@ -437,7 +457,10 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   in `decode` (a stray `categories` key in a v1 file is ignored). Merge mode merges
   categories by id (local order kept) and maps a new backup category whose folded
   name matches a local one onto it (`BackupService.mergeCategories`); replace mode
-  saves the backup's categories. New model fields travel
+  saves the backup's categories. A birthday's JSON keeps the legacy `date` field (with the sentinel year 4
+  when the year is unknown) **and** an explicit `birthYear` (`null` = unknown, wins on
+  read), so v6 files still open in older readers and pre-v6 files import with the
+  sentinel converted (F6.4, no version bump). New model fields travel
   automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
   changes an older reader would misread — a newer file is rejected with "update the
   app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
@@ -497,7 +520,7 @@ does not recognise; keep that cleanup if the sync changes again.
   `NotificationService.initialize` with the F1.6 no-prompt flags; details set
   `categoryIdentifier`) — Tamamla · 10 dk ertele · 1 saat ertele · Yarın sabah. Action
   ids (`NotificationActionIds`) are persisted in shown notifications; don't rename them.
-  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint, v4 = F3.3 subtasks body/BigText).
+  Changing notification details → bump `_ScheduleSpec._version` (v2 = F3.2 actions, v3 = F3.1 recurrence rule in the fingerprint, v4 = F3.3 subtasks body/BigText, v7 = F6.4 iOS subtask subtitle).
 - **Handling** (`services/notification_actions.dart`): non-foreground actions always run
   in the plugin's **separate, long-lived engine** (`notificationActionBackgroundHandler`,
   `@pragma('vm:entry-point')`), even while the app is open. It reloads the
@@ -913,7 +936,8 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   actions); the row is one semantics node re-exposing the card actions plus "Taşı…"
   (date picker). Doğum günleri: `BirthdayGroups` (pure: hero, month groups,
   subtitles, 29 Şubat note); text on the birthday container uses `onContainer`. The
-  birthday editor has a "Yıl bilinmiyor" chip (`Birthday.unknownYear`).
+  birthday editor has a "Yıl bilinmiyor" chip (saved as `Birthday.year == null`;
+  the picker keeps a leap year as a placeholder so a year-less 29 Şubat stays).
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), localized semantics labels (ARB), times via `KorFormat` (24 h, tabular figures,
@@ -964,7 +988,10 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   collapsible "Tamamlanan N madde". Reorder = `ReorderableListView` with
   `buildDefaultDragHandles: false` (handle only) — its items already expose the
   localized "Yukarı taşı / Aşağı taşı" semantics actions; the row menu is the
-  single-pointer alternative. No swipe delete. Changes are kept in the editor and
+  single-pointer alternative. No swipe delete; "Sil" applies at once and shows the
+  `UndoSnackBar` (F3.5 style, delete/undo haptics, reuses `undoDeleted`) whose "Geri
+  al" puts the item back at its old position in the list as it is *then*, so edits
+  made meanwhile survive (F6.4). Changes are kept in the editor and
   saved with "Kaydet" (empty titles dropped). When all items are done the card
   suggests "Tümü tamam — hatırlatıcıyı tamamla?": it saves, then runs
   `toggleReminderDoneWithUndo`. `ReminderCard` meta shows ☑ icon + "2/6" and a 3 px

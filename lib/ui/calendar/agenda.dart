@@ -31,15 +31,16 @@ class BirthdayOccurrence {
 
   /// Age reached on [date]; `null` when the year is unknown or not plausible.
   int? get age {
-    if (!birthday.hasYear) return null;
-    final a = date.year - birthday.date.year;
+    final birthYear = birthday.year;
+    if (birthYear == null) return null;
+    final a = date.year - birthYear;
     return a > 0 ? a : null;
   }
 
   /// A 29 February birthday celebrated on 28 February this time.
   bool get movedFromLeapDay =>
-      birthday.date.month == DateTime.february &&
-      birthday.date.day == 29 &&
+      birthday.month == DateTime.february &&
+      birthday.day == 29 &&
       date.day == 28;
 
   /// The occurrence in [year] (date only).
