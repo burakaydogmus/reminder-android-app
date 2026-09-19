@@ -263,29 +263,38 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             ),
           if (_mode != RecurrenceMode.none) ...[
             const SizedBox(height: KorSpacing.s4),
-            Row(
+            // Label and chip share a line while they fit; at large text
+            // the chip goes under "Bitiş" (§3.6 rule 6).
+            OverflowBar(
+              alignment: MainAxisAlignment.spaceBetween,
+              overflowSpacing: KorSpacing.s2,
               children: [
-                Expanded(
-                  child: Text('Bitiş', style: theme.textTheme.titleMedium),
+                Text('Bitiş', style: theme.textTheme.titleMedium),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ActionChip(
+                        key: RecurrenceSheetKeys.until,
+                        avatar: const Icon(Icons.event_rounded),
+                        label: Text(
+                          _until == null
+                              ? 'Hiçbir zaman'
+                              : KorFormat.dayMonth(_until!, widget.now),
+                        ),
+                        tooltip: 'Bitiş tarihi seç',
+                        onPressed: _pickUntil,
+                      ),
+                    ),
+                    if (_until != null)
+                      IconButton(
+                        key: RecurrenceSheetKeys.clearUntil,
+                        tooltip: 'Bitişi kaldır',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => setState(() => _until = null),
+                      ),
+                  ],
                 ),
-                ActionChip(
-                  key: RecurrenceSheetKeys.until,
-                  avatar: const Icon(Icons.event_rounded),
-                  label: Text(
-                    _until == null
-                        ? 'Hiçbir zaman'
-                        : KorFormat.dayMonth(_until!, widget.now),
-                  ),
-                  tooltip: 'Bitiş tarihi seç',
-                  onPressed: _pickUntil,
-                ),
-                if (_until != null)
-                  IconButton(
-                    key: RecurrenceSheetKeys.clearUntil,
-                    tooltip: 'Bitişi kaldır',
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => setState(() => _until = null),
-                  ),
               ],
             ),
             const SizedBox(height: KorSpacing.s4),

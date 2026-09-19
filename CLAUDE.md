@@ -852,9 +852,24 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - **Accessibility (F4.5 criteria, apply to every PR):** 48 dp targets
   (`materialTapTargetSize.padded`), state never by colour alone (e.g. "Gecikti" text +
   icon), Turkish semantics labels, times via `KorFormat` (24 h, tabular figures,
-  `KorFormat.spokenTime` for screen readers), `KorFormat.upperTr` instead of
-  `toUpperCase()`, no fixed heights for text (use `minHeight`), honour
-  `MediaQuery.disableAnimationsOf`.
+  `KorFormat.spokenTime` for screen readers — any semantics label with a time says
+  "saat 16:00"), `KorFormat.upperTr` instead of `toUpperCase()`, no fixed heights for
+  text (use `minHeight`), honour `MediaQuery.disableAnimationsOf`. Text + action rows
+  must survive 200 % text: `Expanded`/`Flexible` for the text, or `OverflowBar` so the
+  action drops below (`SectionHeader` does this; `ReminderCard.stacksTime` puts the time
+  under the title above 1.3). Surfaces floating over lists absorb taps. Rules, their tests
+  and the manual TalkBack/VoiceOver checks: [`docs/a11y-checklist.md`](docs/a11y-checklist.md).
+- **A11y audit (F4.5):** `test/ui/a11y/` — `a11yAudit(description, pump, platforms:,
+  surface:)` runs one test per light/dark × text scale 1.0/2.0 × platform and
+  `expectAccessible` checks overflow, `android`/`iOSTapTargetGuideline`,
+  `labeledTapTargetGuideline`, `textContrastGuideline` and bare `HH:mm` in semantics.
+  Sample data and `pumpAuditShell` / `auditOpener` live in `a11y_sample_data.dart`
+  (fixed clock `auditClock`). **Every new screen or sheet gets an `a11yAudit` entry**
+  (both platforms when the chrome differs); rules the guidelines cannot see go to
+  `semantics_contract_test.dart`. Run `flutter test test/ui/a11y`; add
+  `--dart-define=A11Y_SHOTS=true` to write each variant to `build/a11y_shots/` (square
+  test font, so overflow checks are pessimistic). Guidelines skip off-screen/edge nodes
+  and links, so use a tall `surface` and test link hit areas separately.
 - **Editor past times (F1.8b):** never shift a chosen time silently. The "Ne zaman"
   section flags a past date/time (`PastTime` / `PastTimeHint` in
   `reminders/past_time_hint.dart`: error-coloured chips, icon + "Bu saat geçti",

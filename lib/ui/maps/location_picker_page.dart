@@ -8,6 +8,7 @@ import 'package:reminder/config/maps_config.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/services/places_nearby_service.dart';
+import 'package:reminder/ui/maps/osm_attribution.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -302,71 +303,56 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           Expanded(
             child: Stack(
               children: [
-                FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _markerPos,
-                    initialZoom: 15,
-                    onTap: _onMapTap,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.burakaydogmus.reminder',
+                // The map's gesture node needs a name (§3.6 rule 4); the
+                // marker also moves with "Konumuma git".
+                Semantics(
+                  label: 'Harita',
+                  hint: 'İşaretçiyi taşımak için dokun',
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _markerPos,
+                      initialZoom: 15,
+                      onTap: _onMapTap,
                     ),
-                    CircleLayer(
-                      circles: [
-                        CircleMarker(
-                          point: _markerPos,
-                          radius: _radius,
-                          useRadiusInMeter: true,
-                          color: primary.withValues(alpha: 0.22),
-                          borderStrokeWidth: 2,
-                          borderColor: primary,
-                        ),
-                      ],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: _markerPos,
-                          width: 44,
-                          height: 44,
-                          child: Icon(
-                            Icons.place,
-                            color: primary,
-                            size: 44,
-                          ),
-                        ),
-                      ],
-                    ),
-                    // OSMF tile policy: visible "© OpenStreetMap
-                    // contributors" linking to the copyright page (F6.2b).
-                    // Bottom left keeps it clear of "Konumuma git".
-                    DefaultTextStyle.merge(
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurface,
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.burakaydogmus.reminder',
                       ),
-                      child: Semantics(
-                        link: true,
-                        child: SimpleAttributionWidget(
-                          alignment: Alignment.bottomLeft,
-                          onTap: _openOsmCopyright,
-                          source: Text(
-                            'OpenStreetMap contributors',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: scheme.primary,
-                              decoration: TextDecoration.underline,
-                              decorationColor: scheme.primary,
+                      CircleLayer(
+                        circles: [
+                          CircleMarker(
+                            point: _markerPos,
+                            radius: _radius,
+                            useRadiusInMeter: true,
+                            color: primary.withValues(alpha: 0.22),
+                            borderStrokeWidth: 2,
+                            borderColor: primary,
+                          ),
+                        ],
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _markerPos,
+                            width: 44,
+                            height: 44,
+                            child: Icon(
+                              Icons.place,
+                              color: primary,
+                              size: 44,
                             ),
                           ),
-                          backgroundColor:
-                              scheme.surface.withValues(alpha: 0.92),
-                        ),
+                        ],
                       ),
-                    ),
-                  ],
+                      // OSMF tile policy: visible "© OpenStreetMap
+                      // contributors" linking to the copyright page (F6.2b).
+                      // Bottom left keeps it clear of "Konumuma git".
+                      OsmAttribution(onTap: _openOsmCopyright),
+                    ],
+                  ),
                 ),
                 Positioned(
                   right: KorSpacing.s4,

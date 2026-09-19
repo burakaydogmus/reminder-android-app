@@ -314,6 +314,8 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                       avatar: const Icon(Icons.schedule_rounded),
                       label: Text(
                         timeLabel,
+                        // "saat 09:00", not "sıfır dokuz sıfır sıfır".
+                        semanticsLabel: 'Bildirim saati: saat $timeLabel',
                         style: const TextStyle(
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),

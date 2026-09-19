@@ -122,26 +122,11 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Düzeltildi
 
-- iOS'ta arama iki kez sunulmuyor: Bugün ve Listeler başlığındaki arama simgesi kaldırıldı,
-  arama cam sekme çubuğundaki "Ara" dairesinden açılıyor (akıllı listelerde simge duruyor).
-  Android değişmedi. (F3.6 takip)
-- Ayarlar → Lisanslar: `liquid_glass_widgets` içine gömülü `liquid_glass_renderer` ve `motor`
-  kodunun MIT bildirimleri de listeleniyor. (F6.2b takip)
-- Konum hatırlatmaları uygulama kapalıyken ve cihaz yeniden başladıktan sonra da çalışıyor. (#7)
-- Tek bir bozuk kayıt yüzünden tüm hatırlatıcıların silinmesi engellendi; bozuk veri yedekleniyor. (#6)
-- Ana ekran aracından hatırlatıcı tamamlamak doğum günü bildirimlerini silmiyor. (#11)
-- Bildirim kimlikleri kararlı hale getirildi (sürümler arasında kaybolan/çakışan bildirimler). (#13)
-- Değişikliklerden sonra liste sıralaması; 29 Şubat doğum günleri artık artık yıl olmayan yıllarda
-  28 Şubat'ta; yıllık doğum günü bildirim metninde eskiyen yaş bilgisi kaldırıldı. (#14)
-- Uygulama öne geldiğinde veri depodan yeniden yükleniyor; ana ekran aracında yapılan değişikliği
-  açık uygulama artık ezmiyor. (#15)
-- Editörde geçmiş bir saat sessizce değiştirilmiyor; uyarı ve "Yarın aynı saat" önerisi. (#16)
-- İzinler açılışta topluca istenmiyor; ihtiyaç anında açıklamayla isteniyor. (#18)
-- Release derlemeleri: `key.properties` yokken derlemenin kırılması ve R8 küçültme sorunları. (#10)
-
-### Güvenlik
-
-- İzinler (konum, bildirim, tam zamanlı alarm) artık yalnızca ilgili özellik kullanılırken ve
-  gerekçesiyle isteniyor; reddedilmesi kaydı veya haritayı engellemiyor. (#18)
-- Release imzalama anahtarları (`key.properties`, keystore) repoda tutulmuyor; anahtar yoksa
-  derleme uyarı veriyor ve bu APK'nın yayınlanmaması gerektiği belgelendi. (#10)
+- **Erişilebilirlik denetimi:** Android'de alt gezinme çubuğundaki seçili sekmenin adı telefon
+  genişliğinde kesiliyordu, artık tam görünüyor; çubuğun boş yerine dokunmak alttaki karta
+  geçmiyor. Yazı boyutu %200'deyken kart saati başlığın altına iniyor, bölüm başlıklarındaki
+  düğmeler ("Tamamlananları gizle", "Hepsini yarına al") sığmayınca alt satıra geçiyor, Tekrar
+  sayfasındaki "Bitiş" satırı ve hızlı yakalamadaki "Tüm ayrıntılar / Kaydet" satırı taşmıyor.
+  Haritadaki "© OpenStreetMap contributors" bağlantısının dokunma alanı 48 dp oldu; harita ekran
+  okuyucuya "Harita" olarak adlandırılıyor. Ekran okuyucu "Şimdi" çizgisini ve düzenleyicilerdeki
+  saatleri "saat 14:32" diye okuyor. (F4.5)

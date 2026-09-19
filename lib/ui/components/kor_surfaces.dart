@@ -45,31 +45,43 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 40),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              size: KorSizes.iconSm,
-              color: iconColor ?? scheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: KorSpacing.s3),
-          ],
-          Expanded(
-            child: Semantics(
-              header: true,
-              child: Text(
-                title,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+    final heading = Row(
+      mainAxisSize: trailing == null ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(
+            icon,
+            size: KorSizes.iconSm,
+            color: iconColor ?? scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: KorSpacing.s3),
+        ],
+        Flexible(
+          child: Semantics(
+            header: true,
+            child: Text(
+              title,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
-          if (trailing != null) trailing!,
-        ],
+        ),
+      ],
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 40),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        // Title and trailing share a line while they fit; with large text
+        // the trailing drops below the title instead of squeezing it.
+        child: trailing == null
+            ? heading
+            : OverflowBar(
+                alignment: MainAxisAlignment.spaceBetween,
+                spacing: KorSpacing.s3,
+                children: [heading, trailing!],
+              ),
       ),
     );
   }
