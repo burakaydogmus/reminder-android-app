@@ -62,8 +62,8 @@ void main() {
   });
 
   group('mode selection', () {
-    test('fingerprint version is 6 (mode per sync, F6.1 language)', () {
-      expect(NotificationService.scheduleFingerprintVersion, 6);
+    test('fingerprint version is 7 (F6.4 iOS subtask subtitle)', () {
+      expect(NotificationService.scheduleFingerprintVersion, 7);
     });
 
     test('scheduleModeFor maps the capability to exact / inexact', () {

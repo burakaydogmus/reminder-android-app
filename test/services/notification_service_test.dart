@@ -591,6 +591,8 @@ void main() {
           if (version >= 3) n.id == future.notificationId ? 'null' : '-',
           // v4 (F3.3): Android BigText of open subtasks; none here.
           if (version >= 4) '-',
+          // v7 (F6.4): the iOS subtask subtitle; none here.
+          if (version >= 7) '-',
         ]);
         final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
         return '$hash:${canonical.length}';
@@ -616,7 +618,7 @@ void main() {
 
       // Store written by v5 (before F6.1: no language in the fingerprint;
       // same canonical shape otherwise).
-      expect(NotificationService.scheduleFingerprintVersion, 6);
+      expect(NotificationService.scheduleFingerprintVersion, 7);
       await store.save({
         for (final n in plugin.pending.values)
           n.id: fingerprint(n, version: 5, payload: n.payload),

@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/subtask.dart';
 import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -31,6 +32,8 @@ void main() {
     final style = details?.android?.styleInformation;
     return style is BigTextStyleInformation ? style.bigText : null;
   }
+
+  String? subtitleOf(NotificationDetails? details) => details?.iOS?.subtitle;
 
   group('reminderNotificationBody', () {
     test('no subtasks: note or fallback as before', () {
@@ -110,6 +113,44 @@ void main() {
     });
   });
 
+  group('reminderSubtaskSubtitle (iOS, F6.4)', () {
+    test('null without open subtasks', () {
+      expect(
+        NotificationService.reminderSubtaskSubtitle(
+            buildReminder(), AppL10n.turkish),
+        isNull,
+      );
+      expect(
+        NotificationService.reminderSubtaskSubtitle(
+          buildReminder(subtasks: buildSubtasks(['A'], done: {0})),
+          AppL10n.turkish,
+        ),
+        isNull,
+      );
+    });
+
+    test('lists up to 5 open items on one line, then the rest count', () {
+      final r = buildReminder(
+        subtasks: buildSubtasks(
+          ['Süt', 'Ekmek', 'Çay', 'Un', 'Tuz', 'Şeker', 'Yağ', 'Pirinç'],
+          done: {1},
+        ),
+      );
+      expect(
+        NotificationService.reminderSubtaskSubtitle(r, AppL10n.turkish),
+        'Süt · Çay · Un · Tuz · Şeker · … ve 2 madde daha',
+      );
+    });
+
+    test('follows the app language', () {
+      final r = buildReminder(subtasks: buildSubtasks(['Milk', 'Bread']));
+      expect(
+        NotificationService.reminderSubtaskSubtitle(r, AppL10n.english),
+        'Milk · Bread',
+      );
+    });
+  });
+
   group('scheduling', () {
     final at = DateTime.now().add(const Duration(days: 2));
 
@@ -134,6 +175,26 @@ void main() {
       await sync(const []);
       expect(plugin.pending.values.single.details!.android!.styleInformation,
           isNull);
+    });
+
+    test('iOS gets the open items as the notification subtitle (F6.4)',
+        () async {
+      await sync(buildSubtasks(['Süt', 'Ekmek'], done: {1}));
+      final n = plugin.pending.values.single;
+      // Android keeps the one-line body plus BigText…
+      expect(n.body, '1 madde kaldı');
+      expect(bigTextOf(n.details), '1 madde kaldı\n• Süt');
+      // …and iOS carries the same information in its subtitle.
+      expect(subtitleOf(n.details), 'Süt');
+      expect(
+          n.details!.iOS!.categoryIdentifier, reminderNotificationCategoryId);
+    });
+
+    test('no open items: no iOS subtitle', () async {
+      await sync(const []);
+      expect(subtitleOf(plugin.pending.values.single.details), isNull);
+      await sync(buildSubtasks(['A'], done: {0}));
+      expect(subtitleOf(plugin.pending.values.single.details), isNull);
     });
 
     test(
@@ -165,6 +226,13 @@ void main() {
         greaterThanOrEqualTo(4),
       );
     });
+
+    test('the iOS subtitle change bumps the fingerprint version (F6.4)', () {
+      expect(
+        NotificationService.scheduleFingerprintVersion,
+        greaterThanOrEqualTo(7),
+      );
+    });
   });
 
   test('geofence notification also shows open subtasks', () async {
@@ -180,6 +248,11 @@ void main() {
     expect(
       bigTextOf(plugin.shownDetails[geo.geoNotificationId]),
       'Migros Kadıköy · 2 madde kaldı\n• Süt\n• Ekmek',
+    );
+    // iOS carries the same items in the subtitle (F6.4).
+    expect(
+      plugin.shownDetails[geo.geoNotificationId]?.iOS?.subtitle,
+      'Süt · Ekmek',
     );
   });
 }

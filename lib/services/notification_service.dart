@@ -147,6 +147,7 @@ class NotificationService implements NotificationSync {
       fallback: l10n.notifGeoFallback,
     );
     final bigText = reminderSubtaskBigText(r, body, l10n);
+    final subtitle = reminderSubtaskSubtitle(r, l10n);
 
     final android = AndroidNotificationDetails(
       channelId,
@@ -160,11 +161,12 @@ class NotificationService implements NotificationSync {
           bigText == null ? null : BigTextStyleInformation(bigText),
     );
 
-    const darwin = DarwinNotificationDetails(
+    final darwin = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
       categoryIdentifier: reminderNotificationCategoryId,
+      subtitle: subtitle,
     );
 
     final details = NotificationDetails(android: android, iOS: darwin);
@@ -516,6 +518,28 @@ class NotificationService implements NotificationSync {
     return lines.join('\n');
   }
 
+  /// iOS bildiriminin alt başlığı: ilk [maxListedSubtasks] açık madde tek
+  /// satırda, "Süt · Ekmek · … ve 2 madde daha". Açık madde yoksa `null`.
+  ///
+  /// **Neden alt başlık, gövdeye eklemek değil (F6.4):** gövde platformlar
+  /// arasında ortaktır (`zonedSchedule` tek `body` alır), bu yüzden maddeleri
+  /// gövdeye eklemek Android'in daraltılmış tek satırlık metnini de bozardı —
+  /// orada maddeler zaten `BigTextStyleInformation` ile gösteriliyor
+  /// ([reminderSubtaskBigText]). `DarwinNotificationDetails.subtitle`
+  /// yalnızca iOS'a giden, Android'in yok saydığı tek alandır; başlığın
+  /// altında, gövdenin üstünde çıkar. Tek satır olduğu için maddeler madde
+  /// imi yerine " · " ile ayrılır.
+  @visibleForTesting
+  static String? reminderSubtaskSubtitle(Reminder r, AppLocalizations l10n) {
+    final open = r.subtasks.open;
+    if (open.isEmpty) return null;
+    return [
+      for (final s in open.take(maxListedSubtasks)) s.title.trim(),
+      if (open.length > maxListedSubtasks)
+        l10n.notifSubtasksMore(open.length - maxListedSubtasks),
+    ].join(' · ');
+  }
+
   _ScheduleSpec _reminderSpec(
     Reminder r,
     tz.TZDateTime scheduled,
@@ -525,6 +549,7 @@ class NotificationService implements NotificationSync {
 
     final body = reminderNotificationBody(r, l10n);
     final bigText = reminderSubtaskBigText(r, body, l10n);
+    final subtitle = reminderSubtaskSubtitle(r, l10n);
 
     final android = AndroidNotificationDetails(
       channelId,
@@ -538,11 +563,12 @@ class NotificationService implements NotificationSync {
           bigText == null ? null : BigTextStyleInformation(bigText),
     );
 
-    const darwin = DarwinNotificationDetails(
+    final darwin = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
       categoryIdentifier: reminderNotificationCategoryId,
+      subtitle: subtitle,
     );
 
     final details = NotificationDetails(android: android, iOS: darwin);
@@ -559,6 +585,7 @@ class NotificationService implements NotificationSync {
       payload: ReminderPayload(r.id).encode(),
       recurrence: jsonEncode(r.recurrence.toJson()),
       subtasks: bigText,
+      subtaskSubtitle: subtitle,
     );
   }
 }
@@ -577,6 +604,7 @@ class _ScheduleSpec {
     this.payload,
     this.recurrence,
     this.subtasks,
+    this.subtaskSubtitle,
   });
 
   /// Kurulum biçimi (kanal ayarları, zamanlama modu, aksiyonlar/kategori vb.)
@@ -592,7 +620,10 @@ class _ScheduleSpec {
   ///   inexact) ve senkronda belirlenen mod parmak izine girer.
   /// - v6 (F6.1): metinler, kanal adları ve aksiyonlar uygulama dilinde;
   ///   dil parmak izine girdi (dil değişince hepsi yeniden kurulur).
-  static const _version = 6;
+  /// - v7 (F6.4): iOS bildirimi açık maddeleri `subtitle` ile gösterir;
+  ///   alt başlık parmak izine girdi, kurulu bildirimler bir kez yeniden
+  ///   kurulur.
+  static const _version = 7;
 
   final int id;
   final String channelId;
@@ -615,6 +646,10 @@ class _ScheduleSpec {
   /// eklenir, işaretlenir veya yeniden adlandırılırsa bildirim yeniden kurulur.
   final String? subtasks;
 
+  /// iOS alt başlığı (açık maddeler tek satırda, F6.4); madde yoksa `null`.
+  /// Android metninden ayrı tutulur ki biri değişince parmak izi de değişsin.
+  final String? subtaskSubtitle;
+
   /// Bildirimin [mode] ile kurulduğu haliyle eşleşen kısa özet. Zaman hem an
   /// hem de saat dilimi olarak girer (`dateAndTime` tekrarı yerel saate
   /// bağlıdır). Mod değişince (izin verildi / geri alındı) bildirim yeniden
@@ -633,6 +668,7 @@ class _ScheduleSpec {
       payload ?? '-',
       recurrence ?? '-',
       subtasks ?? '-',
+      subtaskSubtitle ?? '-',
     ]);
     final hash = NotificationIds.fnv1a32(canonical).toRadixString(16);
     return '$hash:${canonical.length}';
