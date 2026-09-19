@@ -4,6 +4,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/data/backup/backup_format.dart';
 import 'package:reminder/data/backup/backup_io.dart';
 import 'package:reminder/data/backup/backup_service.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/settings/backup_preview_sheet.dart';
 import 'package:reminder/util/dialog.dart';
 
@@ -18,6 +19,7 @@ class BackupActions {
   /// the backup could not be created (a snackbar explains it).
   Future<bool> export(BuildContext context) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = context.l10n;
     final origin = _originOf(context);
     try {
       final json = await service.exportJson(appVersion: await io.appVersion());
@@ -27,12 +29,12 @@ class BackupActions {
         origin: origin,
       );
       if (outcome == BackupShareOutcome.shared) {
-        _snack(messenger, 'Yedek dosyası paylaşıldı.');
+        _snack(messenger, l10n.backupShared);
       }
       return true;
     } catch (e) {
       debugPrint('Backup export failed: $e');
-      _snack(messenger, 'Yedek oluşturulamadı. Tekrar dene.');
+      _snack(messenger, l10n.backupExportFailed);
       return false;
     }
   }
@@ -40,17 +42,17 @@ class BackupActions {
   /// Pick → parse → preview → (confirm replace) → apply → reload.
   Future<void> import(BuildContext context, ReminderCubit cubit) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final l10n = context.l10n;
 
     final String? raw;
     try {
       raw = await io.pickBackupFile();
     } on BackupFileTooLargeException {
-      _snack(
-          messenger, 'Bu dosya bir Hatırlatıcı yedeği olamayacak kadar büyük.');
+      _snack(messenger, l10n.backupTooLarge);
       return;
     } catch (e) {
       debugPrint('Backup pick failed: $e');
-      _snack(messenger, 'Dosya okunamadı.');
+      _snack(messenger, l10n.backupReadFailed);
       return;
     }
     if (raw == null) return;
@@ -59,7 +61,7 @@ class BackupActions {
     try {
       backup = BackupFormat.decode(raw);
     } on BackupFormatException catch (e) {
-      _snack(messenger, backupErrorMessage(e));
+      _snack(messenger, backupErrorMessage(e, l10n));
       return;
     }
     if (!context.mounted) return;
@@ -69,9 +71,8 @@ class BackupActions {
     if (mode == BackupImportMode.replace) {
       final confirmed = await showConfirmationDialog(
         context,
-        title: 'Verileri değiştir',
-        content: 'Mevcut hatırlatıcıların ve doğum günlerin silinip '
-            'yedektekilerle değiştirilir. Bu işlem geri alınamaz.',
+        title: l10n.backupReplaceTitle,
+        content: l10n.backupReplaceBody,
       );
       if (!confirmed) return;
     }
@@ -81,8 +82,7 @@ class BackupActions {
       await cubit.load();
       _snack(
         messenger,
-        'Geri yüklendi: ${result.reminders} hatırlatıcı, '
-        '${result.birthdays} doğum günü.',
+        l10n.backupRestored(result.reminders, result.birthdays),
       );
     } catch (e) {
       debugPrint('Backup import failed: $e');
@@ -91,8 +91,7 @@ class BackupActions {
       } catch (_) {}
       _snack(
         messenger,
-        'Geri yükleme tamamlanamadı; veriler kısmen değişmiş olabilir. '
-        'Aynı dosyayı tekrar geri yükleyebilirsin.',
+        l10n.backupRestoreFailed,
       );
     }
   }
@@ -111,16 +110,15 @@ class BackupActions {
 }
 
 /// User-facing text for a rejected backup file (nothing was applied).
-String backupErrorMessage(BackupFormatException e) {
+String backupErrorMessage(BackupFormatException e, AppLocalizations l10n) {
   switch (e.kind) {
     case BackupErrorKind.notJson:
-      return 'Bu dosya okunamadı: geçerli bir yedek dosyası değil.';
+      return l10n.backupErrorNotJson;
     case BackupErrorKind.notBackup:
-      return 'Bu dosya bir Hatırlatıcı yedeği değil.';
+      return l10n.backupErrorNotBackup;
     case BackupErrorKind.unsupportedVersion:
-      return 'Bu yedek uygulamanın daha yeni bir sürümüyle alınmış '
-          '(sürüm ${e.foundVersion}). Geri yüklemek için uygulamayı güncelle.';
+      return l10n.backupErrorNewer('${e.foundVersion}');
     case BackupErrorKind.invalid:
-      return 'Yedek dosyası bozuk; hiçbir şey değiştirilmedi.';
+      return l10n.backupErrorInvalid;
   }
 }

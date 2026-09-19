@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quick_actions/quick_actions.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/app_shortcuts.dart';
 import 'package:reminder/services/widget_launch_router.dart';
 
@@ -32,7 +33,8 @@ void main() {
     test('types, Turkish titles and icons are the persisted contract', () {
       expect(
         [
-          for (final s in AppShortcut.values) (s.type, s.title, s.icon),
+          for (final s in AppShortcut.values)
+            (s.type, s.titleIn(AppL10n.turkish), s.icon),
         ],
         [
           ('new_reminder', 'Yeni hatırlatıcı', 'shortcut_new_reminder'),
@@ -40,6 +42,13 @@ void main() {
           ('today', 'Bugün', 'shortcut_today'),
           ('new_birthday', 'Yeni doğum günü', 'shortcut_new_birthday'),
         ],
+      );
+    });
+
+    test('English titles (F6.1)', () {
+      expect(
+        [for (final s in AppShortcut.values) s.titleIn(AppL10n.english)],
+        ['New reminder', 'Shopping list', 'Today', 'New birthday'],
       );
     });
 
@@ -99,14 +108,17 @@ void main() {
     test('attach publishes the four shortcuts in order', () async {
       final platform = _FakeQuickActions();
 
-      await router.attach(platform);
+      await router.attach(platform, l10n: AppL10n.turkish);
 
       expect(
         [
           for (final item in platform.items!)
             (item.type, item.localizedTitle, item.icon),
         ],
-        [for (final s in AppShortcut.values) (s.type, s.title, s.icon)],
+        [
+          for (final s in AppShortcut.values)
+            (s.type, s.titleIn(AppL10n.turkish), s.icon),
+        ],
       );
       expect(launchRouter.pending, isNull);
 
@@ -115,8 +127,38 @@ void main() {
       expect(launchRouter.pending, const TodayTarget());
     });
 
+    test('publish re-sends the titles in the new language (F6.1)', () async {
+      final platform = _FakeQuickActions();
+      await router.attach(platform, l10n: AppL10n.turkish);
+
+      await router.publish(AppL10n.english);
+
+      expect(
+        [for (final item in platform.items!) item.localizedTitle],
+        ['New reminder', 'Shopping list', 'Today', 'New birthday'],
+      );
+      expect(
+        [for (final item in platform.items!) item.type],
+        [for (final s in AppShortcut.values) s.type],
+      );
+    });
+
+    test('publish before a successful attach does nothing', () async {
+      final platform = _FakeQuickActions(
+        error: MissingPluginException('no plugin'),
+      );
+      await router.attach(platform, l10n: AppL10n.turkish);
+
+      await router.publish(AppL10n.english);
+
+      expect(platform.items, isNull);
+    });
+
     test('cold start: the launching shortcut is queued', () async {
-      await router.attach(_FakeQuickActions(launchType: 'market_list'));
+      await router.attach(
+        _FakeQuickActions(launchType: 'market_list'),
+        l10n: AppL10n.turkish,
+      );
 
       expect(
         launchRouter.pending,
@@ -128,6 +170,7 @@ void main() {
       await expectLater(
         router.attach(
           _FakeQuickActions(error: MissingPluginException('no plugin')),
+          l10n: AppL10n.turkish,
         ),
         completes,
       );

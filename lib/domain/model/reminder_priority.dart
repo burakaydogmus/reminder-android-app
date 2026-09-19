@@ -2,7 +2,8 @@
 ///
 /// Hızlı yakalama ayrıştırıcısının `!` / `!!` / `!!!` ölçeğiyle aynıdır
 /// (`CaptureParseResult.priority`). Renk tek sinyal değildir (§3.6): kartlar
-/// "!!!" işaretini, ekran okuyucu "Yüksek öncelik" metnini alır.
+/// "!!!" işaretini, ekran okuyucu "Yüksek öncelik" metnini alır. Metinler
+/// arayüzdedir (`PriorityPinVisuals.label` / `spoken`, F6.1).
 abstract final class ReminderPriority {
   static const none = 0;
   static const low = 1;
@@ -19,20 +20,6 @@ abstract final class ReminderPriority {
     return value;
   }
 
-  /// "Yok" / "Düşük" / "Orta" / "Yüksek".
-  static String label(int priority) => switch (normalize(priority)) {
-        low => 'Düşük',
-        medium => 'Orta',
-        high => 'Yüksek',
-        _ => 'Yok',
-      };
-
   /// Kart işareti: "!" / "!!" / "!!!"; öncelik yoksa boş metin.
   static String marker(int priority) => '!' * normalize(priority);
-
-  /// Ekran okuyucu metni ("Yüksek öncelik"); öncelik yoksa `null`.
-  static String? spoken(int priority) {
-    final p = normalize(priority);
-    return p == none ? null : '${label(p)} öncelik';
-  }
 }

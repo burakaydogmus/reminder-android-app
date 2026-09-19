@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:quick_actions/quick_actions.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/widget_launch_router.dart';
 
 /// Uygulama simgesi kısayolları (F5.3): Android launcher kısayolları ve iOS
@@ -9,18 +10,25 @@ import 'package:reminder/services/widget_launch_router.dart';
 /// [type] kalıcı sözleşmedir (Android sabitlenmiş kısayollar, iOS son
 /// kayıtlı liste onu taşır); yeniden adlandırma. [icon] hem Android
 /// `res/drawable/<icon>.xml` hem iOS `Assets.xcassets/<icon>.imageset`
-/// (şablon görsel) adıdır.
+/// (şablon görsel) adıdır. Başlıklar uygulama dilindedir (F6.1, [titleIn]).
 enum AppShortcut {
-  newReminder('new_reminder', 'Yeni hatırlatıcı', 'shortcut_new_reminder'),
-  marketList('market_list', 'Market listesi', 'shortcut_market_list'),
-  today('today', 'Bugün', 'shortcut_today'),
-  newBirthday('new_birthday', 'Yeni doğum günü', 'shortcut_new_birthday');
+  newReminder('new_reminder', 'shortcut_new_reminder'),
+  marketList('market_list', 'shortcut_market_list'),
+  today('today', 'shortcut_today'),
+  newBirthday('new_birthday', 'shortcut_new_birthday');
 
-  const AppShortcut(this.type, this.title, this.icon);
+  const AppShortcut(this.type, this.icon);
 
   final String type;
-  final String title;
   final String icon;
+
+  /// Kısayol başlığı ("Yeni hatırlatıcı" / "New reminder").
+  String titleIn(AppLocalizations l10n) => switch (this) {
+        AppShortcut.newReminder => l10n.shortcutNewReminder,
+        AppShortcut.marketList => l10n.shortcutMarketList,
+        AppShortcut.today => l10n.shortcutToday,
+        AppShortcut.newBirthday => l10n.shortcutNewBirthday,
+      };
 
   /// "Market listesi"nin hızlı yakalamada hazır metni: `#market` Market
   /// kategorisi olarak tanınır, kullanıcı ardından maddeleri yazar.
@@ -36,8 +44,8 @@ enum AppShortcut {
         AppShortcut.newBirthday => const NewBirthdayTarget(),
       };
 
-  ShortcutItem get item =>
-      ShortcutItem(type: type, localizedTitle: title, icon: icon);
+  ShortcutItem itemIn(AppLocalizations l10n) =>
+      ShortcutItem(type: type, localizedTitle: titleIn(l10n), icon: icon);
 
   /// [type]'ın kısayolu; tanınmayan (ör. eski sürümden kalmış) için `null`.
   static AppShortcut? fromType(String? type) {
@@ -79,6 +87,8 @@ class ShortcutRouter {
 
   final WidgetLaunchRouter router;
 
+  QuickActionsPlatform? _platform;
+
   /// [type]'ın hedefini bırakır; tanınmayan tür yok sayılır.
   void handle(String type) {
     final shortcut = AppShortcut.fromType(type);
@@ -86,13 +96,30 @@ class ShortcutRouter {
     router.openTarget(shortcut.target);
   }
 
-  /// İşleyiciyi kaydeder ve dört kısayolu yayımlar. Eklenti hatası açılışı
-  /// durdurmaz (kısayollar yalnızca görünmez).
-  Future<void> attach(QuickActionsPlatform platform) async {
+  /// İşleyiciyi kaydeder ve dört kısayolu [l10n] dilinde yayımlar. Eklenti
+  /// hatası açılışı durdurmaz (kısayollar yalnızca görünmez).
+  Future<void> attach(
+    QuickActionsPlatform platform, {
+    required AppLocalizations l10n,
+  }) async {
     try {
       await platform.initialize(handle);
+      _platform = platform;
+    } on Object catch (error) {
+      debugPrint('ShortcutRouter: quick actions unavailable: $error');
+      return;
+    }
+    await publish(l10n);
+  }
+
+  /// Kısayolları [l10n] dilinde yeniden yayımlar (F6.1: dil değişince).
+  /// [attach] başarısız olduysa hiçbir şey yapmaz.
+  Future<void> publish(AppLocalizations l10n) async {
+    final platform = _platform;
+    if (platform == null) return;
+    try {
       await platform.setShortcutItems([
-        for (final shortcut in AppShortcut.values) shortcut.item,
+        for (final shortcut in AppShortcut.values) shortcut.itemIn(l10n),
       ]);
     } on Object catch (error) {
       debugPrint('ShortcutRouter: quick actions unavailable: $error');

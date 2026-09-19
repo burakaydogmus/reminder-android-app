@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/recurrence_expansion.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
@@ -75,14 +76,17 @@ class ReminderOccurrence {
 
 /// Takvim filter chips (§3.3.5).
 enum CalendarFilter {
-  all('Tümü'),
-  reminders('Hatırlatıcılar'),
-  birthdays('Doğum günleri'),
-  located('Konumlu');
+  all,
+  reminders,
+  birthdays,
+  located;
 
-  const CalendarFilter(this.label);
-
-  final String label;
+  String labelIn(AppLocalizations l10n) => switch (this) {
+        all => l10n.calendarFilterAll,
+        reminders => l10n.calendarFilterReminders,
+        birthdays => l10n.calendarFilterBirthdays,
+        located => l10n.calendarFilterLocated,
+      };
 
   bool get showsBirthdays =>
       this == CalendarFilter.all || this == CalendarFilter.birthdays;

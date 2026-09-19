@@ -7,7 +7,6 @@ import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 import 'package:reminder/ui/today/time_ribbon.dart';
 import 'package:reminder/ui/today/today_page.dart';
@@ -278,7 +277,7 @@ void main() {
       expect(find.text('Kaçanlar'), findsNothing);
       expect(find.byType(SnackBar), findsOneWidget);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(_byId(h, 'bill').remindAt, billBefore);
       expect(_byId(h, 'pharmacy').remindAt, pharmacyBefore);
@@ -336,7 +335,7 @@ void main() {
       expect(find.text('Kaçanlar'), findsOneWidget);
       expect(find.byKey(TodayPageKeys.moveOverdue), findsNothing);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       expect(_byId(h, 'bill').remindAt, DateTime(2026, 9, 12, 18));
       expect(_byId(h, 'pill').remindAt, DateTime(2026, 9, 13, 8));
@@ -375,7 +374,7 @@ void main() {
     expect(find.byKey(TimeRibbonKeys.gutter('walk')), findsNothing);
     expect(find.textContaining('Sonraki:'), findsOneWidget);
 
-    await tester.tap(find.text(UndoSnackBar.actionLabel));
+    await tester.tap(find.text('Geri al'));
     await tester.pumpAndSettle();
     expect(_byId(h, 'walk').remindAt, DateTime(2026, 9, 13, 18));
     expect(find.byKey(TimeRibbonKeys.gutter('walk')), findsOneWidget);

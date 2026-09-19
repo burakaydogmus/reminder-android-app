@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
@@ -38,7 +39,7 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
     final snapshot = PermissionScope.of(context).snapshot;
     return GroupedCard(
       icon: Icons.verified_user_outlined,
-      title: 'İzinler',
+      title: context.l10n.permissionsTitle,
       children: [
         _notifications(context, snapshot?.notifications),
         _location(context, snapshot?.location),
@@ -53,15 +54,16 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
     BuildContext context,
     NotificationPermissionState? state,
   ) {
+    final l10n = context.l10n;
     final (status, level) = switch (state) {
-      null => (_checking, _Level.unknown),
-      NotificationPermissionState.granted => ('Açık', _Level.ok),
+      null => (l10n.permissionChecking, _Level.unknown),
+      NotificationPermissionState.granted => (l10n.permissionOn, _Level.ok),
       NotificationPermissionState.notRequested => (
-          'İzin verilmedi — hatırlatmalar bildirim olarak gelmez',
+          l10n.permissionNotificationsNotRequested,
           _Level.warning,
         ),
       NotificationPermissionState.denied => (
-          'Kapalı — hatırlatmalar zamanında gelmez',
+          l10n.permissionNotificationsDenied,
           _Level.warning,
         ),
     };
@@ -69,46 +71,50 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
     return _PermissionRow(
       key: PermissionsGroupKeys.notifications,
       icon: Icons.notifications_outlined,
-      title: 'Bildirimler',
+      title: l10n.permissionNotifications,
       status: status,
       level: level,
       actionLabel: switch (fix) {
         PermissionFix.none => null,
-        PermissionFix.request => 'İzin ver',
-        PermissionFix.openSettings => 'Ayarları aç',
+        PermissionFix.request => l10n.permissionAllow,
+        PermissionFix.openSettings => l10n.permissionOpenSettings,
       },
       onAction: () => PermissionFlows.fixNotifications(context),
     );
   }
 
   Widget _location(BuildContext context, LocationPermissionState? state) {
+    final l10n = context.l10n;
     final (status, level) = switch (state) {
-      null => (_checking, _Level.unknown),
-      LocationPermissionState.always => ('Her zaman', _Level.ok),
+      null => (l10n.permissionChecking, _Level.unknown),
+      LocationPermissionState.always => (
+          l10n.permissionLocationAlways,
+          _Level.ok,
+        ),
       LocationPermissionState.whileInUse => (
-          'Yalnızca kullanırken — arka plan hatırlatmaları çalışmaz',
+          l10n.permissionLocationWhileInUse,
           _Level.warning,
         ),
       LocationPermissionState.notRequested => (
-          'İzin verilmedi — konum hatırlatmaları çalışmaz',
+          l10n.permissionLocationNotRequested,
           _Level.warning,
         ),
       LocationPermissionState.denied => (
-          'Kapalı — konum hatırlatmaları çalışmaz',
+          l10n.permissionLocationDenied,
           _Level.warning,
         ),
     };
     return _PermissionRow(
       key: PermissionsGroupKeys.location,
       icon: Icons.place_outlined,
-      title: 'Konum',
+      title: l10n.permissionLocation,
       status: status,
       level: level,
       actionLabel: switch (state) {
         null || LocationPermissionState.always => null,
-        LocationPermissionState.whileInUse => 'Düzelt',
-        LocationPermissionState.notRequested => 'İzin ver',
-        LocationPermissionState.denied => 'Ayarları aç',
+        LocationPermissionState.whileInUse => l10n.permissionFix,
+        LocationPermissionState.notRequested => l10n.permissionAllow,
+        LocationPermissionState.denied => l10n.permissionOpenSettings,
       },
       onAction: () => PermissionFlows.fixLocation(context),
     );
@@ -116,22 +122,20 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
 
   Widget _exactAlarms(BuildContext context, ExactAlarmState state) {
     final granted = state != ExactAlarmState.denied;
+    final l10n = context.l10n;
     return _PermissionRow(
       key: PermissionsGroupKeys.exactAlarms,
       icon: Icons.alarm_rounded,
-      title: 'Tam zamanlı alarmlar',
+      title: l10n.permissionExactAlarms,
       // Optional (F6.2c): reminders fall back to inexact alarms.
-      status: granted
-          ? 'Açık'
-          : 'Kapalı — izin olmadan hatırlatmalar birkaç dakika gecikebilir',
+      status: granted ? l10n.permissionOn : l10n.permissionExactAlarmsOff,
       level: granted ? _Level.ok : _Level.warning,
-      actionLabel:
-          exactAlarmFix(state) == PermissionFix.none ? null : 'Ayarları aç',
+      actionLabel: exactAlarmFix(state) == PermissionFix.none
+          ? null
+          : l10n.permissionOpenSettings,
       onAction: () => PermissionFlows.fixExactAlarms(context),
     );
   }
-
-  static const _checking = 'Denetleniyor…';
 }
 
 enum _Level { ok, warning, unknown }

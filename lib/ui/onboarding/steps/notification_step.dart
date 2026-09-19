@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/onboarding/onboarding_widgets.dart';
@@ -44,6 +45,7 @@ class _NotificationStepState extends State<NotificationStep> {
     final granted = current == NotificationPermissionState.granted ||
         _result == NotificationPermissionState.granted;
     final deniedHere = !granted && _result != null;
+    final l10n = context.l10n;
 
     final List<Widget> footer;
     if (granted) {
@@ -52,7 +54,7 @@ class _NotificationStepState extends State<NotificationStep> {
         const SizedBox(height: KorSpacing.s4),
         OnboardingPrimaryButton(
           key: OnboardingKeys.next,
-          label: 'Devam',
+          label: l10n.onboardingContinue,
           onPressed: widget.onNext,
         ),
       ];
@@ -62,7 +64,7 @@ class _NotificationStepState extends State<NotificationStep> {
         const SizedBox(height: KorSpacing.s4),
         OnboardingPrimaryButton(
           key: OnboardingKeys.next,
-          label: 'Devam',
+          label: l10n.onboardingContinue,
           onPressed: widget.onNext,
         ),
       ];
@@ -71,12 +73,13 @@ class _NotificationStepState extends State<NotificationStep> {
       footer = [
         OnboardingPrimaryButton(
           key: OnboardingKeys.allowNotifications,
-          label: askedBefore ? 'Ayarları aç' : 'Bildirimlere izin ver',
+          label:
+              askedBefore ? l10n.permissionOpenSettings : l10n.permNotifConfirm,
           onPressed: _busy ? null : _request,
         ),
         OnboardingSecondaryButton(
           key: OnboardingKeys.notNow,
-          label: 'Şimdi değil',
+          label: l10n.permNotNow,
           onPressed: _busy ? null : widget.onNext,
         ),
       ];
@@ -85,24 +88,26 @@ class _NotificationStepState extends State<NotificationStep> {
     return OnboardingStepFrame(
       index: 2,
       footer: footer,
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: KorSpacing.s5),
-          NotificationMock(),
-          SizedBox(height: KorSpacing.s8),
-          OnboardingCopy(title: 'Doğru anda haber verelim', large: false),
-          SizedBox(height: KorSpacing.s5),
+          const SizedBox(height: KorSpacing.s5),
+          const NotificationMock(),
+          const SizedBox(height: KorSpacing.s8),
+          OnboardingCopy(title: l10n.onboardingNotifTitle, large: false),
+          const SizedBox(height: KorSpacing.s5),
           _Benefit(
-              icon: Icons.schedule_rounded, text: 'Zamanı gelince bildirim'),
+            icon: Icons.schedule_rounded,
+            text: l10n.onboardingNotifBenefit1,
+          ),
           _Benefit(
             icon: Icons.done_all_rounded,
-            text: 'Bildirimden tek dokunuşla tamamla veya ertele',
+            text: l10n.onboardingNotifBenefit2,
           ),
           _Benefit(
             icon: Icons.cake_rounded,
-            text: 'Doğum günlerini önceden hatırlat',
+            text: l10n.onboardingNotifBenefit3,
           ),
         ],
       ),
@@ -121,9 +126,8 @@ class _StatusLine extends StatelessWidget {
     final scheme = theme.colorScheme;
     final color = granted ? context.korColors.success : scheme.onSurfaceVariant;
     final text = granted
-        ? 'Bildirimler açık.'
-        : 'Bildirimler kapalı. İstediğin zaman Ayarlar › İzinler’den '
-            'açabilirsin.';
+        ? context.l10n.onboardingNotifOn
+        : context.l10n.onboardingNotifOff;
     return Semantics(
       liveRegion: true,
       child: Row(
@@ -187,9 +191,9 @@ class NotificationMock extends StatelessWidget {
       color: scheme.onSurfaceVariant,
     );
     final action = theme.textTheme.labelLarge?.copyWith(color: scheme.primary);
+    final l10n = context.l10n;
     return Semantics(
-      label: 'Örnek bildirim: Market alışverişi. Migros Kadıköy’e yaklaştın, '
-          '6 maddeden 2’si tamam. Tamamla, 10 dk ertele',
+      label: l10n.onboardingMockSpoken,
       child: ExcludeSemantics(
         child: Container(
           padding: const EdgeInsets.all(KorSpacing.s5),
@@ -215,14 +219,17 @@ class NotificationMock extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: KorSpacing.s3),
-                  Expanded(child: Text('Hatırlatıcı · şimdi', style: muted)),
+                  Expanded(child: Text(l10n.onboardingMockApp, style: muted)),
                 ],
               ),
               const SizedBox(height: KorSpacing.s3),
-              Text('Market alışverişi', style: theme.textTheme.titleMedium),
+              Text(
+                l10n.onboardingMockTitle,
+                style: theme.textTheme.titleMedium,
+              ),
               const SizedBox(height: KorSpacing.s1),
               Text(
-                'Migros Kadıköy’e yaklaştın · 2/6 madde',
+                l10n.onboardingMockBody,
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: KorSpacing.s4),
@@ -230,8 +237,8 @@ class NotificationMock extends StatelessWidget {
                 spacing: KorSpacing.s7,
                 runSpacing: KorSpacing.s3,
                 children: [
-                  Text('Tamamla', style: action),
-                  Text('10 dk ertele', style: action),
+                  Text(l10n.actionComplete, style: action),
+                  Text(l10n.onboardingMockSnooze, style: action),
                 ],
               ),
             ],

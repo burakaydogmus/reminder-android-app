@@ -142,19 +142,19 @@ class Birthday {
   }
 }
 
-/// Editör ekranında kullanılan standart önbildirim seçenekleri.
+/// Editör ekranında kullanılan standart önbildirim seçenekleri. Etiketler
+/// arayüzdedir (`BirthdayGroups.offsetLabel`, F6.1).
 class BirthdayAdvanceOffset {
   final int minutes;
-  final String label;
 
-  const BirthdayAdvanceOffset(this.minutes, this.label);
+  const BirthdayAdvanceOffset(this.minutes);
 
   static const List<BirthdayAdvanceOffset> presets = <BirthdayAdvanceOffset>[
-    BirthdayAdvanceOffset(0, 'Doğum gününde'),
-    BirthdayAdvanceOffset(60, '1 saat önce'),
-    BirthdayAdvanceOffset(180, '3 saat önce'),
-    BirthdayAdvanceOffset(1440, '1 gün önce'),
-    BirthdayAdvanceOffset(4320, '3 gün önce'),
-    BirthdayAdvanceOffset(10080, '1 hafta önce'),
+    BirthdayAdvanceOffset(0),
+    BirthdayAdvanceOffset(60),
+    BirthdayAdvanceOffset(180),
+    BirthdayAdvanceOffset(1440),
+    BirthdayAdvanceOffset(4320),
+    BirthdayAdvanceOffset(10080),
   ];
 }

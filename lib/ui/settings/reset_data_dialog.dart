@@ -1,6 +1,8 @@
 import 'package:animations/animations.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
+
 /// Choice in the "Tüm verileri sıfırla" dialog.
 enum ResetDataChoice { cancel, backupFirst, reset }
 
@@ -26,21 +28,19 @@ class ResetDataDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     void pop(ResetDataChoice c) => Navigator.of(context).pop(c);
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Tüm verileri sıfırla'),
-      content: const Text(
-        'Tüm hatırlatmalar ve ayarlar silinir. Bu işlem geri alınamaz. '
-        'Silmeden önce bir yedek alabilirsin.',
-      ),
+      title: Text(l10n.resetTitle),
+      content: Text(l10n.resetBody),
       actions: [
         TextButton(
           onPressed: () => pop(ResetDataChoice.cancel),
-          child: const Text('İptal'),
+          child: Text(l10n.actionCancel),
         ),
         TextButton(
           key: ResetDataDialogKeys.backupFirst,
           onPressed: () => pop(ResetDataChoice.backupFirst),
-          child: const Text('Önce yedekle'),
+          child: Text(l10n.resetBackupFirst),
         ),
         FilledButton(
           key: ResetDataDialogKeys.confirm,
@@ -50,7 +50,7 @@ class ResetDataDialog extends StatelessWidget {
             minimumSize: const Size(48, 48),
           ),
           onPressed: () => pop(ResetDataChoice.reset),
-          child: const Text('Onayla'),
+          child: Text(l10n.actionConfirm),
         ),
       ],
     );

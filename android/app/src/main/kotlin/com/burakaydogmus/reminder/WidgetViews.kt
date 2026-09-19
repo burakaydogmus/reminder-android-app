@@ -99,9 +99,9 @@ object WidgetViews {
       }
 
   /** Satırın ikinci bilgisi: "16:00 · 2/6 · Tekrarlanan". */
-  fun meta(item: WidgetPayload.Item, now: Long): String =
+  fun meta(context: Context, item: WidgetPayload.Item, now: Long): String =
       listOfNotNull(
-              WidgetPayload.timeLabel(item.dueAt, now),
+              WidgetPayload.timeLabel(context, item.dueAt, now),
               item.subtasks,
               if (item.recurring) "↻" else null,
           )
@@ -111,7 +111,7 @@ object WidgetViews {
   fun spoken(context: Context, item: WidgetPayload.Item, now: Long): String =
       listOfNotNull(
               item.title,
-              WidgetPayload.timeLabel(item.dueAt, now),
+              WidgetPayload.timeLabel(context, item.dueAt, now),
               item.subtasks?.let { context.getString(R.string.widget_cd_subtasks, it) },
               if (item.recurring) context.getString(R.string.widget_cd_recurring) else null,
           )
@@ -143,7 +143,7 @@ object WidgetViews {
   ) {
     views.setViewVisibility(ids.row, View.VISIBLE)
     views.setTextViewText(ids.title, item.title)
-    val meta = meta(item, now)
+    val meta = meta(context, item, now)
     views.setTextViewText(ids.meta, meta)
     views.setViewVisibility(ids.meta, if (meta.isEmpty()) View.GONE else View.VISIBLE)
     val overdue = item.dueAt != null && item.dueAt < now

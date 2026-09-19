@@ -38,6 +38,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # F6.1: pub get regenerates lib/l10n/app_localizations*.dart from the
+      # ARB files (flutter: generate: true); the committed copies must match.
+      - name: Check generated localizations
+        run: git diff --exit-code -- lib/l10n
+
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed lib test
 

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_list_section.dart';
 import 'package:reminder/ui/birthdays/birthdays_page.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -65,9 +66,9 @@ class ListsPage extends StatelessWidget {
               bottom + KorSpacing.s7,
             ),
             children: [
-              const TabHeader(
-                title: 'Listeler',
-                actions: [SearchIconButton()],
+              TabHeader(
+                title: context.l10n.listsTitle,
+                actions: const [SearchIconButton()],
               ),
               const SizedBox(height: KorSpacing.s5),
               for (var i = 0; i < lists.length; i += 2) ...[
@@ -101,9 +102,12 @@ class ListsPage extends StatelessWidget {
                       foreground: scheme.onSurface,
                       background: scheme.surfaceContainerHigh,
                     ),
-                    title: 'Tamamlananlar',
+                    title: context.l10n.listsCompleted,
                     count: state.completed.length,
-                    countLabel: 'tamamlandı',
+                    semanticLabel: context.l10n.listsCompletedCountSpoken(
+                      context.l10n.listsCompleted,
+                      state.completed.length,
+                    ),
                     onTap: () => _push(
                       context,
                       const ReminderFilterPage.completed(),
@@ -144,12 +148,15 @@ class SmartListTile extends StatelessWidget {
     final (fg, bg) = SmartListVisuals.colors(context, list);
     final decoration =
         korCardDecoration(context, borderRadius: KorRadius.lgAll);
-    final unit = list == SmartList.birthdays ? 'doğum günü' : 'hatırlatıcı';
+    final l10n = context.l10n;
+    final label = list.labelIn(l10n);
     final border = decoration.border;
 
     return Semantics(
       button: true,
-      label: '${list.label}, $count $unit',
+      label: list == SmartList.birthdays
+          ? l10n.listsBirthdayCountSpoken(label, count)
+          : l10n.listsReminderCountSpoken(label, count),
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -198,7 +205,7 @@ class SmartListTile extends StatelessWidget {
                     ),
                     const SizedBox(height: KorSpacing.s3),
                     Text(
-                      list.label,
+                      label,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: scheme.onSurface,
                       ),
@@ -221,14 +228,14 @@ class ListEntryRow extends StatelessWidget {
     required this.leading,
     required this.title,
     required this.count,
-    required this.countLabel,
+    required this.semanticLabel,
     required this.onTap,
   });
 
   final Widget leading;
   final String title;
   final int count;
-  final String countLabel;
+  final String semanticLabel;
   final VoidCallback onTap;
 
   @override
@@ -237,7 +244,7 @@ class ListEntryRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: '$title, $count $countLabel',
+      label: semanticLabel,
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,

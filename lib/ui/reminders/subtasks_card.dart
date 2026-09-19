@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:reminder/domain/model/subtask.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/subtask_progress.dart';
@@ -192,11 +193,11 @@ class _SubtasksCardState extends State<SubtasksCard> {
 
     return GroupedCard(
       icon: Icons.checklist_rounded,
-      title: 'Maddeler',
+      title: context.l10n.subtasksTitle,
       headerTrailing: _items.isEmpty
           ? null
           : Semantics(
-              label: SubtaskProgressText.spoken(_items),
+              label: SubtaskProgressText.spoken(_items, context.l10n),
               excludeSemantics: true,
               child: Text(
                 SubtaskProgressText.count(_items),
@@ -223,7 +224,7 @@ class _SubtasksCardState extends State<SubtasksCard> {
                 child: ActionChip(
                   key: SubtasksCardKeys.completeSuggestion,
                   avatar: Icon(Icons.task_alt_rounded, color: category.fg),
-                  label: const Text('Tümü tamam — hatırlatıcıyı tamamla?'),
+                  label: Text(context.l10n.subtasksAllDone),
                   onPressed: widget.onCompleteReminder,
                 ),
               ),
@@ -332,7 +333,10 @@ class _SubtaskRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     final done = subtask.isDone;
     final reorderable = index != null;
-    final title = subtask.title.trim().isEmpty ? 'Madde' : subtask.title.trim();
+    final l10n = context.l10n;
+    final title = subtask.title.trim().isEmpty
+        ? l10n.subtaskFallback
+        : subtask.title.trim();
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: KorSizes.minTouch),
@@ -365,12 +369,14 @@ class _SubtaskRow extends StatelessWidget {
                 color: done ? scheme.onSurfaceVariant : null,
                 decoration: done ? TextDecoration.lineThrough : null,
               ),
-              decoration: const InputDecoration.collapsed(hintText: 'Madde'),
+              decoration: InputDecoration.collapsed(
+                hintText: l10n.subtaskFallback,
+              ),
             ),
           ),
           PopupMenuButton<_RowAction>(
             key: SubtasksCardKeys.menu(subtask.id),
-            tooltip: '$title seçenekleri',
+            tooltip: l10n.subtaskOptions(title),
             icon: Icon(
               Icons.more_vert_rounded,
               color: scheme.onSurfaceVariant,
@@ -381,17 +387,17 @@ class _SubtaskRow extends StatelessWidget {
                 PopupMenuItem(
                   value: _RowAction.up,
                   enabled: !isFirst,
-                  child: const Text('Yukarı taşı'),
+                  child: Text(l10n.subtaskMoveUp),
                 ),
                 PopupMenuItem(
                   value: _RowAction.down,
                   enabled: !isLast,
-                  child: const Text('Aşağı taşı'),
+                  child: Text(l10n.subtaskMoveDown),
                 ),
               ],
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: _RowAction.delete,
-                child: Text('Sil'),
+                child: Text(l10n.actionDelete),
               ),
             ],
           ),
@@ -445,7 +451,9 @@ class _SubtaskCheck extends StatelessWidget {
       container: true,
       checked: done,
       label: title,
-      hint: done ? 'Geri açmak için dokun' : 'Tamamlamak için dokun',
+      hint: done
+          ? context.l10n.subtaskHintReopen
+          : context.l10n.subtaskHintComplete,
       excludeSemantics: true,
       onTap: onTap,
       child: InkResponse(
@@ -521,15 +529,15 @@ class _AddRow extends StatelessWidget {
               onEditingComplete: () {},
               onSubmitted: (_) => onSubmitted(),
               style: theme.textTheme.bodyLarge,
-              decoration: const InputDecoration.collapsed(
-                hintText: 'Madde ekle',
+              decoration: InputDecoration.collapsed(
+                hintText: context.l10n.subtaskAdd,
               ),
             ),
           ),
           if (showSplit)
             IconButton(
               key: SubtasksCardKeys.splitSuggestion,
-              tooltip: 'Maddelere böl',
+              tooltip: context.l10n.subtaskSplit,
               icon: const Icon(Icons.call_split_rounded),
               onPressed: onSplit,
             ),
@@ -558,7 +566,7 @@ class _DoneHeader extends StatelessWidget {
     return Semantics(
       button: true,
       expanded: expanded,
-      label: 'Tamamlanan $count madde',
+      label: context.l10n.subtasksDoneCount(count),
       excludeSemantics: true,
       child: InkWell(
         key: SubtasksCardKeys.doneToggle,
@@ -571,7 +579,7 @@ class _DoneHeader extends StatelessWidget {
               const SizedBox(width: KorSpacing.s3),
               Expanded(
                 child: Text(
-                  'Tamamlanan $count madde',
+                  context.l10n.subtasksDoneCount(count),
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

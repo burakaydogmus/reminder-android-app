@@ -4,13 +4,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_completion.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 
 import '../../helpers/factories.dart';
@@ -32,7 +32,7 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 
 Finder _segment(RecurrenceMode mode) => find.descendant(
       of: find.byKey(RecurrenceSheetKeys.segments),
-      matching: find.text(mode.label),
+      matching: find.text(mode.labelIn(AppL10n.turkish)),
     );
 
 String _previewText(WidgetTester tester) =>
@@ -46,19 +46,21 @@ void main() {
 
   group('RecurrenceFormat', () {
     test('occurrence labels', () {
-      expect(RecurrenceFormat.day(_saturday, _now), 'Cmt 19 Eyl');
       expect(
-        RecurrenceFormat.day(DateTime(2027, 1, 2), _now),
+          RecurrenceFormat.day(_saturday, _now, AppL10n.turkish), 'Cmt 19 Eyl');
+      expect(
+        RecurrenceFormat.day(DateTime(2027, 1, 2), _now, AppL10n.turkish),
         'Cmt 2 Oca 2027',
       );
       expect(
-        RecurrenceFormat.next(DateTime(2026, 9, 20, 16), _now),
+        RecurrenceFormat.next(DateTime(2026, 9, 20, 16), _now, AppL10n.turkish),
         'Sonraki: Paz 20 Eyl 16:00',
       );
       expect(
         RecurrenceFormat.preview(
           [DateTime(2026, 9, 13), DateTime(2026, 9, 20)],
           _now,
+          AppL10n.turkish,
         ),
         'Sonraki 2: Paz 13 Eyl · Paz 20 Eyl',
       );
@@ -435,9 +437,10 @@ void main() {
       final updated = h.cubit.state.reminders.single;
       expect(updated.isDone, isFalse);
       expect(updated.remindAt, expected);
-      expect(find.text(RecurrenceFormat.next(expected, _now)), findsOneWidget);
+      expect(find.text(RecurrenceFormat.next(expected, _now, AppL10n.turkish)),
+          findsOneWidget);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       final restored = h.cubit.state.reminders.single;
       expect(restored.isDone, isFalse);

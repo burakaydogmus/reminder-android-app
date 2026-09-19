@@ -62,8 +62,8 @@ void main() {
   });
 
   group('mode selection', () {
-    test('fingerprint version is 5 (mode chosen per sync)', () {
-      expect(NotificationService.scheduleFingerprintVersion, 5);
+    test('fingerprint version is 6 (mode per sync, F6.1 language)', () {
+      expect(NotificationService.scheduleFingerprintVersion, 6);
     });
 
     test('scheduleModeFor maps the capability to exact / inexact', () {

@@ -12,13 +12,16 @@ import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/parsing/capture_to_reminder.dart';
 import 'package:reminder/domain/parsing/category_aliases.dart';
 import 'package:reminder/domain/parsing/turkish_capture_parser.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/capture/capture_text.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
@@ -238,6 +241,22 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
         id: id ?? _uuid.v4(),
         newSubtaskId: _uuid.v4,
         acceptSplit: _splitAccepted,
+        texts: _captureTexts(context.l10n),
+      );
+
+  /// List titles and the place note in the app language (the parser itself
+  /// stays Turkish, F6.1).
+  CaptureTexts _captureTexts(AppLocalizations l10n) => CaptureTexts(
+        listTitle: (id) => id == ReminderCategoryIds.market
+            ? l10n.captureListTitleMarket
+            : l10n.captureListTitle(
+                CategoryVisuals.labelIn(
+                  CategoryVisuals.readCatalog(context),
+                  id,
+                  l10n,
+                ),
+              ),
+        placeNote: l10n.capturePlaceNote,
       );
 
   /// The reminder that would be saved now: parsed values plus the chip
@@ -403,11 +422,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   Future<void> _pickCategory() async {
     final current = _current().categoryId;
     final picked = await _pickFromSheet<String>(
-      title: 'Kategori',
+      title: context.l10n.captureCategory,
       selected: current,
       options: [
         for (final c in CategoryVisuals.readCatalog(context).ordered)
-          (c.id, c.name, CategoryVisuals.iconOf(c)),
+          (
+            c.id,
+            CategoryVisuals.nameOf(c, context.l10n),
+            CategoryVisuals.iconOf(c),
+          ),
       ],
     );
     if (picked == null || !mounted) return;
@@ -430,11 +453,15 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
 
   Future<void> _pickPriority() async {
     final picked = await _pickFromSheet<int>(
-      title: 'Öncelik',
+      title: context.l10n.capturePriority,
       selected: _current().priority,
       options: [
         for (final p in ReminderPriority.values)
-          (p, ReminderPriority.label(p), Icons.flag_outlined),
+          (
+            p,
+            PriorityPinVisuals.label(p, context.l10n),
+            Icons.flag_outlined,
+          ),
       ],
     );
     if (picked == null || !mounted) return;
@@ -528,9 +555,14 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
               // Keeps the keyboard up after Enter (successive captures).
               onEditingComplete: () {},
               onSubmitted: (_) => _save(),
-              decoration: const InputDecoration(
-                hintText: 'Ne hatırlatayım?',
+              decoration: InputDecoration(
+                hintText: context.l10n.captureFieldHint,
                 semanticCounterText: '',
+                // F6.1: parsing is Turkish-only; say so in other languages.
+                helperText: context.l10n.isTurkish
+                    ? null
+                    : context.l10n.captureParserHint,
+                helperMaxLines: 2,
               ),
             ),
             const SizedBox(height: KorSpacing.s3),
@@ -563,14 +595,14 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
                       key: QuickCaptureKeys.details,
                       onPressed: _openDetails,
                       icon: const Icon(Icons.open_in_full_rounded),
-                      label: const Text('Tüm ayrıntılar'),
+                      label: Text(context.l10n.captureAllDetails),
                     ),
                   ),
                 ),
                 const SizedBox(width: KorSpacing.s3),
                 IconButton.filled(
                   key: QuickCaptureKeys.save,
-                  tooltip: 'Kaydet',
+                  tooltip: context.l10n.actionSave,
                   onPressed: canSave ? _save : null,
                   style: IconButton.styleFrom(
                     minimumSize: const Size.square(KorSizes.minTouch),
@@ -609,18 +641,21 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
     final prioritySet = reminder.priority != ReminderPriority.none;
     final category = reminder.categoryId;
     final categoryColors = CategoryVisuals.colorsOf(context, category);
+    final l10n = context.l10n;
 
     final chips = <Widget>[
       _CaptureChip(
         key: QuickCaptureKeys.dateChip,
         icon: Icons.event_rounded,
         label: dateSet
-            ? '${KorFormat.relativeDay(at, now)}, ${KorFormat.time(at)}'
-            : 'Tarih',
+            ? l10n.captureDateChipSet(
+                KorFormat.relativeDay(at, now, l10n),
+                KorFormat.time(at),
+              )
+            : l10n.captureDateChip,
         semanticsLabel: dateSet
-            ? 'Zaman: ${KorFormat.relativeDay(at, now)} '
-                '${KorFormat.spokenTime(at)}'
-            : 'Tarih ekle',
+            ? l10n.captureDateSpoken(KorFormat.spokenWhen(at, now, l10n))
+            : l10n.captureDateAdd,
         set: dateSet,
         onPressed: _pickDateTime,
         onDeleted: dateSet
@@ -630,9 +665,14 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
       _CaptureChip(
         key: QuickCaptureKeys.recurrenceChip,
         icon: Icons.repeat_rounded,
-        label: ruleSet ? reminder.recurrence.summary : 'Tekrar',
-        semanticsLabel:
-            ruleSet ? 'Tekrar: ${reminder.recurrence.summary}' : 'Tekrar ekle',
+        label: ruleSet
+            ? RecurrenceText.summary(reminder.recurrence, l10n)
+            : l10n.captureRecurrenceChip,
+        semanticsLabel: ruleSet
+            ? l10n.captureRecurrenceSpoken(
+                RecurrenceText.summary(reminder.recurrence, l10n),
+              )
+            : l10n.captureRecurrenceAdd,
         set: ruleSet,
         onPressed: _pickRecurrence,
         onDeleted:
@@ -642,8 +682,8 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
         _CaptureChip(
           key: QuickCaptureKeys.newCategoryChip,
           icon: Icons.new_label_outlined,
-          label: 'Yeni kategori: #$newTag',
-          semanticsLabel: 'Yeni kategori: $newTag. Oluşturmak için dokun',
+          label: l10n.captureNewCategory(newTag),
+          semanticsLabel: l10n.captureNewCategorySpoken(newTag),
           set: true,
           onPressed: () => _createCategory(newTag),
           onDeleted: () => _suppress({CaptureTokenKind.category}),
@@ -654,10 +694,12 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           icon: CategoryVisuals.iconFor(context, category),
           label: categorySet
               ? CategoryVisuals.labelOf(context, category)
-              : 'Kategori',
+              : l10n.captureCategory,
           semanticsLabel: categorySet
-              ? 'Kategori: ${CategoryVisuals.labelOf(context, category)}'
-              : 'Kategori seç',
+              ? l10n.captureCategorySpoken(
+                  CategoryVisuals.labelOf(context, category),
+                )
+              : l10n.captureCategoryPick,
           set: categorySet,
           background: categorySet ? categoryColors.container : null,
           foreground: categorySet ? categoryColors.onContainer : null,
@@ -671,11 +713,11 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
         icon: Icons.flag_outlined,
         label: prioritySet
             ? '${ReminderPriority.marker(reminder.priority)} '
-                '${ReminderPriority.label(reminder.priority)}'
-            : 'Öncelik',
+                '${PriorityPinVisuals.label(reminder.priority, l10n)}'
+            : l10n.capturePriority,
         semanticsLabel: prioritySet
-            ? ReminderPriority.spoken(reminder.priority)!
-            : 'Öncelik seç',
+            ? PriorityPinVisuals.spoken(reminder.priority, l10n)!
+            : l10n.capturePriorityPick,
         set: prioritySet,
         onPressed: _pickPriority,
         onDeleted:
@@ -686,8 +728,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
           key: QuickCaptureKeys.placeChip,
           icon: Icons.place_outlined,
           label: mapped.placeLabel!,
-          semanticsLabel: 'Yer: ${mapped.placeLabel}. Nota eklenir; konum '
-              'bildirimi için Tüm ayrıntılar',
+          semanticsLabel: l10n.capturePlaceSpoken(mapped.placeLabel!),
           set: true,
           onPressed: _openDetails,
           onDeleted: () => _suppress({CaptureTokenKind.place}),
@@ -702,12 +743,12 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
               : Icon(Icons.checklist_rounded, color: scheme.primary),
           label: Text(
             _splitAccepted
-                ? '${result.splitSuggestion.length} madde'
-                : 'Maddelere böl?',
+                ? l10n.captureSplitCount(result.splitSuggestion.length)
+                : l10n.captureSplitAsk,
           ),
           tooltip: _splitAccepted
-              ? 'Maddelere bölmeyi geri al'
-              : '${result.splitSuggestion.length} maddeye böl',
+              ? l10n.captureSplitUndo
+              : l10n.captureSplitDo(result.splitSuggestion.length),
           onSelected: (v) => setState(() => _splitAccepted = v),
         ),
     ];
@@ -772,7 +813,7 @@ class _CaptureChip extends StatelessWidget {
       onPressed: onPressed,
       onDeleted: onDeleted,
       deleteIconColor: fg,
-      deleteButtonTooltipMessage: 'Düz metne çevir',
+      deleteButtonTooltipMessage: context.l10n.captureChipPlainText,
     );
   }
 }
@@ -804,7 +845,7 @@ class _AddedToast extends StatelessWidget {
               const SizedBox(width: KorSpacing.s3),
               Expanded(
                 child: Text(
-                  'Eklendi: $title',
+                  context.l10n.captureAdded(title),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -822,7 +863,7 @@ class _AddedToast extends StatelessWidget {
                   ),
                 ),
                 onPressed: onUndo,
-                child: const Text('Geri al'),
+                child: Text(context.l10n.actionUndo),
               ),
             ],
           ),

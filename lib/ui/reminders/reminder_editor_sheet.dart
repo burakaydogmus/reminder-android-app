@@ -11,9 +11,11 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/subtask.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -325,7 +327,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     final cubit = context.read<ReminderCubit>();
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) {
-      setState(() => _titleError = 'Başlık boş olamaz.');
+      setState(() => _titleError = context.l10n.editorTitleEmpty);
       return;
     }
 
@@ -333,7 +335,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     if (_schedule) {
       if (_date == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tarih seçin.')),
+          SnackBar(content: Text(context.l10n.editorDateMissing)),
         );
         return;
       }
@@ -364,8 +366,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
     if (_locationTrigger) {
       if (_locLat == null || _locLng == null) {
         setState(
-          () => _locationError =
-              'Konum seçilmedi. Bir yer seç ya da «Nerede»yi kapat.',
+          () => _locationError = context.l10n.editorLocationMissing,
         );
         return;
       }
@@ -433,18 +434,21 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
   }
 
   /// Never shows raw coordinates.
-  String _locationSummary() {
-    if (_locLat == null || _locLng == null) return 'Konum seç';
-    final radius = '${_locRadius.round()} m';
+  String _locationSummary(AppLocalizations l10n) {
+    if (_locLat == null || _locLng == null) return l10n.editorLocationPick;
+    final radius = '${_locRadius.round()}';
     final label = _locLabel?.trim();
-    if (label != null && label.isNotEmpty) return '$label · $radius';
-    return 'Seçilen konum · $radius';
+    return l10n.editorLocationWithRadius(
+      label != null && label.isNotEmpty ? label : l10n.editorLocationChosen,
+      radius,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
     final now = widget.clock();
@@ -453,11 +457,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
       color: scheme.onSurfaceVariant,
     );
 
-    final dateLabel =
-        _date != null ? KorFormat.relativeDay(_date!, now) : 'Tarih seç';
+    final dateLabel = _date != null
+        ? KorFormat.relativeDay(_date!, now, l10n)
+        : l10n.editorDatePick;
     final timeLabel = _time != null
         ? KorFormat.time(DateTime(2000, 1, 1, _time!.hour, _time!.minute))
-        : 'Saat seç';
+        : l10n.editorTimePick;
 
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets),
@@ -479,8 +484,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                     header: true,
                     child: Text(
                       widget.existing == null
-                          ? 'Yeni hatırlatıcı'
-                          : 'Hatırlatıcıyı düzenle',
+                          ? l10n.editorNewTitle
+                          : l10n.editorEditTitle,
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
@@ -489,7 +494,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                 IconButton(
                   key: ReminderEditorKeys.pin,
                   isSelected: _pinned,
-                  tooltip: PriorityPinVisuals.pinActionLabel(_pinned),
+                  tooltip: PriorityPinVisuals.pinActionLabel(_pinned, l10n),
                   icon: Icon(PriorityPinVisuals.pinIcon(false)),
                   selectedIcon: Icon(
                     PriorityPinVisuals.pinIcon(true),
@@ -511,8 +516,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                 if (_titleError != null) setState(() => _titleError = null);
               },
               decoration: InputDecoration(
-                labelText: 'Başlık',
-                hintText: 'Ne hatırlatayım?',
+                labelText: l10n.editorTitleLabel,
+                hintText: l10n.editorTitleHint,
                 errorText: _titleError,
               ),
             ),
@@ -522,13 +527,13 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
               minLines: 1,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Not (isteğe bağlı)',
+              decoration: InputDecoration(
+                labelText: l10n.editorNoteLabel,
               ),
             ),
             const SizedBox(height: KorSpacing.s5),
-            const SectionHeader(
-              title: 'Kategori',
+            SectionHeader(
+              title: l10n.editorCategory,
               icon: Icons.label_outline_rounded,
             ),
             // F4.3: every category in the user's order, then "+ Yeni".
@@ -549,8 +554,8 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                   ActionChip(
                     key: ReminderEditorKeys.newCategory,
                     avatar: const Icon(Icons.add_rounded),
-                    label: const Text('Yeni'),
-                    tooltip: 'Yeni kategori',
+                    label: Text(l10n.editorNewCategoryChip),
+                    tooltip: l10n.editorNewCategoryTooltip,
                     onPressed: _newCategory,
                   ),
                 ],
@@ -565,12 +570,12 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             GroupedCard(
               key: _scheduleSectionKey,
               icon: Icons.schedule_rounded,
-              title: 'Ne zaman',
+              title: l10n.editorWhen,
               borderColor: _pastTimeBlocked && pastSelection != null
                   ? scheme.error
                   : null,
               headerTrailing: Semantics(
-                label: 'Zamanla ve bildir',
+                label: l10n.editorScheduleSwitch,
                 child: Switch.adaptive(
                   value: _schedule,
                   onChanged: (v) => setState(() {
@@ -606,7 +611,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                         side: pastSelection != null
                             ? BorderSide(color: scheme.error)
                             : null,
-                        tooltip: 'Tarih seç',
+                        tooltip: l10n.editorDatePick,
                         onPressed: _pickDate,
                       ),
                       ActionChip(
@@ -619,7 +624,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                           timeLabel,
                           // "saat 16:00" for screen readers (§3.6 rule 11).
                           semanticsLabel:
-                              _time != null ? 'saat $timeLabel' : null,
+                              _time != null ? l10n.timeSpoken(timeLabel) : null,
                           style: const TextStyle(
                             fontFeatures: [FontFeature.tabularFigures()],
                           ),
@@ -632,7 +637,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                         side: pastSelection != null
                             ? BorderSide(color: scheme.error)
                             : null,
-                        tooltip: 'Saat seç',
+                        tooltip: l10n.editorTimePick,
                         onPressed: _pickTime,
                       ),
                     ],
@@ -649,13 +654,14 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                       ),
                     ),
                 ] else
-                  Text('Seçtiğin tarih ve saatte bildirim.', style: mutedBody),
+                  Text(l10n.editorWhenHint, style: mutedBody),
                 Padding(
                   padding: const EdgeInsets.only(top: KorSpacing.s3),
                   child: _RecurrenceRow(
-                    summary: _schedule
-                        ? _recurrence.summary
-                        : RecurrenceRule.none.summary,
+                    summary: RecurrenceText.summary(
+                      _schedule ? _recurrence : RecurrenceRule.none,
+                      l10n,
+                    ),
                     onTap: _openRecurrence,
                   ),
                 ),
@@ -664,10 +670,10 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             const SizedBox(height: KorSpacing.s4),
             GroupedCard(
               icon: Icons.place_outlined,
-              title: 'Nerede',
+              title: l10n.editorWhere,
               borderColor: _locationError != null ? scheme.error : null,
               headerTrailing: Semantics(
-                label: 'Konuma gelince hatırlat',
+                label: l10n.editorLocationSwitch,
                 child: Switch.adaptive(
                   value: _locationTrigger,
                   onChanged: (v) {
@@ -702,11 +708,11 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _locationSummary(),
+                                  _locationSummary(l10n),
                                   style: theme.textTheme.titleMedium,
                                 ),
                                 Text(
-                                  'Bölgeye girince bildirim.',
+                                  l10n.editorLocationEnterHint,
                                   style: mutedBody,
                                 ),
                               ],
@@ -721,7 +727,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
                     ),
                   )
                 else
-                  Text('Bir yere varınca hatırlat.', style: mutedBody),
+                  Text(l10n.editorWhereHint, style: mutedBody),
                 if (_locationTrigger) const _LocationPermissionWarning(),
                 if (_locationError != null)
                   Padding(
@@ -750,7 +756,7 @@ class _ReminderEditorBodyState extends State<_ReminderEditorBody> {
             FilledButton(
               key: ReminderEditorKeys.save,
               onPressed: () => _save(),
-              child: const Text('Kaydet'),
+              child: Text(l10n.actionSave),
             ),
           ],
         ),
@@ -772,7 +778,7 @@ class _RecurrenceRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: 'Tekrar: $summary',
+      label: context.l10n.editorRecurrenceSpoken(summary),
       excludeSemantics: true,
       child: InkWell(
         key: ReminderEditorKeys.recurrence,
@@ -784,7 +790,10 @@ class _RecurrenceRow extends StatelessWidget {
             children: [
               Icon(Icons.repeat_rounded, color: scheme.onSurfaceVariant),
               const SizedBox(width: KorSpacing.s4),
-              Text('Tekrar', style: theme.textTheme.titleMedium),
+              Text(
+                context.l10n.editorRecurrence,
+                style: theme.textTheme.titleMedium,
+              ),
               const SizedBox(width: KorSpacing.s4),
               Expanded(
                 child: Text(
@@ -818,11 +827,10 @@ class _LocationPermissionWarning extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final text = state == LocationPermissionState.whileInUse
-        ? 'Konum izni yalnızca kullanırken açık. Uygulama kapalıyken '
-            'bildirim gelmeyebilir.'
-        : 'Konum izni yok. Yeri haritadan seçebilirsin ama arka planda '
-            'bildirim gelmeyebilir.';
+        ? l10n.editorLocationWhileInUse
+        : l10n.editorLocationDenied;
     return Padding(
       padding: const EdgeInsets.only(top: KorSpacing.s3),
       child: Row(
@@ -837,7 +845,7 @@ class _LocationPermissionWarning extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => PermissionFlows.fixLocation(context),
-            child: const Text('Düzelt'),
+            child: Text(l10n.editorFix),
           ),
         ],
       ),
@@ -873,7 +881,7 @@ class _CategoryChip extends StatelessWidget {
         CategoryVisuals.iconOf(category),
         color: selected ? colors.fg : scheme.onSurfaceVariant,
       ),
-      label: Text(category.name),
+      label: Text(CategoryVisuals.nameOf(category, context.l10n)),
       labelStyle: theme.textTheme.labelLarge?.copyWith(
         color: selected ? colors.onContainer : scheme.onSurface,
       ),
@@ -898,7 +906,10 @@ class _PrioritySelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Öncelik', icon: Icons.flag_outlined),
+        SectionHeader(
+          title: context.l10n.editorPriority,
+          icon: Icons.flag_outlined,
+        ),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SegmentedButton<int>(
@@ -906,7 +917,10 @@ class _PrioritySelector extends StatelessWidget {
             showSelectedIcon: false,
             segments: [
               for (final p in ReminderPriority.values)
-                ButtonSegment(value: p, label: Text(ReminderPriority.label(p))),
+                ButtonSegment(
+                  value: p,
+                  label: Text(PriorityPinVisuals.label(p, context.l10n)),
+                ),
             ],
             selected: {value},
             onSelectionChanged: (s) => onChanged(s.first),

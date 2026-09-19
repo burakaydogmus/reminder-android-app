@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- F6.1: app languages for Android 13+ per-app language settings
+     (Settings › Apps › Hatırlatıcı › Language). The in-app "Dil: Sistem"
+     option follows that choice. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="tr" />
+    <locale android:name="en" />
+</locale-config>

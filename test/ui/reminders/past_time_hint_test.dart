@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/reminders/past_time_hint.dart';
 
 void main() {
@@ -81,18 +82,21 @@ void main() {
 
     test('suggestion chip text', () {
       expect(
-        PastTime.suggestionLabel(DateTime(2026, 9, 14, 18, 30), now),
+        PastTime.suggestionLabel(
+            DateTime(2026, 9, 14, 18, 30), now, AppL10n.turkish),
         'Yarın 18:30 mı?',
       );
       expect(
-        PastTime.suggestionLabel(DateTime(2026, 9, 13, 19), now),
+        PastTime.suggestionLabel(
+            DateTime(2026, 9, 13, 19), now, AppL10n.turkish),
         'Bugün 19:00 mı?',
       );
     });
 
     test('screen reader label', () {
       expect(
-        PastTime.suggestionSemantics(DateTime(2026, 9, 14, 7, 5), now),
+        PastTime.suggestionSemantics(
+            DateTime(2026, 9, 14, 7, 5), now, AppL10n.turkish),
         'Yarın saat 07:05 olarak ayarla',
       );
     });

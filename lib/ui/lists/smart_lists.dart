@@ -1,5 +1,6 @@
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 
 /// Listeler › akıllı listeler (§3.2, §3.3.6). Reminder lists only contain
@@ -7,26 +8,32 @@ import 'package:reminder/ui/common/kor_format.dart';
 /// the Doğum günleri screen.
 enum SmartList {
   /// Due before now.
-  overdue('Gecikmiş'),
+  overdue,
 
   /// Due today, not yet overdue.
-  today('Bugün'),
+  today,
 
   /// Due now or later (today included).
-  scheduled('Planlı'),
+  scheduled,
 
   /// No time.
-  untimed('Zamansız'),
+  untimed,
 
   /// Birthdays (not reminders).
-  birthdays('Doğum günleri'),
+  birthdays,
 
   /// Location trigger on.
-  located('Konumlu');
+  located;
 
-  const SmartList(this.label);
-
-  final String label;
+  /// "Gecikmiş", "Bugün", "Planlı", "Zamansız", "Doğum günleri", "Konumlu".
+  String labelIn(AppLocalizations l10n) => switch (this) {
+        overdue => l10n.smartListOverdue,
+        today => l10n.smartListToday,
+        scheduled => l10n.smartListScheduled,
+        untimed => l10n.smartListUntimed,
+        birthdays => l10n.smartListBirthdays,
+        located => l10n.smartListLocated,
+      };
 
   /// Whether open reminder [r] belongs to this list at [now]. Always false
   /// for [birthdays].

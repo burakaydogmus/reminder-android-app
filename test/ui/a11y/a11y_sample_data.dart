@@ -99,6 +99,7 @@ Future<UiHarness> pumpAuditShell(
     h.app(
       theme: variant.theme,
       platform: variant.platform,
+      language: variant.language,
       home: HomeShell(
         clock: auditClock,
         enableGlassScope: false,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
@@ -250,7 +251,9 @@ class _NowLineState extends State<NowLine> with SingleTickerProviderStateMixin {
 
     return Semantics(
       container: true,
-      label: 'Şimdi, ${KorFormat.spokenTime(widget.now)}',
+      label: context.l10n.todayNowSpoken(
+        KorFormat.spokenTime(widget.now, context.l10n),
+      ),
       excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.only(bottom: KorSpacing.cardGap),

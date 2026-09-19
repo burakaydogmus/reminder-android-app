@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/physics.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/theme/extensions/kor_motion_ext.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
@@ -230,7 +231,10 @@ class _KorCheckboxState extends State<KorCheckbox>
       button: true,
       checked: checked,
       enabled: widget.onToggle != null,
-      label: widget.semanticLabel ?? (widget.value ? 'Geri aç' : 'Tamamla'),
+      label: widget.semanticLabel ??
+          (widget.value
+              ? context.l10n.actionReopen
+              : context.l10n.actionComplete),
       excludeSemantics: true,
       onTap: widget.onToggle == null ? null : _handleTap,
       child: InkResponse(

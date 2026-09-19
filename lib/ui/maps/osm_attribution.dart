@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// OSMF tile policy attribution: "flutter_map | © OpenStreetMap
@@ -37,7 +38,7 @@ class OsmAttribution extends StatelessWidget {
           child: Semantics(
             link: true,
             label: '© $source',
-            hint: 'Telif hakkı sayfasını açar',
+            hint: context.l10n.mapsAttributionHint,
             excludeSemantics: true,
             onTap: onTap,
             child: GestureDetector(

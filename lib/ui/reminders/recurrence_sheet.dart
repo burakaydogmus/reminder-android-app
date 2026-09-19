@@ -1,8 +1,9 @@
-import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// Keys for tests.
@@ -22,15 +23,19 @@ abstract final class RecurrenceSheetKeys {
 /// Segments of the Tekrar sheet (§3.3.4). "Özel" is every N ≥ 2 days;
 /// Günlük is every day.
 enum RecurrenceMode {
-  none('Yok'),
-  daily('Günlük'),
-  weekly('Haftalık'),
-  monthly('Aylık'),
-  custom('Özel');
+  none,
+  daily,
+  weekly,
+  monthly,
+  custom;
 
-  const RecurrenceMode(this.label);
-
-  final String label;
+  String labelIn(AppLocalizations l10n) => switch (this) {
+        none => l10n.recurrenceModeNone,
+        daily => l10n.recurrenceModeDaily,
+        weekly => l10n.recurrenceModeWeekly,
+        monthly => l10n.recurrenceModeMonthly,
+        custom => l10n.recurrenceModeCustom,
+      };
 
   static RecurrenceMode of(RecurrenceRule rule) => switch (rule.frequency) {
         RecurrenceFrequency.none => none,
@@ -42,22 +47,34 @@ enum RecurrenceMode {
 
 /// Occurrence labels for the sheet preview and the "Sonraki" snackbar.
 abstract final class RecurrenceFormat {
-  static const _locale = 'tr_TR';
-
   /// `Cmt 20 Eyl` (`Cmt 2 Oca 2027` in another year than [now]).
-  static String day(DateTime d, DateTime now) => DateFormat(
-        d.year == now.year ? 'EEE d MMM' : 'EEE d MMM y',
-        _locale,
-      ).format(d);
+  static String day(DateTime d, DateTime now, AppLocalizations l10n) =>
+      KorFormat.pattern(
+        d.year == now.year
+            ? l10n.dateFormatWeekdayDayMonth
+            : l10n.dateFormatWeekdayDayMonthYear,
+        d,
+        l10n,
+      );
 
   /// `Sonraki: Cmt 20 Eyl 16:00`.
-  static String next(DateTime at, DateTime now) =>
-      'Sonraki: ${day(at, now)} ${KorFormat.time(at)}';
+  static String next(DateTime at, DateTime now, AppLocalizations l10n) =>
+      l10n.recurrenceNext(
+        l10n.recurrenceNextDay(day(at, now, l10n), KorFormat.time(at)),
+      );
 
   /// `Sonraki 3: Cmt 13 Eyl · Cmt 20 Eyl · Cmt 27 Eyl`.
-  static String preview(List<DateTime> dates, DateTime now) => dates.isEmpty
-      ? 'Bu kuralla yaklaşan tekrar yok.'
-      : 'Sonraki ${dates.length}: ${dates.map((d) => day(d, now)).join(' · ')}';
+  static String preview(
+    List<DateTime> dates,
+    DateTime now,
+    AppLocalizations l10n,
+  ) =>
+      dates.isEmpty
+          ? l10n.recurrencePreviewEmpty
+          : l10n.recurrencePreview(
+              dates.length,
+              dates.map((d) => day(d, now, l10n)).join(' · '),
+            );
 }
 
 /// Opens the Tekrar sheet. [anchor] is the reminder's date and time (the
@@ -154,7 +171,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
       currentDate: widget.now,
       firstDate: first,
       lastDate: DateTime(anchor.year + 5, 12, 31),
-      helpText: 'Bitiş tarihi',
+      helpText: context.l10n.recurrenceUntilHelp,
     );
     if (picked != null && mounted) setState(() => _until = picked);
   }
@@ -163,6 +180,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final bottom = MediaQuery.paddingOf(context).bottom;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
@@ -185,7 +203,10 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
         children: [
           Semantics(
             header: true,
-            child: Text('Tekrar', style: theme.textTheme.titleLarge),
+            child: Text(
+              l10n.recurrenceSheetTitle,
+              style: theme.textTheme.titleLarge,
+            ),
           ),
           const SizedBox(height: KorSpacing.s4),
           SingleChildScrollView(
@@ -195,7 +216,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
               showSelectedIcon: false,
               segments: [
                 for (final mode in RecurrenceMode.values)
-                  ButtonSegment(value: mode, label: Text(mode.label)),
+                  ButtonSegment(value: mode, label: Text(mode.labelIn(l10n))),
               ],
               selected: {_mode},
               onSelectionChanged: (s) => setState(() => _mode = s.first),
@@ -203,7 +224,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
           ),
           if (_mode == RecurrenceMode.weekly) ...[
             const SizedBox(height: KorSpacing.s5),
-            Text('Günler', style: theme.textTheme.titleSmall),
+            Text(l10n.recurrenceDays, style: theme.textTheme.titleSmall),
             const SizedBox(height: KorSpacing.s3),
             Wrap(
               spacing: KorSpacing.s2,
@@ -225,11 +246,9 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             const SizedBox(height: KorSpacing.s4),
             _IntervalStepper(
               label: switch (_mode) {
-                RecurrenceMode.weekly =>
-                  _weeks == 1 ? 'Her hafta' : '$_weeks haftada bir',
-                RecurrenceMode.monthly =>
-                  _months == 1 ? 'Her ay' : '$_months ayda bir',
-                _ => '$_days günde bir',
+                RecurrenceMode.weekly => l10n.recurrenceWeekly(_weeks),
+                RecurrenceMode.monthly => l10n.recurrenceEveryMonth(_months),
+                _ => l10n.recurrenceDaily(_days),
               },
               canDecrement: switch (_mode) {
                 RecurrenceMode.weekly => _weeks > 1,
@@ -256,9 +275,12 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
           if (_mode == RecurrenceMode.monthly)
             Text(
               _dayOfMonth > 28
-                  ? 'Ayın ${RecurrenceRule.dayOfMonthLabel(_dayOfMonth)}; '
-                      'kısa aylarda ayın son günü.'
-                  : 'Ayın ${RecurrenceRule.dayOfMonthLabel(_dayOfMonth)}.',
+                  ? l10n.recurrenceMonthDayClamped(
+                      RecurrenceText.dayOfMonthLabel(_dayOfMonth, l10n),
+                    )
+                  : l10n.recurrenceMonthDay(
+                      RecurrenceText.dayOfMonthLabel(_dayOfMonth, l10n),
+                    ),
               style: muted,
             ),
           if (_mode != RecurrenceMode.none) ...[
@@ -269,7 +291,10 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
               alignment: MainAxisAlignment.spaceBetween,
               overflowSpacing: KorSpacing.s2,
               children: [
-                Text('Bitiş', style: theme.textTheme.titleMedium),
+                Text(
+                  l10n.recurrenceUntilLabel,
+                  style: theme.textTheme.titleMedium,
+                ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -279,17 +304,17 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
                         avatar: const Icon(Icons.event_rounded),
                         label: Text(
                           _until == null
-                              ? 'Hiçbir zaman'
-                              : KorFormat.dayMonth(_until!, widget.now),
+                              ? l10n.recurrenceUntilNever
+                              : KorFormat.dayMonth(_until!, widget.now, l10n),
                         ),
-                        tooltip: 'Bitiş tarihi seç',
+                        tooltip: l10n.recurrenceUntilPick,
                         onPressed: _pickUntil,
                       ),
                     ),
                     if (_until != null)
                       IconButton(
                         key: RecurrenceSheetKeys.clearUntil,
-                        tooltip: 'Bitişi kaldır',
+                        tooltip: l10n.recurrenceUntilClear,
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () => setState(() => _until = null),
                       ),
@@ -301,7 +326,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             Semantics(
               liveRegion: true,
               child: Text(
-                RecurrenceFormat.preview(upcoming, widget.now),
+                RecurrenceFormat.preview(upcoming, widget.now, l10n),
                 key: RecurrenceSheetKeys.preview,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -313,13 +338,13 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
               TextButton(
                 key: RecurrenceSheetKeys.cancel,
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Vazgeç'),
+                child: Text(l10n.actionDismiss),
               ),
               const Spacer(),
               FilledButton(
                 key: RecurrenceSheetKeys.done,
                 onPressed: () => Navigator.of(context).pop(rule),
-                child: const Text('Tamam'),
+                child: Text(l10n.actionDone),
               ),
             ],
           ),
@@ -349,7 +374,7 @@ class _WeekdayButton extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: RecurrenceRule.weekdayNames[weekday - 1],
+      label: KorFormat.weekdayName(weekday, context.l10n),
       excludeSemantics: true,
       child: Material(
         color: selected ? scheme.primary : scheme.surfaceContainerHigh,
@@ -365,7 +390,7 @@ class _WeekdayButton extends StatelessWidget {
             dimension: KorSizes.minTouch,
             child: Center(
               child: Text(
-                RecurrenceRule.weekdayShortNames[weekday - 1],
+                KorFormat.weekdayShort(weekday, context.l10n),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: selected ? scheme.onPrimary : scheme.onSurface,
                 ),
@@ -399,7 +424,7 @@ class _IntervalStepper extends StatelessWidget {
       children: [
         IconButton.outlined(
           key: RecurrenceSheetKeys.decrement,
-          tooltip: 'Azalt',
+          tooltip: context.l10n.recurrenceDecrease,
           icon: const Icon(Icons.remove_rounded),
           onPressed: canDecrement ? () => onChanged(-1) : null,
         ),
@@ -416,7 +441,7 @@ class _IntervalStepper extends StatelessWidget {
         ),
         IconButton.outlined(
           key: RecurrenceSheetKeys.increment,
-          tooltip: 'Artır',
+          tooltip: context.l10n.recurrenceIncrease,
           icon: const Icon(Icons.add_rounded),
           onPressed: canIncrement ? () => onChanged(1) : null,
         ),

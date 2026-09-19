@@ -8,7 +8,6 @@ import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/components/reminder_compact_card.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/subtasks_card.dart';
-import 'package:reminder/ui/reminders/undo_snack_bar.dart';
 
 import '../../helpers/factories.dart';
 import '../ui_harness.dart';
@@ -467,7 +466,7 @@ void main() {
       expect(saved.remindAt, DateTime(2026, 9, 14, 18));
       expect(saved.subtasks.every((s) => !s.isDone), isTrue);
 
-      await tester.tap(find.text(UndoSnackBar.actionLabel));
+      await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
       saved = h.cubit.state.reminders.single;
       expect(saved.remindAt, DateTime(2026, 9, 13, 18));

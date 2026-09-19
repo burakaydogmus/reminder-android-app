@@ -29,6 +29,7 @@ Future<void> reminderHomeWidgetCallback(Uri? uri) async {
   if (id == null) return;
 
   await initializeDateFormatting('tr_TR');
+  await initializeDateFormatting('en_US');
   await configureLocalTimezone();
 
   // Ayrı engine: veritabanı bağlantısı bu çağrıya özeldir, sonunda kapatılır.

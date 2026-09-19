@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
+
 /// Destructive confirmation (M3 dialog, confirm in `error`).
 class ConfirmationDialog extends StatelessWidget {
   final String title;
@@ -22,7 +24,10 @@ class ConfirmationDialog extends StatelessWidget {
       title: Text(title),
       content: Text(content),
       actions: [
-        TextButton(onPressed: onCancel, child: const Text('İptal')),
+        TextButton(
+          onPressed: onCancel,
+          child: Text(context.l10n.actionCancel),
+        ),
         FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: scheme.error,
@@ -30,7 +35,7 @@ class ConfirmationDialog extends StatelessWidget {
             minimumSize: const Size(48, 48),
           ),
           onPressed: onConfirm,
-          child: const Text('Onayla'),
+          child: Text(context.l10n.actionConfirm),
         ),
       ],
     );

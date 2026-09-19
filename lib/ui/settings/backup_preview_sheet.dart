@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/data/backup/backup_format.dart';
 import 'package:reminder/data/backup/backup_service.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -28,11 +29,13 @@ Future<BackupImportMode?> showBackupPreviewSheet(
 }
 
 /// `12 hatırlatıcı, 4 doğum günü bulundu; 1 kayıt okunamadı.`
-String backupSummary(BackupDocument backup) {
-  final found = '${backup.reminders.length} hatırlatıcı, '
-      '${backup.birthdays.length} doğum günü bulundu';
+String backupSummary(BackupDocument backup, AppLocalizations l10n) {
+  final reminders = backup.reminders.length;
+  final birthdays = backup.birthdays.length;
   final skipped = backup.skippedCount;
-  return skipped == 0 ? '$found.' : '$found; $skipped kayıt okunamadı.';
+  return skipped == 0
+      ? l10n.backupFound(reminders, birthdays)
+      : l10n.backupFoundSkipped(reminders, birthdays, skipped);
 }
 
 class BackupPreviewSheet extends StatefulWidget {
@@ -89,22 +92,23 @@ class _BackupPreviewSheetState extends State<BackupPreviewSheet> {
           Semantics(
             header: true,
             child: Text(
-              'Yedeği geri yükle',
+              context.l10n.backupRestoreTitle,
               style: theme.textTheme.headlineSmall,
             ),
           ),
           const SizedBox(height: KorSpacing.s3),
           Text(
-            backupSummary(backup),
+            backupSummary(backup, context.l10n),
             key: BackupPreviewKeys.summary,
             style: theme.textTheme.bodyLarge,
           ),
           if (exportedAt != null) ...[
             const SizedBox(height: KorSpacing.s2),
             Text(
-              'Yedek tarihi: '
-              '${KorFormat.dayMonth(exportedAt, DateTime.now())} '
-              '${KorFormat.time(exportedAt)}',
+              context.l10n.backupDate(
+                KorFormat.dayMonth(exportedAt, DateTime.now(), context.l10n),
+                KorFormat.time(exportedAt),
+              ),
               style: muted,
             ),
           ],
@@ -121,7 +125,7 @@ class _BackupPreviewSheetState extends State<BackupPreviewSheet> {
                 const SizedBox(width: KorSpacing.s3),
                 Expanded(
                   child: Text(
-                    'Okunamayan kayıtlar atlanır; diğerleri geri yüklenir.',
+                    context.l10n.backupSkippedHint,
                     style: muted,
                   ),
                 ),
@@ -133,16 +137,16 @@ class _BackupPreviewSheetState extends State<BackupPreviewSheet> {
             width: double.infinity,
             child: SegmentedButton<BackupImportMode>(
               showSelectedIcon: false,
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: BackupImportMode.merge,
-                  icon: Icon(Icons.merge_rounded),
-                  label: Text('Birleştir'),
+                  icon: const Icon(Icons.merge_rounded),
+                  label: Text(context.l10n.backupMerge),
                 ),
                 ButtonSegment(
                   value: BackupImportMode.replace,
-                  icon: Icon(Icons.swap_horiz_rounded),
-                  label: Text('Değiştir'),
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                  label: Text(context.l10n.backupReplace),
                 ),
               ],
               selected: {_mode},
@@ -152,13 +156,8 @@ class _BackupPreviewSheetState extends State<BackupPreviewSheet> {
           const SizedBox(height: KorSpacing.s3),
           Text(
             switch (_mode) {
-              BackupImportMode.merge =>
-                'Mevcut kayıtların kalır, yedektekiler eklenir. Aynı kayıt '
-                    'iki tarafta da varsa yedekteki sürüm kullanılır. '
-                    'Ayarlar değişmez.',
-              BackupImportMode.replace =>
-                'Mevcut hatırlatıcıların ve doğum günlerin silinir, yerine '
-                    'yedektekiler gelir. Ayarlar da yedekten alınır.',
+              BackupImportMode.merge => context.l10n.backupMergeHint,
+              BackupImportMode.replace => context.l10n.backupReplaceHint,
             },
             style: muted,
           ),
@@ -166,13 +165,13 @@ class _BackupPreviewSheetState extends State<BackupPreviewSheet> {
           FilledButton(
             key: BackupPreviewKeys.confirm,
             onPressed: () => Navigator.of(context).pop(_mode),
-            child: const Text('Geri yükle'),
+            child: Text(context.l10n.backupRestore),
           ),
           const SizedBox(height: KorSpacing.s3),
           TextButton(
             key: BackupPreviewKeys.cancel,
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Vazgeç'),
+            child: Text(context.l10n.actionDismiss),
           ),
         ],
       ),

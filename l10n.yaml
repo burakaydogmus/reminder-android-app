@@ -1,0 +1,12 @@
+# Flutter gen-l10n (F6.1). `flutter pub get` and builds regenerate
+# lib/l10n/app_localizations*.dart from the ARB files (pubspec
+# `flutter: generate: true`); the generated files are committed so analysis
+# works without a pub get, and CI fails when they are stale. Turkish is the
+# template: add every key to app_tr.arb, then to app_en.arb
+# (test/l10n/arb_parity_test.dart checks both directions).
+arb-dir: lib/l10n
+template-arb-file: app_tr.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: true
+format: true

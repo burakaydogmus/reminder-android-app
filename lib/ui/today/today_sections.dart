@@ -1,6 +1,7 @@
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 
@@ -94,8 +95,8 @@ class TodaySections {
   double get progress => totalCount == 0 ? 0 : doneCount / totalCount;
 
   /// `6 açık · 1 gecikmiş · 2 tamam`.
-  String get summary =>
-      '$openCount açık · $overdueCount gecikmiş · $doneCount tamam';
+  String summary(AppLocalizations l10n) =>
+      l10n.todaySummary(openCount, overdueCount, doneCount);
 
   /// Completed items with a time today; they stay on the time ribbon.
   List<Reminder> get completedTimed => [

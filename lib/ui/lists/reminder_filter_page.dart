@@ -5,6 +5,7 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/empty_state.dart';
@@ -26,7 +27,7 @@ class ReminderFilterPage extends StatelessWidget {
   final String? categoryId;
 
   String _titleOf(BuildContext context) => categoryId == null
-      ? 'Tamamlananlar'
+      ? context.l10n.listsCompleted
       : CategoryVisuals.labelOf(context, categoryId!);
 
   /// App bar "Kategoriyi düzenle" for user categories (F4.3); leaves the
@@ -37,7 +38,7 @@ class ReminderFilterPage extends StatelessWidget {
     final category = CategoryVisuals.catalogOf(context).byId(id);
     if (category == null) return null;
     return IconButton(
-      tooltip: 'Kategoriyi düzenle',
+      tooltip: context.l10n.filterEditCategory,
       icon: const Icon(Icons.edit_outlined),
       onPressed: () async {
         await showCategoryEditorSheet(context, existing: category);
@@ -78,8 +79,8 @@ class ReminderFilterPage extends StatelessWidget {
           }
           final bottom = MediaQuery.paddingOf(context).bottom;
           final summary = categoryId == null
-              ? '${done.length} tamamlandı'
-              : '${open.length} açık · ${done.length} tamam';
+              ? context.l10n.filterCompletedSummary(done.length)
+              : context.l10n.filterCategorySummary(open.length, done.length);
 
           Widget cards(List<Reminder> items) => SliverPadding(
                 padding: KorSpacing.screenPadding,
@@ -133,14 +134,14 @@ class ReminderFilterPage extends StatelessWidget {
               if (open.isEmpty && done.isEmpty)
                 SliverToBoxAdapter(
                   child: categoryId == null
-                      ? const EmptyState(
-                          title: 'Henüz tamamlanan yok',
-                          body: 'Tamamladığın hatırlatmalar burada birikir.',
+                      ? EmptyState(
+                          title: context.l10n.filterNoCompletedTitle,
+                          body: context.l10n.filterNoCompletedBody,
                         )
                       : EmptyState(
-                          title: '$title listesi boş',
-                          body: 'Eklemek için aşağıdaki düğmeye dokun.',
-                          actionLabel: 'Hatırlatıcı ekle',
+                          title: context.l10n.filterListEmptyTitle(title),
+                          body: context.l10n.filterListEmptyBody,
+                          actionLabel: context.l10n.calendarAddReminder,
                           onAction: () => showReminderEditorSheet(
                             context,
                             initialCategoryId: categoryId,
@@ -155,8 +156,8 @@ class ReminderFilterPage extends StatelessWidget {
               ],
               if (done.isNotEmpty) ...[
                 if (categoryId != null)
-                  const SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
                       KorSpacing.screenEdge,
                       KorSpacing.s5,
                       KorSpacing.screenEdge,
@@ -164,7 +165,7 @@ class ReminderFilterPage extends StatelessWidget {
                     ),
                     sliver: SliverToBoxAdapter(
                       child: SectionHeader(
-                        title: 'Tamamlananlar',
+                        title: context.l10n.listsCompleted,
                         icon: Icons.task_alt_rounded,
                       ),
                     ),
@@ -186,7 +187,7 @@ class ReminderFilterPage extends StatelessWidget {
           ? null
           : FloatingActionButton(
               heroTag: null,
-              tooltip: 'Bu listeye ekle',
+              tooltip: context.l10n.filterAddToList,
               onPressed: () => showReminderEditorSheet(
                 context,
                 initialCategoryId: categoryId,

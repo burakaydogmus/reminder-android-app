@@ -1,13 +1,13 @@
 import 'package:flutter/gestures.dart' show kLongPressTimeout;
 import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:material_ui/material_ui.dart';
-import 'package:intl/intl.dart';
 
 import 'package:reminder/domain/model/reminder.dart';
-import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/calendar/reschedule.dart';
 import 'package:reminder/ui/common/kor_format.dart';
+import 'package:reminder/ui/common/recurrence_text.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -25,14 +25,14 @@ abstract final class AgendaRowKeys {
       ValueKey('agenda.occurrence.$id.${at.toIso8601String()}');
   static Key emptyDay(DateTime d) =>
       ValueKey('agenda.empty.${d.year}-${d.month}-${d.day}');
-  static const moveAction = 'Taşı…';
 }
 
 /// Spoken label of an agenda reminder row (same wording as `ReminderCard`,
 /// plus the series note for later occurrences).
 String agendaReminderLabel(
   ReminderOccurrence o,
-  DateTime now, {
+  DateTime now,
+  AppLocalizations l10n, {
   String? categoryLabel,
 }) {
   final r = o.reminder;
@@ -41,18 +41,19 @@ String agendaReminderLabel(
   final place = r.locationTriggerEnabled
       ? ((r.locationPlaceLabel?.trim().isNotEmpty ?? false)
           ? r.locationPlaceLabel!.trim()
-          : 'Konum')
+          : l10n.reminderPlaceFallback)
       : null;
   return [
     r.title,
-    categoryLabel ?? CategoryCatalog.builtIns.labelOf(r.categoryId),
-    '${KorFormat.relativeDay(at, now)} ${KorFormat.spokenTime(at)}',
-    if (overdue) 'gecikti',
-    if (r.isRecurring) 'tekrar: ${r.recurrence.summary}',
-    if (place != null) 'konum: $place',
-    if (r.hasSubtasks) SubtaskProgressText.spoken(r.subtasks),
-    ...PriorityPinVisuals.spokenParts(r),
-    if (o.isStored) 'tamamlanmadı' else 'serinin sonraki tekrarı',
+    categoryLabel ?? CategoryVisuals.builtInName(r.categoryId, l10n),
+    KorFormat.spokenWhen(at, now, l10n),
+    if (overdue) l10n.reminderSpokenOverdue,
+    if (r.isRecurring)
+      l10n.reminderSpokenRecurring(RecurrenceText.summary(r.recurrence, l10n)),
+    if (place != null) l10n.reminderSpokenPlace(place),
+    if (r.hasSubtasks) SubtaskProgressText.spoken(r.subtasks, l10n),
+    ...PriorityPinVisuals.spokenParts(r, l10n),
+    if (o.isStored) l10n.reminderSpokenOpen else l10n.calendarSeriesNext,
   ].join(', ');
 }
 
@@ -102,6 +103,7 @@ class _AgendaReminderRowState extends State<AgendaReminderRow> {
     void delete() => deleteReminderWithUndo(context, r);
     void move() => pickDayAndReschedule(context, r);
     void togglePin() => togglePinnedWithUndo(context, r);
+    final l10n = context.l10n;
 
     final card = ReminderCard(
       reminder: r,
@@ -115,17 +117,21 @@ class _AgendaReminderRowState extends State<AgendaReminderRow> {
       label: agendaReminderLabel(
         widget.occurrence,
         widget.now,
+        l10n,
         categoryLabel: CategoryVisuals.labelOf(context, r.categoryId),
       ),
       onTap: edit,
       customSemanticsActions: {
-        CustomSemanticsAction(label: done ? 'Geri aç' : 'Tamamla'): toggle,
-        if (!done) const CustomSemanticsAction(label: 'Ertele'): snooze,
         CustomSemanticsAction(
-            label: PriorityPinVisuals.pinActionLabel(r.pinned)): togglePin,
-        const CustomSemanticsAction(label: 'Düzenle'): edit,
-        const CustomSemanticsAction(label: AgendaRowKeys.moveAction): move,
-        const CustomSemanticsAction(label: 'Sil'): delete,
+          label: done ? l10n.actionReopen : l10n.actionComplete,
+        ): toggle,
+        if (!done) CustomSemanticsAction(label: l10n.actionSnooze): snooze,
+        CustomSemanticsAction(
+          label: PriorityPinVisuals.pinActionLabel(r.pinned, l10n),
+        ): togglePin,
+        CustomSemanticsAction(label: l10n.actionEdit): edit,
+        CustomSemanticsAction(label: l10n.calendarMove): move,
+        CustomSemanticsAction(label: l10n.actionDelete): delete,
       },
       child: ExcludeSemantics(
         child: Builder(
@@ -210,6 +216,7 @@ Future<void> showCalendarReminderMenu(
   Reminder reminder,
 ) async {
   final scheme = Theme.of(context).colorScheme;
+  final l10n = context.l10n;
   final box = context.findRenderObject() as RenderBox?;
   final overlay =
       Navigator.of(context).overlay?.context.findRenderObject() as RenderBox?;
@@ -255,27 +262,35 @@ Future<void> showCalendarReminderMenu(
         item(
           _CalendarMenuAction.move,
           Icons.event_repeat_rounded,
-          AgendaRowKeys.moveAction,
+          l10n.calendarMove,
         ),
       done
-          ? item(_CalendarMenuAction.toggleDone, Icons.undo_rounded, 'Geri aç')
+          ? item(
+              _CalendarMenuAction.toggleDone,
+              Icons.undo_rounded,
+              l10n.actionReopen,
+            )
           : item(
               _CalendarMenuAction.toggleDone,
               Icons.check_circle_outline_rounded,
-              'Tamamla',
+              l10n.actionComplete,
             ),
       if (!done)
-        item(_CalendarMenuAction.snooze, Icons.snooze_rounded, 'Ertele'),
+        item(
+          _CalendarMenuAction.snooze,
+          Icons.snooze_rounded,
+          l10n.actionSnooze,
+        ),
       item(
         _CalendarMenuAction.togglePin,
         PriorityPinVisuals.pinIcon(reminder.pinned),
-        PriorityPinVisuals.pinActionLabel(reminder.pinned),
+        PriorityPinVisuals.pinActionLabel(reminder.pinned, l10n),
       ),
-      item(_CalendarMenuAction.edit, Icons.edit_rounded, 'Düzenle'),
+      item(_CalendarMenuAction.edit, Icons.edit_rounded, l10n.actionEdit),
       item(
         _CalendarMenuAction.delete,
         Icons.delete_outline_rounded,
-        'Sil',
+        l10n.actionDelete,
         color: scheme.error,
       ),
     ],
@@ -335,9 +350,10 @@ class AgendaOccurrenceRow extends StatelessWidget {
       label: agendaReminderLabel(
         occurrence,
         now,
+        context.l10n,
         categoryLabel: CategoryVisuals.labelOf(context, r.categoryId),
       ),
-      hint: 'Seriyi düzenle',
+      hint: context.l10n.calendarEditSeries,
       excludeSemantics: true,
       child: DecoratedBox(
         decoration: korCardDecoration(context, flat: true),
@@ -392,7 +408,12 @@ class AgendaOccurrenceRow extends StatelessWidget {
                                   style: TextStyle(color: category.fg),
                                 ),
                                 const TextSpan(text: '  ·  '),
-                                TextSpan(text: r.recurrence.summary),
+                                TextSpan(
+                                  text: RecurrenceText.summary(
+                                    r.recurrence,
+                                    context.l10n,
+                                  ),
+                                ),
                               ],
                             ),
                             maxLines: 2,
@@ -427,8 +448,10 @@ class EmptyDayRow extends StatelessWidget {
   final DateTime day;
   final VoidCallback onTap;
 
-  static String text(DateTime day) =>
-      '${DateFormat('d MMMM', 'tr_TR').format(day)} — boş gün';
+  static String text(DateTime day, AppLocalizations l10n) =>
+      l10n.calendarEmptyDay(
+        KorFormat.pattern(l10n.dateFormatDayMonth, day, l10n),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -436,8 +459,11 @@ class EmptyDayRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: '${DateFormat('d MMMM EEEE', 'tr_TR').format(day)}, boş gün',
-      hint: 'Bu güne hatırlatıcı ekle',
+      label: context.l10n.calendarEmptyDaySpoken(
+        KorFormat.pattern(
+            context.l10n.dateFormatDayMonthWeekday, day, context.l10n),
+      ),
+      hint: context.l10n.calendarEmptyDayHint,
       excludeSemantics: true,
       child: InkWell(
         key: AgendaRowKeys.emptyDay(day),
@@ -451,7 +477,7 @@ class EmptyDayRow extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    text(day),
+                    text(day, context.l10n),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

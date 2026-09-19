@@ -1,6 +1,5 @@
-import 'package:intl/intl.dart';
-
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 
@@ -15,8 +14,6 @@ class BirthdayMonthGroup {
 
 /// Pure groupings for the Doğum günleri page (§3.3.7).
 abstract final class BirthdayGroups {
-  static const _locale = 'tr_TR';
-
   /// Next occurrence of every birthday, soonest first (ties by name).
   static List<BirthdayOccurrence> upcoming(
     List<Birthday> birthdays,
@@ -56,33 +53,62 @@ abstract final class BirthdayGroups {
   }
 
   /// `Eylül`, or `Ocak 2027` in another year than [now].
-  static String monthHeader(DateTime month, DateTime now) =>
-      DateFormat(month.year == now.year ? 'MMMM' : 'MMMM y', _locale)
-          .format(month);
+  static String monthHeader(
+    DateTime month,
+    DateTime now,
+    AppLocalizations l10n,
+  ) =>
+      KorFormat.pattern(
+        month.year == now.year
+            ? l10n.dateFormatMonth
+            : l10n.dateFormatMonthYear,
+        month,
+        l10n,
+      );
 
   /// Birth day and month: `14 Eylül` (29 Şubat stays 29 Şubat).
-  static String birthDay(Birthday b) => DateFormat('d MMMM', _locale)
-      .format(DateTime(2000, b.date.month, b.date.day));
+  static String birthDay(Birthday b, AppLocalizations l10n) =>
+      KorFormat.pattern(
+        l10n.dateFormatDayMonth,
+        DateTime(2000, b.date.month, b.date.day),
+        l10n,
+      );
 
   /// Row subtitle: `14 Eylül · 30 yaşına` / `3 Ekim · yaş bilinmiyor`.
-  static String rowSubtitle(BirthdayOccurrence o) {
+  static String rowSubtitle(BirthdayOccurrence o, AppLocalizations l10n) {
     final age = o.age;
-    return '${birthDay(o.birthday)} · '
-        '${age != null ? '$age yaşına' : 'yaş bilinmiyor'}';
+    final day = birthDay(o.birthday, l10n);
+    return age != null
+        ? l10n.birthdayRowAge(day, '$age')
+        : l10n.birthdayRowNoAge(day);
   }
 
   /// 29 Şubat note when this occurrence falls in a non-leap year.
-  static String? leapDayNote(BirthdayOccurrence o) =>
-      o.movedFromLeapDay ? "Artık yıl değil: 28 Şubat'ta hatırlatılır" : null;
+  static String? leapDayNote(BirthdayOccurrence o, AppLocalizations l10n) =>
+      o.movedFromLeapDay ? l10n.birthdayLeapNote : null;
 
   /// Hero line: `Yarın · 30 yaşına giriyor`, `21 Eylül · yaşı bilinmiyor`.
-  static String heroLine(BirthdayOccurrence o, DateTime now) {
+  static String heroLine(
+    BirthdayOccurrence o,
+    DateTime now,
+    AppLocalizations l10n,
+  ) {
     final when = switch (o.daysUntil) {
-      0 => 'Bugün',
-      1 => 'Yarın',
-      _ => KorFormat.dayMonth(o.date, now),
+      0 => l10n.dayToday,
+      1 => l10n.dayTomorrow,
+      _ => KorFormat.dayMonth(o.date, now, l10n),
     };
     final age = o.age;
-    return age != null ? '$when · $age yaşına giriyor' : when;
+    return age != null ? l10n.birthdayHeroAge(when, '$age') : when;
+  }
+
+  /// Advance offset chip: "Doğum gününde", "1 saat önce", "3 gün önce",
+  /// "1 hafta önce".
+  static String offsetLabel(int minutes, AppLocalizations l10n) {
+    if (minutes <= 0) return l10n.birthdayOffsetOnDay;
+    if (minutes % 10080 == 0) return l10n.birthdayOffsetWeeks(minutes ~/ 10080);
+    if (minutes % 1440 == 0) return l10n.birthdayOffsetDays(minutes ~/ 1440);
+    if (minutes % 60 == 0) return l10n.birthdayOffsetHours(minutes ~/ 60);
+    return l10n.birthdayOffsetMinutes(minutes);
   }
 }

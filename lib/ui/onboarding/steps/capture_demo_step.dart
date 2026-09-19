@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/onboarding/onboarding_widgets.dart';
@@ -24,22 +25,20 @@ class CaptureDemoStep extends StatelessWidget {
       footer: [
         OnboardingPrimaryButton(
           key: OnboardingKeys.next,
-          label: 'Devam',
+          label: context.l10n.onboardingContinue,
           onPressed: onNext,
         ),
       ],
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: KorSpacing.s5),
-          CaptureDemo(),
-          SizedBox(height: KorSpacing.s9),
+          const SizedBox(height: KorSpacing.s5),
+          const CaptureDemo(),
+          const SizedBox(height: KorSpacing.s9),
           OnboardingCopy(
-            title: 'Yazman yeterli.',
-            body: 'Aklına geleni yaz; zamanını ve kategorisini seç. '
-                '“yarın 9’da”, “#market” gibi ifadeleri kendiliğinden '
-                'anlama özelliği de yolda.',
+            title: context.l10n.onboardingCaptureTitle,
+            body: context.l10n.onboardingCaptureBody,
           ),
         ],
       ),
@@ -51,11 +50,15 @@ class CaptureDemoStep extends StatelessWidget {
 class CaptureDemo extends StatefulWidget {
   const CaptureDemo({super.key});
 
-  static const sentence = 'yarın 9\'da eczaneye uğra #sağlık';
-  static const whenToken = 'yarın 9\'da';
-  static const categoryToken = '#sağlık';
-  static const cardTitle = 'Eczaneye uğra';
-  static const cardMeta = 'Sağlık · Yarın 09:00';
+  /// The scripted sentence (starts with [whenToken], ends with
+  /// [categoryToken]) and its parsed card, in the app language.
+  static String sentence(AppLocalizations l10n) => l10n.onboardingDemoSentence;
+  static String whenToken(AppLocalizations l10n) => l10n.onboardingDemoWhen;
+  static String categoryToken(AppLocalizations l10n) =>
+      l10n.onboardingDemoCategory;
+  static String cardTitle(AppLocalizations l10n) =>
+      l10n.onboardingDemoCardTitle;
+  static String cardMeta(AppLocalizations l10n) => l10n.onboardingDemoCardMeta;
 
   /// Phases of the one-shot animation (fractions of its duration).
   static const typingEnd = 0.6;
@@ -78,8 +81,10 @@ class _CaptureDemoState extends State<CaptureDemo>
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Örnek: “${CaptureDemo.sentence}” yazınca hatırlatıcı '
-          'oluşur: ${CaptureDemo.cardTitle}, Sağlık, yarın saat 09:00',
+      label: context.l10n.onboardingDemoSpoken(
+        CaptureDemo.sentence(context.l10n),
+        CaptureDemo.cardTitle(context.l10n),
+      ),
       child: ExcludeSemantics(
         child: AnimatedBuilder(
           animation: animation,
@@ -124,7 +129,8 @@ class _CaptureDemoState extends State<CaptureDemo>
     final health =
         CategoryVisuals.colorsOf(context, ReminderCategoryIds.health);
 
-    const sentence = CaptureDemo.sentence;
+    final l10n = context.l10n;
+    final sentence = CaptureDemo.sentence(l10n);
     final typed =
         (sentence.length * _interval(t, 0, CaptureDemo.typingEnd)).round();
     final highlight = _interval(
@@ -134,8 +140,9 @@ class _CaptureDemoState extends State<CaptureDemo>
     );
     final base = theme.textTheme.bodyLarge!.copyWith(color: scheme.onSurface);
 
-    const whenEnd = CaptureDemo.whenToken.length;
-    const categoryStart = sentence.length - CaptureDemo.categoryToken.length;
+    final whenEnd = CaptureDemo.whenToken(l10n).length;
+    final categoryStart =
+        sentence.length - CaptureDemo.categoryToken(l10n).length;
 
     TextSpan span(int start, int end, {Color? bg, Color? fg}) {
       final visibleEnd = typed.clamp(start, end);
@@ -215,10 +222,13 @@ class _ParsedCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(CaptureDemo.cardTitle, style: theme.textTheme.titleMedium),
+                Text(
+                  CaptureDemo.cardTitle(context.l10n),
+                  style: theme.textTheme.titleMedium,
+                ),
                 const SizedBox(height: KorSpacing.s1),
                 Text(
-                  CaptureDemo.cardMeta,
+                  CaptureDemo.cardMeta(context.l10n),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

@@ -50,7 +50,7 @@ void main() {
       (RecurrenceRule.daily(until: DateTime(2030)), null),
     ];
     for (final (rule, expected) in cases) {
-      test('${rule.summary} → ${expected?.name ?? 'next only'}', () {
+      test('${rule.toJson()} → ${expected?.name ?? 'next only'}', () {
         expect(NotificationService.reminderRepeatComponents(rule), expected);
       });
     }

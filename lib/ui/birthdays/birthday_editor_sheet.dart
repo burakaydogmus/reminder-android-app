@@ -1,11 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/domain/model/birthday.dart';
+import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
@@ -88,7 +89,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       initialDate: base,
       firstDate: DateTime(1900),
       lastDate: DateTime(now.year + 1, 12, 31),
-      helpText: 'Doğum tarihi',
+      helpText: context.l10n.birthdayDatePickerTitle,
     );
     if (picked != null) setState(() => _date = picked);
   }
@@ -113,7 +114,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _notifyTime,
-      helpText: 'Bildirim saati',
+      helpText: context.l10n.birthdayTimePickerTitle,
     );
     if (picked != null) setState(() => _notifyTime = picked);
   }
@@ -122,20 +123,18 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final cubit = context.read<ReminderCubit>();
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'İsim boş olamaz.');
+      setState(() => _nameError = context.l10n.birthdayNameEmpty);
       return;
     }
     if (_date == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tarih seçin.')),
+        SnackBar(content: Text(context.l10n.editorDateMissing)),
       );
       return;
     }
     if (_offsets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('En az bir hatırlatma zamanı seçin.'),
-        ),
+        SnackBar(content: Text(context.l10n.birthdayOffsetsEmpty)),
       );
       return;
     }
@@ -179,20 +178,19 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
       context: context,
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
+        final l10n = ctx.l10n;
         return AlertDialog(
-          title: const Text('Silinsin mi?'),
-          content: Text(
-            '"${existing.name}" doğum günü hatırlatması silinecek.',
-          ),
+          title: Text(l10n.birthdayDeleteTitle),
+          content: Text(l10n.birthdayDeleteBody(existing.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('İptal'),
+              child: Text(l10n.actionCancel),
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: scheme.error),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sil'),
+              child: Text(l10n.actionDelete),
             ),
           ],
         );
@@ -212,14 +210,18 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final viewInsets = MediaQuery.viewInsetsOf(context).bottom;
 
+    final l10n = context.l10n;
     final date = _date;
     final dateLabel = date == null
-        ? 'Tarih seç'
+        ? l10n.editorDatePick
         : _yearUnknown
             // Format on a leap year so a year-less 29 Şubat stays 29 Şubat.
-            ? DateFormat('d MMMM', 'tr_TR')
-                .format(DateTime(2000, date.month, date.day))
-            : DateFormat('d MMMM y', 'tr_TR').format(date);
+            ? KorFormat.pattern(
+                l10n.dateFormatDayMonth,
+                DateTime(2000, date.month, date.day),
+                l10n,
+              )
+            : KorFormat.pattern(l10n.dateFormatDayMonthYear, date, l10n);
     final timeLabel = KorFormat.time(
       DateTime(2000, 1, 1, _notifyTime.hour, _notifyTime.minute),
     );
@@ -251,15 +253,15 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                     header: true,
                     child: Text(
                       widget.existing == null
-                          ? 'Yeni doğum günü'
-                          : 'Doğum günü düzenle',
+                          ? l10n.birthdayNew
+                          : l10n.birthdayEdit,
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
                 ),
                 if (widget.existing != null)
                   IconButton(
-                    tooltip: 'Sil',
+                    tooltip: l10n.actionDelete,
                     onPressed: _confirmDelete,
                     icon: Icon(
                       Icons.delete_outline_rounded,
@@ -279,8 +281,8 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                 if (_nameError != null) setState(() => _nameError = null);
               },
               decoration: InputDecoration(
-                labelText: 'İsim',
-                hintText: 'Örn. Ayşe',
+                labelText: l10n.birthdayNameLabel,
+                hintText: l10n.birthdayNameHint,
                 errorText: _nameError,
               ),
             ),
@@ -289,15 +291,15 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
               controller: _noteCtrl,
               minLines: 1,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Not (isteğe bağlı)',
-                hintText: 'Örn. Hediye fikri',
+              decoration: InputDecoration(
+                labelText: l10n.editorNoteLabel,
+                hintText: l10n.birthdayNoteHint,
               ),
             ),
             const SizedBox(height: KorSpacing.s5),
             GroupedCard(
               icon: Icons.event_rounded,
-              title: 'Tarih ve bildirim saati',
+              title: l10n.birthdayDateCard,
               children: [
                 Wrap(
                   spacing: KorSpacing.s3,
@@ -307,7 +309,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                       key: BirthdayEditorKeys.date,
                       avatar: const Icon(Icons.calendar_today_rounded),
                       label: Text(dateLabel),
-                      tooltip: 'Doğum tarihi seç',
+                      tooltip: l10n.birthdayDatePick,
                       onPressed: _pickDate,
                     ),
                     ActionChip(
@@ -315,17 +317,19 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                       label: Text(
                         timeLabel,
                         // "saat 09:00", not "sıfır dokuz sıfır sıfır".
-                        semanticsLabel: 'Bildirim saati: saat $timeLabel',
+                        semanticsLabel: l10n.birthdayTimeSpoken(
+                          l10n.timeSpoken(timeLabel),
+                        ),
                         style: const TextStyle(
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
-                      tooltip: 'Bildirim saati seç',
+                      tooltip: l10n.birthdayTimePick,
                       onPressed: _pickTime,
                     ),
                     FilterChip(
                       key: BirthdayEditorKeys.yearUnknown,
-                      label: const Text('Yıl bilinmiyor'),
+                      label: Text(l10n.birthdayYearUnknown),
                       selected: _yearUnknown,
                       onSelected: _setYearUnknown,
                     ),
@@ -333,7 +337,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                 ),
                 const SizedBox(height: KorSpacing.s3),
                 Text(
-                  'Yılı bilmiyorsan “Yıl bilinmiyor”u seç; yaş gösterilmez.',
+                  l10n.birthdayYearUnknownHint,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -343,10 +347,10 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
             const SizedBox(height: KorSpacing.s4),
             GroupedCard(
               icon: Icons.notifications_outlined,
-              title: 'Ne zaman hatırlatayım?',
+              title: l10n.birthdayWhenCard,
               children: [
                 Text(
-                  'Birden fazla seçim yapabilirsin.',
+                  l10n.birthdayWhenHint,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -358,7 +362,9 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
                   children: [
                     for (final preset in BirthdayAdvanceOffset.presets)
                       FilterChip(
-                        label: Text(preset.label),
+                        label: Text(
+                          BirthdayGroups.offsetLabel(preset.minutes, l10n),
+                        ),
                         selected: _offsets.contains(preset.minutes),
                         selectedColor: colors.container,
                         checkmarkColor: colors.fg,
@@ -390,7 +396,7 @@ class _BirthdayEditorBodyState extends State<_BirthdayEditorBody> {
             FilledButton(
               key: BirthdayEditorKeys.save,
               onPressed: _save,
-              child: const Text('Kaydet'),
+              child: Text(l10n.actionSave),
             ),
           ],
         ),

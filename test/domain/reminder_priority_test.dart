@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
+import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/ui/reminders/priority_pin_visuals.dart';
 
 import '../helpers/factories.dart';
 
@@ -23,7 +25,8 @@ void main() {
 
     test('labels, markers and spoken text', () {
       expect(
-        ReminderPriority.values.map(ReminderPriority.label),
+        ReminderPriority.values
+            .map((p) => PriorityPinVisuals.label(p, AppL10n.turkish)),
         ['Yok', 'Düşük', 'Orta', 'Yüksek'],
       );
       expect(
@@ -31,7 +34,8 @@ void main() {
         ['', '!', '!!', '!!!'],
       );
       expect(
-        ReminderPriority.values.map(ReminderPriority.spoken),
+        ReminderPriority.values
+            .map((p) => PriorityPinVisuals.spoken(p, AppL10n.turkish)),
         [null, 'Düşük öncelik', 'Orta öncelik', 'Yüksek öncelik'],
       );
     });

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
@@ -49,14 +50,16 @@ class _CategoryListSectionState extends State<CategoryListSection> {
         state.reminders.where((r) => !r.isDone && r.categoryId == id).length;
 
     return GroupedCard(
-      title: 'Kategorilerim',
+      title: context.l10n.categoryListTitle,
       padding: const EdgeInsets.symmetric(vertical: KorSpacing.s3),
       headerTrailing: Padding(
         padding: const EdgeInsets.only(right: KorSpacing.s3),
         child: TextButton(
           key: CategoryListKeys.editToggle,
           onPressed: () => setState(() => _editing = !_editing),
-          child: Text(_editing ? 'Bitti' : 'Düzenle'),
+          child: Text(
+            _editing ? context.l10n.actionFinish : context.l10n.actionEdit,
+          ),
         ),
       ),
       children: [
@@ -90,7 +93,7 @@ class _CategoryListSectionState extends State<CategoryListSection> {
             ),
         Semantics(
           button: true,
-          label: 'Yeni kategori',
+          label: context.l10n.categoryNew,
           excludeSemantics: true,
           onTap: () => showCategoryEditorSheet(context),
           child: InkWell(
@@ -112,7 +115,7 @@ class _CategoryListSectionState extends State<CategoryListSection> {
                     const SizedBox(width: KorSpacing.s4),
                     Expanded(
                       child: Text(
-                        'Yeni kategori',
+                        context.l10n.categoryNew,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: scheme.primary,
                         ),
@@ -149,7 +152,10 @@ class _CategoryRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Semantics(
       button: true,
-      label: '${category.name}, $count açık',
+      label: context.l10n.categoryRowSpoken(
+        CategoryVisuals.nameOf(category, context.l10n),
+        count,
+      ),
       excludeSemantics: true,
       onTap: onTap,
       child: InkWell(
@@ -166,7 +172,10 @@ class _CategoryRow extends StatelessWidget {
                 CategoryBadge(category: category),
                 const SizedBox(width: KorSpacing.s4),
                 Expanded(
-                  child: Text(category.name, style: theme.textTheme.bodyLarge),
+                  child: Text(
+                    CategoryVisuals.nameOf(category, context.l10n),
+                    style: theme.textTheme.bodyLarge,
+                  ),
                 ),
                 Text(
                   '$count',
@@ -223,11 +232,14 @@ class _EditRow extends StatelessWidget {
                 CategoryBadge(category: category),
                 const SizedBox(width: KorSpacing.s4),
                 Expanded(
-                  child: Text(category.name, style: theme.textTheme.bodyLarge),
+                  child: Text(
+                    CategoryVisuals.nameOf(category, context.l10n),
+                    style: theme.textTheme.bodyLarge,
+                  ),
                 ),
                 if (editable)
                   IconButton(
-                    tooltip: '${category.name} düzenle',
+                    tooltip: context.l10n.categoryEditTooltip(category.name),
                     onPressed: edit,
                     icon: Icon(
                       Icons.edit_outlined,
@@ -238,7 +250,9 @@ class _EditRow extends StatelessWidget {
                   key: CategoryListKeys.handle(category.id),
                   index: index,
                   child: Semantics(
-                    label: '${category.name} taşı',
+                    label: context.l10n.categoryMoveSpoken(
+                      CategoryVisuals.nameOf(category, context.l10n),
+                    ),
                     child: SizedBox.square(
                       dimension: KorSizes.minTouch,
                       child: Icon(

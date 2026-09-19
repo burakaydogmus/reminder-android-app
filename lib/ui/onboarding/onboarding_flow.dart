@@ -3,6 +3,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/reminder_home_widget_sync.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/onboarding/steps/capture_demo_step.dart';
@@ -41,11 +42,7 @@ Future<void> pinHomeScreenWidget(BuildContext context) async {
     );
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Ana ekranda boş bir alana uzun basın → Widget\'lar → Hatırlatıcıyı seçin.',
-        ),
-      ),
+      SnackBar(content: Text(context.l10n.onboardingWidgetUnsupported)),
     );
   }
 }
@@ -154,7 +151,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                                 KorSizes.minTouch,
                               ),
                             ),
-                            child: const Text('Atla'),
+                            child: Text(context.l10n.onboardingSkip),
                           ),
                         ),
                       ),

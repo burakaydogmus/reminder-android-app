@@ -1,7 +1,11 @@
 package com.burakaydogmus.reminder
 
+import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import org.json.JSONObject
 
 /**
@@ -12,6 +16,11 @@ import org.json.JSONObject
  * için zamana bağlı her şey (bölüm, "Gecikti", "Yarın", sayılar, sıradaki,
  * doğum günü etiketi) burada çizim anında `dueAt` / `date` ile yeniden
  * hesaplanır. Okunamayan veri boş duruma düşer, widget çökmez.
+ *
+ * Dil (F6.1): metinler `values/strings.xml` (Türkçe) ve
+ * `values-en/strings.xml` kaynaklarından, verideki `lang` (uygulamanın "Dil"
+ * seçimi) ile [localized] bağlamda çözülür; cihaz dili farklı olsa da widget
+ * uygulamayla aynı dildedir. `lang` yoksa cihaz dili kullanılır.
  */
 object WidgetPayload {
   /** `kHomeWidgetPayloadKey` (Dart). */
@@ -21,9 +30,6 @@ object WidgetPayload {
   const val SECTION_TODAY = "today"
   const val SECTION_UNTIMED = "untimed"
   const val SECTION_LATER = "later"
-
-  private val MONTHS =
-      arrayOf("Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara")
 
   data class Item(
       val id: String,
@@ -45,7 +51,23 @@ object WidgetPayload {
       val notificationsEnabled: Boolean,
       val items: List<Item>,
       val birthdays: List<BirthdayItem>,
+      /** Uygulama dili (`tr` / `en`); eski veride `null` (cihaz dili). */
+      val lang: String? = null,
   )
+
+  /**
+   * [lang] dilinde kaynak çözen bağlam (F6.1); `null` veya desteklenmeyen dilde
+   * [context] olduğu gibi.
+   */
+  fun localized(context: Context, lang: String?): Context {
+    if (lang != "tr" && lang != "en") return context
+    val config = Configuration(context.resources.configuration)
+    config.setLocale(Locale.forLanguageTag(lang))
+    return context.createConfigurationContext(config)
+  }
+
+  /** [context]'in (ör. [localized]) dili; büyük harf ve tarih biçimi için. */
+  fun localeOf(context: Context): Locale = context.resources.configuration.locales[0]
 
   /** Çizim anındaki görünüm. */
   data class Snapshot(
@@ -121,7 +143,12 @@ object WidgetPayload {
               ))
         }
       }
-      Raw(root.optBoolean("notificationsEnabled", true), items, birthdays)
+      Raw(
+          root.optBoolean("notificationsEnabled", true),
+          items,
+          birthdays,
+          root.optString("lang", "").ifEmpty { null },
+      )
     } catch (_: Exception) {
       Raw(true, emptyList(), emptyList())
     }
@@ -168,22 +195,31 @@ object WidgetPayload {
   }
 
   /** Satırdaki zaman etiketi: "Gecikti" / "16:00" / "Yarın" / "12 Eki"; zamansız → null. */
-  fun timeLabel(dueAt: Long?, now: Long): String? {
+  fun timeLabel(context: Context, dueAt: Long?, now: Long): String? {
     if (dueAt == null) return null
-    if (dueAt < now) return "Gecikti"
+    if (dueAt < now) return context.getString(R.string.widget_overdue)
     if (dueAt < startOfDay(now, 1)) return clock(dueAt)
-    return dayLabel(dueAt, now)
+    return dayLabel(context, dueAt, now)
   }
 
-  /** "Bugün" / "Yarın" / "12 Eki" (yıl farklıysa "12 Oca 2027"). */
-  fun dayLabel(at: Long, now: Long): String {
-    if (at >= startOfDay(now, 0) && at < startOfDay(now, 1)) return "Bugün"
-    if (at >= startOfDay(now, 1) && at < startOfDay(now, 2)) return "Yarın"
+  /**
+   * "Bugün" / "Yarın" / "12 Eki" (yıl farklıysa "12 Oca 2027"); İngilizce
+   * "Today" / "Tomorrow" / "Oct 12" (desenler `widget_date_*` kaynakları).
+   */
+  fun dayLabel(context: Context, at: Long, now: Long): String {
+    if (at >= startOfDay(now, 0) && at < startOfDay(now, 1)) {
+      return context.getString(R.string.widget_today)
+    }
+    if (at >= startOfDay(now, 1) && at < startOfDay(now, 2)) {
+      return context.getString(R.string.widget_tomorrow)
+    }
     val c = Calendar.getInstance().apply { timeInMillis = at }
     val n = Calendar.getInstance().apply { timeInMillis = now }
-    val base = "${c.get(Calendar.DAY_OF_MONTH)} ${MONTHS[c.get(Calendar.MONTH)]}"
-    return if (c.get(Calendar.YEAR) == n.get(Calendar.YEAR)) base
-    else "$base ${c.get(Calendar.YEAR)}"
+    val pattern =
+        context.getString(
+            if (c.get(Calendar.YEAR) == n.get(Calendar.YEAR)) R.string.widget_date_short
+            else R.string.widget_date_short_year)
+    return SimpleDateFormat(pattern, localeOf(context)).format(c.time)
   }
 
   /** "09:05". */

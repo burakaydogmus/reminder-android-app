@@ -1,24 +1,36 @@
-import 'package:intl/intl.dart';
-
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 
 /// Which quick snooze an option is (the sheet maps it to an icon).
 enum SnoozeKind { tenMinutes, oneHour, evening, tomorrowMorning }
 
-/// One quick snooze choice: [label] ("10 dakika") and the resulting time.
+/// One quick snooze choice: its [kind] and the resulting time; [labelIn]
+/// is its name ("10 dakika").
 class SnoozeOption {
   const SnoozeOption({
     required this.kind,
-    required this.label,
     required this.at,
+    this.today = true,
   });
 
   final SnoozeKind kind;
-  final String label;
   final DateTime at;
 
+  /// Whether the evening option is still today ("Bu akşam" vs "Yarın
+  /// akşam").
+  final bool today;
+
+  /// "10 dakika", "1 saat", "Bu akşam" / "Yarın akşam", "Yarın sabah".
+  String labelIn(AppLocalizations l10n) => switch (kind) {
+        SnoozeKind.tenMinutes => l10n.snoozeTenMinutes,
+        SnoozeKind.oneHour => l10n.snoozeOneHour,
+        SnoozeKind.evening =>
+          today ? l10n.snoozeThisEvening : l10n.snoozeTomorrowEvening,
+        SnoozeKind.tomorrowMorning => l10n.snoozeTomorrowMorning,
+      };
+
   @override
-  String toString() => 'SnoozeOption($label, $at)';
+  String toString() => 'SnoozeOption($kind, $at)';
 }
 
 /// Pure snooze time rules (Ertele sheet, §3.3.4). Everything is a function of
@@ -37,38 +49,43 @@ abstract final class SnoozeOptions {
     return [
       SnoozeOption(
         kind: SnoozeKind.tenMinutes,
-        label: '10 dakika',
         at: minute.add(const Duration(minutes: 10)),
       ),
       SnoozeOption(
         kind: SnoozeKind.oneHour,
-        label: '1 saat',
         at: minute.add(const Duration(hours: 1)),
       ),
       SnoozeOption(
         kind: SnoozeKind.evening,
-        label: eveningToday ? 'Bu akşam' : 'Yarın akşam',
+        today: eveningToday,
         at: eveningToday
             ? evening
             : DateTime(now.year, now.month, now.day + 1, eveningHour),
       ),
       SnoozeOption(
         kind: SnoozeKind.tomorrowMorning,
-        label: 'Yarın sabah',
         at: DateTime(now.year, now.month, now.day + 1, morningHour),
       ),
     ];
   }
 
   /// Option subtitle: `14:42` today, otherwise `Pzt 09:00`.
-  static String timeLabel(DateTime at, DateTime now) {
+  static String timeLabel(DateTime at, DateTime now, AppLocalizations l10n) {
     if (KorFormat.isSameDay(at, now)) return KorFormat.time(at);
-    return '${DateFormat('EEE', 'tr_TR').format(at)} ${KorFormat.time(at)}';
+    return l10n.snoozeWeekdayTime(
+      KorFormat.pattern(l10n.dateFormatWeekdayShort, at, l10n),
+      KorFormat.time(at),
+    );
   }
 
-  /// Snackbar text: `Yarın 09:00'a ertelendi`, `14:42'ye ertelendi`.
-  static String snoozedMessage(DateTime at, DateTime now) =>
-      "${KorFormat.when(at, now)}'${dativeSuffix(at)} ertelendi";
+  /// Snackbar text: `Yarın 09:00'a ertelendi`, `14:42'ye ertelendi`;
+  /// English `Snoozed until Tomorrow 09:00`.
+  static String snoozedMessage(
+    DateTime at,
+    DateTime now,
+    AppLocalizations l10n,
+  ) =>
+      l10n.snoozedTo(KorFormat.when(at, now, l10n), dativeSuffix(at));
 
   static const _units = [
     '',

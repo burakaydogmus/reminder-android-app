@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/settings/settings_page.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -54,7 +55,7 @@ class TabHeader extends StatelessWidget {
         ),
         ...actions,
         IconButton(
-          tooltip: 'Ayarlar',
+          tooltip: context.l10n.settingsTooltip,
           onPressed: () => openSettings(context),
           icon: const Icon(Icons.settings_outlined),
         ),

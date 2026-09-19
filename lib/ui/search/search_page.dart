@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/text_search.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/empty_state.dart';
@@ -53,7 +54,7 @@ class SearchIconButton extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return IconButton(
-      tooltip: 'Ara',
+      tooltip: context.l10n.searchTooltip,
       onPressed: () => openSearch(context),
       icon: const Icon(Icons.search_rounded),
     );
@@ -134,14 +135,14 @@ class _SearchPageState extends State<SearchPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.apps_rounded),
-              title: const Text('Tüm kategoriler'),
+              title: Text(context.l10n.searchAllCategories),
               selected: _categoryId == null,
               onTap: () => Navigator.of(context).pop(''),
             ),
             for (final c in categories.ordered)
               ListTile(
                 leading: CategoryBadge(category: c, size: 32),
-                title: Text(c.name),
+                title: Text(CategoryVisuals.nameOf(c, context.l10n)),
                 selected: _categoryId == c.id,
                 onTap: () => Navigator.of(context).pop(c.id),
               ),
@@ -208,7 +209,7 @@ class _SearchPageState extends State<SearchPage> {
         child: Row(
           children: [
             IconButton(
-              tooltip: 'Geri',
+              tooltip: context.l10n.actionBack,
               onPressed: () => Navigator.of(context).maybePop(),
               icon: const Icon(Icons.arrow_back_rounded),
             ),
@@ -221,13 +222,13 @@ class _SearchPageState extends State<SearchPage> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _remember(),
                 style: theme.textTheme.bodyLarge,
-                decoration: const InputDecoration(
-                  hintText: 'Hatırlatıcılarda ara',
+                decoration: InputDecoration(
+                  hintText: context.l10n.searchHint,
                   filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     vertical: KorSpacing.s4,
                   ),
                 ),
@@ -235,7 +236,7 @@ class _SearchPageState extends State<SearchPage> {
             ),
             if (_controller.text.isNotEmpty)
               IconButton(
-                tooltip: 'Temizle',
+                tooltip: context.l10n.actionClear,
                 onPressed: () {
                   _controller.clear();
                   _focus.requestFocus();
@@ -252,7 +253,7 @@ class _SearchPageState extends State<SearchPage> {
 
   Widget _chips(BuildContext context) {
     final categoryLabel = _categoryId == null
-        ? 'Kategori'
+        ? context.l10n.searchCategoryChip
         : CategoryVisuals.labelOf(context, _categoryId!);
     return Wrap(
       spacing: KorSpacing.s3,
@@ -260,18 +261,18 @@ class _SearchPageState extends State<SearchPage> {
       children: [
         FilterChip(
           key: SearchPageKeys.openChip,
-          label: const Text('Açık'),
+          label: Text(context.l10n.searchOpenChip),
           selected: _statuses.contains(SearchStatus.open),
           onSelected: (v) => _toggleStatus(SearchStatus.open, v),
         ),
         FilterChip(
           key: SearchPageKeys.completedChip,
-          label: const Text('Tamamlanan'),
+          label: Text(context.l10n.searchCompletedChip),
           selected: _statuses.contains(SearchStatus.completed),
           onSelected: (v) => _toggleStatus(SearchStatus.completed, v),
         ),
         Semantics(
-          hint: 'Kategori seç',
+          hint: context.l10n.searchPickCategory,
           child: FilterChip(
             key: SearchPageKeys.categoryChip,
             label: Row(
@@ -298,10 +299,10 @@ class _SearchPageState extends State<SearchPage> {
       if (_recent.isEmpty) {
         return ListView(
           padding: EdgeInsets.only(bottom: bottom),
-          children: const [
+          children: [
             EmptyState(
-              title: 'Hatırlatıcılarında ara',
-              body: 'Başlık, not, kategori ya da yer adıyla bulabilirsin.',
+              title: context.l10n.searchEmptyTitle,
+              body: context.l10n.searchEmptyBody,
             ),
           ],
         );
@@ -315,18 +316,18 @@ class _SearchPageState extends State<SearchPage> {
         ),
         children: [
           SectionHeader(
-            title: 'Son aramalar',
+            title: context.l10n.searchRecent,
             icon: Icons.history_rounded,
             trailing: TextButton(
               key: SearchPageKeys.clearRecent,
               onPressed: _clearRecent,
-              child: const Text('Temizle'),
+              child: Text(context.l10n.actionClear),
             ),
           ),
           for (final q in _recent)
             Semantics(
               button: true,
-              label: 'Son arama: $q',
+              label: context.l10n.searchRecentSpoken(q),
               excludeSemantics: true,
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -345,6 +346,7 @@ class _SearchPageState extends State<SearchPage> {
       statuses: _statuses,
       categoryId: _categoryId,
       categories: state.categories,
+      l10n: context.l10n,
     );
 
     if (results.isEmpty) {
@@ -356,11 +358,11 @@ class _SearchPageState extends State<SearchPage> {
           Semantics(
             liveRegion: true,
             child: EmptyState(
-              title: '“$query” için sonuç yok',
+              title: context.l10n.searchNoResults(query),
               body: canWiden
-                  ? 'Yazımı kontrol et veya tamamlananlarda ara.'
-                  : 'Yazımı kontrol et.',
-              actionLabel: canWiden ? 'Tamamlananlarda ara' : null,
+                  ? context.l10n.searchNoResultsWiden
+                  : context.l10n.searchNoResultsBody,
+              actionLabel: canWiden ? context.l10n.searchInCompleted : null,
               onAction: canWiden
                   ? () => _toggleStatus(SearchStatus.completed, true)
                   : null,
@@ -383,15 +385,20 @@ class _SearchPageState extends State<SearchPage> {
         Semantics(
           liveRegion: true,
           child: Text(
-            '${results.total} sonuç',
+            context.l10n.searchResultCount(results.total),
             key: SearchPageKeys.resultCount,
             style: theme.textTheme.labelMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
           ),
         ),
-        ..._group(context, 'Hatırlatıcılar', results.inReminders, now),
-        ..._group(context, 'Notlarda', results.inNotes, now),
+        ..._group(
+          context,
+          context.l10n.searchGroupReminders,
+          results.inReminders,
+          now,
+        ),
+        ..._group(context, context.l10n.searchGroupNotes, results.inNotes, now),
       ],
     );
   }
@@ -406,7 +413,9 @@ class _SearchPageState extends State<SearchPage> {
     return [
       Padding(
         padding: const EdgeInsets.only(top: KorSpacing.s3),
-        child: SectionHeader(title: '$title · ${matches.length}'),
+        child: SectionHeader(
+          title: context.l10n.searchGroupHeader(title, matches.length),
+        ),
       ),
       for (final m in matches)
         Padding(
@@ -463,7 +472,7 @@ class SearchResultCard extends StatelessWidget {
             text: CategoryVisuals.labelOf(context, r.categoryId),
             style: TextStyle(color: category.fg),
           ),
-          TextSpan(text: '  ·  ${_when(r)}'),
+          TextSpan(text: '  ·  ${_when(r, context.l10n)}'),
         ],
       ),
       detail: context_ == null
@@ -472,13 +481,13 @@ class SearchResultCard extends StatelessWidget {
     );
   }
 
-  String _when(Reminder r) {
+  String _when(Reminder r, AppLocalizations l10n) {
     final at = r.remindAt?.toLocal();
-    if (at == null) return 'Zamansız';
+    if (at == null) return l10n.searchUntimed;
     final overdue = !r.isDone && at.isBefore(now);
     return overdue
-        ? 'Gecikti · ${KorFormat.when(at, now)}'
-        : KorFormat.when(at, now);
+        ? l10n.searchOverdueWhen(KorFormat.when(at, now, l10n))
+        : KorFormat.when(at, now, l10n);
   }
 }
 

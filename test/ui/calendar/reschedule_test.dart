@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/calendar/reschedule.dart';
 
 import '../../helpers/factories.dart';
@@ -89,7 +90,7 @@ void main() {
       title: 'Market',
       remindAt: DateTime(2026, 9, 16, 18, 30),
     );
-    expect(
-        rescheduledMessage(moved, now), '“Market” taşındı · Çar 16 Eyl 18:30');
+    expect(rescheduledMessage(moved, now, AppL10n.turkish),
+        '“Market” taşındı · Çar 16 Eyl 18:30');
   });
 }

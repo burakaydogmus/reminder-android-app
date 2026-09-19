@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -39,14 +40,27 @@ abstract final class PastTime {
   }
 
   /// `Yarın 18:30 mı?` / `Bugün 18:30 mı?`
-  static String suggestionLabel(DateTime suggested, DateTime now) =>
-      '${KorFormat.relativeDay(suggested, now)} '
-      '${KorFormat.time(suggested)} mı?';
+  static String suggestionLabel(
+    DateTime suggested,
+    DateTime now,
+    AppLocalizations l10n,
+  ) =>
+      l10n.pastTimeSuggestion(
+        l10n.dayAndTime(
+          KorFormat.relativeDay(suggested, now, l10n),
+          KorFormat.time(suggested),
+        ),
+      );
 
   /// Screen reader label: `Yarın saat 18:30 olarak ayarla`.
-  static String suggestionSemantics(DateTime suggested, DateTime now) =>
-      '${KorFormat.relativeDay(suggested, now)} '
-      '${KorFormat.spokenTime(suggested)} olarak ayarla';
+  static String suggestionSemantics(
+    DateTime suggested,
+    DateTime now,
+    AppLocalizations l10n,
+  ) =>
+      l10n.pastTimeSuggestionSpoken(
+        KorFormat.spokenWhen(suggested, now, l10n),
+      );
 }
 
 /// Inline warning under the date/time chips: error icon + "Bu saat geçti"
@@ -68,6 +82,7 @@ class PastTimeHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,7 +90,7 @@ class PastTimeHint extends StatelessWidget {
           key: ReminderScheduleKeys.pastWarning,
           liveRegion: true,
           container: true,
-          label: 'Hata: Bu saat geçti',
+          label: l10n.pastTimeErrorSpoken,
           excludeSemantics: true,
           child: Row(
             children: [
@@ -83,7 +98,7 @@ class PastTimeHint extends StatelessWidget {
               const SizedBox(width: KorSpacing.s2),
               Flexible(
                 child: Text(
-                  'Bu saat geçti',
+                  l10n.pastTimeError,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.error,
                   ),
@@ -95,12 +110,12 @@ class PastTimeHint extends StatelessWidget {
         const SizedBox(height: KorSpacing.s2),
         Semantics(
           button: true,
-          label: PastTime.suggestionSemantics(suggested, now),
+          label: PastTime.suggestionSemantics(suggested, now, l10n),
           excludeSemantics: true,
           child: ActionChip(
             key: ReminderScheduleKeys.suggestion,
             avatar: const Icon(Icons.update_rounded),
-            label: Text(PastTime.suggestionLabel(suggested, now)),
+            label: Text(PastTime.suggestionLabel(suggested, now, l10n)),
             onPressed: onApply,
           ),
         ),

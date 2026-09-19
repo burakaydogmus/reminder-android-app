@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/notification_ids.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/notification_actions.dart';
 import 'package:reminder/services/notification_fingerprint_store.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -170,11 +171,13 @@ void main() {
 
     test('title names the person, with "Yaklaşıyor" before the day', () {
       expect(
-        NotificationService.birthdayNotificationTitle(zeynep, 0),
+        NotificationService.birthdayNotificationTitle(
+            zeynep, 0, AppL10n.turkish),
         '🎂 Zeynep Aydın',
       );
       expect(
-        NotificationService.birthdayNotificationTitle(zeynep, 1440),
+        NotificationService.birthdayNotificationTitle(
+            zeynep, 1440, AppL10n.turkish),
         '🎂 Yaklaşıyor: Zeynep Aydın',
       );
     });
@@ -191,7 +194,7 @@ void main() {
       };
       expected.forEach((offset, body) {
         expect(
-          NotificationService.birthdayNotificationBody(offset),
+          NotificationService.birthdayNotificationBody(offset, AppL10n.turkish),
           body,
           reason: 'offset $offset',
         );
@@ -211,9 +214,13 @@ void main() {
         final n = plugin.pending[zeynep.notificationIdFor(offset)]!;
         expect(
           n.title,
-          NotificationService.birthdayNotificationTitle(zeynep, offset),
+          NotificationService.birthdayNotificationTitle(
+              zeynep, offset, AppL10n.turkish),
         );
-        expect(n.body, NotificationService.birthdayNotificationBody(offset));
+        expect(
+            n.body,
+            NotificationService.birthdayNotificationBody(
+                offset, AppL10n.turkish));
         expect(
           n.matchDateTimeComponents,
           DateTimeComponents.dateAndTime,
@@ -540,6 +547,8 @@ void main() {
         final canonical = jsonEncode([
           'v$version',
           n.details!.android!.channelId,
+          // v6 (F6.1): the text language.
+          if (version >= 6) 'tr',
           n.scheduleMode!.name,
           n.title,
           n.body,
@@ -575,12 +584,12 @@ void main() {
       );
       expect(plugin.writeCalls, 0);
 
-      // Store written by v4 (before F6.2c: the mode was a constant; same
-      // canonical shape otherwise).
-      expect(NotificationService.scheduleFingerprintVersion, 5);
+      // Store written by v5 (before F6.1: no language in the fingerprint;
+      // same canonical shape otherwise).
+      expect(NotificationService.scheduleFingerprintVersion, 6);
       await store.save({
         for (final n in plugin.pending.values)
-          n.id: fingerprint(n, version: 4, payload: n.payload),
+          n.id: fingerprint(n, version: 5, payload: n.payload),
       });
 
       await service.syncSchedules(

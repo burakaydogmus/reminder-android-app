@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/permissions/permission_sheet.dart';
@@ -25,18 +26,19 @@ abstract final class PermissionFlows {
       }
       await service.markPromptShown(PermissionPrompt.notifications);
       if (!context.mounted) return;
+      final l10n = context.l10n;
       final ok = await showPermissionSheet(
         context,
         icon: Icons.notifications_active_outlined,
-        title: 'Hatırlatmaları zamanında al',
-        body: 'Seçtiğin saatte haber verebilmem için bildirim izni gerekiyor.',
-        points: const [
-          'Hatırlatıcılar tam zamanında bildirim olarak gelir.',
-          'Doğum günlerini önceden haber veririm.',
-          'Konuma varınca da bildirim gönderirim.',
+        title: l10n.permNotifTitle,
+        body: l10n.permNotifBody,
+        points: [
+          l10n.permNotifPoint1,
+          l10n.permNotifPoint2,
+          l10n.permNotifPoint3,
         ],
-        confirmLabel: 'Bildirimlere izin ver',
-        dismissLabel: 'Şimdi değil',
+        confirmLabel: l10n.permNotifConfirm,
+        dismissLabel: l10n.permNotNow,
       );
       if (ok) await service.requestNotifications();
       await controller.refresh();
@@ -133,8 +135,8 @@ abstract final class PermissionFlows {
 
   /// Exact alarms are optional (F6.2c): without them reminders are scheduled
   /// inexact and may arrive a few minutes late.
-  static const exactAlarmTradeOff =
-      'İzin olmadan hatırlatmalar birkaç dakika gecikebilir.';
+  static String exactAlarmTradeOff(AppLocalizations l10n) =>
+      l10n.permExactTradeOff;
 
   /// "Ayarları aç" for exact alarms (Settings). When the user comes back with
   /// a different state, schedules are recomputed right away (F6.2c) so a
@@ -151,46 +153,44 @@ abstract final class PermissionFlows {
   }
 
   static Future<bool> _showExactAlarmSheet(BuildContext context) {
+    final l10n = context.l10n;
     return showPermissionSheet(
       context,
       icon: Icons.alarm_rounded,
-      title: 'Tam zamanında hatırlatma',
-      body: 'Bildirimlerin dakikası dakikasına gelmesi için “Alarmlar ve '
-          'hatırlatıcılar” iznini açabilirsin. $exactAlarmTradeOff '
-          'Hatırlatmaların yine de gelir.',
-      confirmLabel: 'Ayarları aç',
-      dismissLabel: 'Sonra',
+      title: l10n.permExactTitle,
+      body: l10n.permExactBody(exactAlarmTradeOff(l10n)),
+      confirmLabel: l10n.permissionOpenSettings,
+      dismissLabel: l10n.actionLater,
     );
   }
 
   static Future<bool> _showLocationStep1(BuildContext context) {
+    final l10n = context.l10n;
     return showPermissionSheet(
       context,
       icon: Icons.place_outlined,
       step: '1/2',
-      title: 'Bir yere varınca hatırlatayım',
-      body: 'Haritada yer seçmek ve oraya vardığında sana haber vermek için '
-          'konum izni gerekiyor. Konumun yalnızca bu cihazda kullanılır.',
-      confirmLabel: 'Devam',
-      dismissLabel: 'Şimdi değil',
+      title: l10n.permLocationTitle,
+      body: l10n.permLocationBody,
+      confirmLabel: l10n.permContinue,
+      dismissLabel: l10n.permNotNow,
     );
   }
 
   static Future<bool> _showLocationStep2(BuildContext context) {
     final ios = PlatformChrome.isCupertino(context);
+    final l10n = context.l10n;
     return showPermissionSheet(
       context,
       icon: Icons.my_location_rounded,
       step: '2/2',
-      title: 'Uygulama kapalıyken de çalışsın',
+      title: l10n.permLocationAlwaysTitle,
       body: ios
-          ? 'Uygulama kapalıyken de hatırlatabilmem için konum iznini '
-              '“Her Zaman” yap. Açılan pencerede ya da Ayarlar’da seçebilirsin.'
-          : 'Uygulama kapalıyken de çalışması için Ayarlar’da '
-              '“Her zaman izin ver”i seç.',
+          ? l10n.permLocationAlwaysBodyIos
+          : l10n.permLocationAlwaysBodyAndroid,
       illustration: const LocationAlwaysIllustration(),
-      confirmLabel: 'Ayarları aç',
-      dismissLabel: 'Sonra',
+      confirmLabel: l10n.permissionOpenSettings,
+      dismissLabel: l10n.actionLater,
     );
   }
 }

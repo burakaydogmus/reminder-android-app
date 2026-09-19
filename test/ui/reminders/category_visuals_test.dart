@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
@@ -62,11 +63,17 @@ void main() {
 
   test('18 icons and 12 spoken colour names (F4.3)', () {
     expect(CategoryIcons.byKey.keys, CategoryIconKeys.all);
+    expect({
+      for (final k in CategoryIconKeys.all)
+        CategoryIcons.spokenName(k, AppL10n.turkish)
+    }, hasLength(CategoryIconKeys.all.length));
     expect(
-        CategoryIcons.spokenNames.keys.toSet(), CategoryIconKeys.all.toSet());
-    expect(
-        KorColorKey.values.map(CategoryColorNames.of).toSet(), hasLength(12));
-    expect(CategoryColorNames.of(KorColorKey.lacivert), 'Lacivert');
+        KorColorKey.values
+            .map((k) => CategoryColorNames.of(k, AppL10n.turkish))
+            .toSet(),
+        hasLength(12));
+    expect(CategoryColorNames.of(KorColorKey.lacivert, AppL10n.turkish),
+        'Lacivert');
   });
 
   test('colorKeyFor resolves user categories through a catalog', () {

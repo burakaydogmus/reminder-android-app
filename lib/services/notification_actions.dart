@@ -11,6 +11,7 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/home/widget_change_signal.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/geofence_service.dart';
 import 'package:reminder/services/notification_payload.dart';
 import 'package:reminder/services/notification_service.dart';
@@ -32,53 +33,58 @@ abstract final class NotificationActionIds {
 /// Hatırlatıcı bildirimlerinin iOS kategori id'si.
 const String reminderNotificationCategoryId = 'reminder_actions';
 
-/// Android hatırlatıcı bildirimi düğmeleri (§3.3.12): Tamamla · 10 dk · 1 saat.
+/// Android hatırlatıcı bildirimi düğmeleri (§3.3.12): Tamamla · 10 dk · 1 saat,
+/// uygulama dilinde (F6.1).
 ///
 /// Arayüzü açmazlar; aksiyon arka plan isolate'inde işlenir ve bildirim
 /// kapatılır.
-const List<AndroidNotificationAction> androidReminderActions = [
-  AndroidNotificationAction(
-    NotificationActionIds.complete,
-    'Tamamla',
-    showsUserInterface: false,
-    cancelNotification: true,
-  ),
-  AndroidNotificationAction(
-    NotificationActionIds.snooze10Minutes,
-    '10 dk',
-    showsUserInterface: false,
-    cancelNotification: true,
-  ),
-  AndroidNotificationAction(
-    NotificationActionIds.snooze1Hour,
-    '1 saat',
-    showsUserInterface: false,
-    cancelNotification: true,
-  ),
-];
+List<AndroidNotificationAction> androidReminderActions(AppLocalizations l10n) =>
+    [
+      AndroidNotificationAction(
+        NotificationActionIds.complete,
+        l10n.notifActionComplete,
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+      AndroidNotificationAction(
+        NotificationActionIds.snooze10Minutes,
+        l10n.notifActionSnooze10,
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+      AndroidNotificationAction(
+        NotificationActionIds.snooze1Hour,
+        l10n.notifActionSnooze1h,
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+    ];
 
 /// iOS bildirim kategorileri (uzun bas, §3.3.12): Tamamla · 10 dk ertele ·
-/// 1 saat ertele · Yarın sabah. `foreground` seçeneği yok: aksiyonlar arka
-/// plan isolate'inde çalışır.
-List<DarwinNotificationCategory> get darwinNotificationCategories => [
+/// 1 saat ertele · Yarın sabah, uygulama dilinde (F6.1). `foreground`
+/// seçeneği yok: aksiyonlar arka plan isolate'inde çalışır.
+List<DarwinNotificationCategory> darwinNotificationCategories(
+  AppLocalizations l10n,
+) =>
+    [
       DarwinNotificationCategory(
         reminderNotificationCategoryId,
         actions: [
           DarwinNotificationAction.plain(
             NotificationActionIds.complete,
-            'Tamamla',
+            l10n.notifActionComplete,
           ),
           DarwinNotificationAction.plain(
             NotificationActionIds.snooze10Minutes,
-            '10 dk ertele',
+            l10n.notifActionSnooze10Long,
           ),
           DarwinNotificationAction.plain(
             NotificationActionIds.snooze1Hour,
-            '1 saat ertele',
+            l10n.notifActionSnooze1hLong,
           ),
           DarwinNotificationAction.plain(
             NotificationActionIds.snoozeTomorrowMorning,
-            'Yarın sabah',
+            l10n.notifActionTomorrowMorning,
           ),
         ],
       ),
@@ -106,6 +112,7 @@ Future<void> notificationActionBackgroundHandler(
     // olabilir.
     await (await SharedPreferences.getInstance()).reload();
     await initializeDateFormatting('tr_TR');
+    await initializeDateFormatting('en_US');
     await configureLocalTimezone();
     await handleNotificationAction(
       response,

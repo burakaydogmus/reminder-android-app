@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
@@ -92,13 +93,17 @@ void main() {
 
   test('validateName', () {
     final catalog = CategoryCatalog([gym]);
-    expect(CategoryEditorSheet.validateName('  ', catalog), isNotNull);
-    expect(CategoryEditorSheet.validateName('spor', catalog), isNotNull);
+    expect(CategoryEditorSheet.validateName('  ', catalog, AppL10n.turkish),
+        isNotNull);
+    expect(CategoryEditorSheet.validateName('spor', catalog, AppL10n.turkish),
+        isNotNull);
     expect(
-      CategoryEditorSheet.validateName('spor', catalog, exceptId: 'gym'),
+      CategoryEditorSheet.validateName('spor', catalog, AppL10n.turkish,
+          exceptId: 'gym'),
       isNull,
     );
-    expect(CategoryEditorSheet.validateName('Yoga', catalog), isNull);
+    expect(CategoryEditorSheet.validateName('Yoga', catalog, AppL10n.turkish),
+        isNull);
   });
 
   testWidgets('name is capped at 24 characters', (tester) async {
@@ -295,7 +300,7 @@ void main() {
 
   test('CategoryVisuals keeps swatch names for every key', () {
     for (final key in KorColorKey.values) {
-      expect(CategoryColorNames.of(key), isNotEmpty);
+      expect(CategoryColorNames.of(key, AppL10n.turkish), isNotEmpty);
     }
   });
 

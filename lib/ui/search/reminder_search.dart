@@ -2,6 +2,8 @@ import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/domain/text_search.dart';
+import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/ui/reminders/category_visuals.dart';
 
 /// Status chips of the search page (Açık / Tamamlanan).
 enum SearchStatus { open, completed }
@@ -64,6 +66,7 @@ abstract final class ReminderSearch {
     Set<SearchStatus> statuses = const {SearchStatus.open},
     String? categoryId,
     CategoryCatalog? categories,
+    AppLocalizations? l10n,
   }) {
     final catalog = categories ?? CategoryCatalog.builtIns;
     final tokens = TextSearch.tokens(query);
@@ -80,7 +83,12 @@ abstract final class ReminderSearch {
 
       final title = TextSearch.fold(r.title);
       final note = TextSearch.fold(r.note ?? '');
-      final category = TextSearch.fold(catalog.labelOf(r.categoryId));
+      // Stored name, plus the translated built-in name (F6.1: "Groceries"
+      // finds Market reminders in English).
+      final category = TextSearch.fold([
+        catalog.labelOf(r.categoryId),
+        if (l10n != null) CategoryVisuals.labelIn(catalog, r.categoryId, l10n),
+      ].join(' '));
       final place = TextSearch.fold(r.locationPlaceLabel ?? '');
 
       var score = 0;

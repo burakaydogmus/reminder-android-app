@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
 import 'package:reminder/ui/onboarding/onboarding_widgets.dart';
@@ -31,12 +32,13 @@ class ReadyStep extends StatelessWidget {
     final market =
         CategoryVisuals.colorsOf(context, ReminderCategoryIds.market);
     final birthday = CategoryVisuals.birthdayColorsOf(context);
+    final l10n = context.l10n;
     return OnboardingStepFrame(
       index: 3,
       footer: [
         OnboardingPrimaryButton(
           key: OnboardingKeys.enterApp,
-          label: 'Uygulamaya geç',
+          label: l10n.onboardingEnterApp,
           onPressed: onEnterApp,
         ),
       ],
@@ -50,9 +52,9 @@ class ReadyStep extends StatelessWidget {
             child: EmberBurst(),
           ),
           const SizedBox(height: KorSpacing.s7),
-          const OnboardingCopy(
-            title: 'Hazırsın.',
-            body: 'İlk hatırlatıcını ekleyelim mi?',
+          OnboardingCopy(
+            title: l10n.onboardingReadyTitle,
+            body: l10n.onboardingReadyBody,
           ),
           const SizedBox(height: KorSpacing.s7),
           GroupedCard(
@@ -63,14 +65,14 @@ class ReadyStep extends StatelessWidget {
                 icon: CategoryVisuals.iconFor(
                     context, ReminderCategoryIds.market),
                 iconColor: market.fg,
-                label: 'Market listesi oluştur',
+                label: l10n.onboardingMarketList,
                 onTap: onCreateMarketList,
               ),
               _SuggestionRow(
                 key: OnboardingKeys.birthdaySuggestion,
                 icon: CategoryVisuals.birthdayIcon,
                 iconColor: birthday.fg,
-                label: 'Bir doğum günü ekle',
+                label: l10n.onboardingAddBirthday,
                 onTap: onAddBirthday,
               ),
               if (PlatformChrome.isAndroid(context))
@@ -78,7 +80,7 @@ class ReadyStep extends StatelessWidget {
                   key: OnboardingKeys.widgetSuggestion,
                   icon: Icons.widgets_rounded,
                   iconColor: Theme.of(context).colorScheme.tertiary,
-                  label: 'Ana ekrana widget ekle',
+                  label: l10n.onboardingAddWidget,
                   onTap: onPinWidget,
                 ),
             ],
