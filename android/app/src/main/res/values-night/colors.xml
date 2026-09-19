@@ -16,4 +16,8 @@
     <color name="widget_cat_gunluk">#F2BE6B</color>
     <color name="widget_cat_diger">#C2B1FF</color>
     <color name="widget_cat_dogumgunu">#F2A3E4</color>
+
+    <!-- Uygulama kısayolu simgeleri (F5.3): Kor koyu primaryContainer / onPrimaryContainer. -->
+    <color name="shortcut_background">#6A2A08</color>
+    <color name="shortcut_foreground">#FFDCC8</color>
 </resources>

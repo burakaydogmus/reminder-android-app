@@ -48,10 +48,12 @@ abstract final class QuickCaptureKeys {
 /// and the sheet stays open for the next one. "Tüm ayrıntılar" closes it
 /// and opens the full editor prefilled with the draft.
 ///
-/// [now] is the clock (default: the caller's [NowScope]).
+/// [now] is the clock (default: the caller's [NowScope]). [initialText]
+/// prefills the field, cursor at the end (F5.3 "Market listesi" → `#market `).
 Future<void> showQuickCaptureSheet(
   BuildContext context, {
   DateTime Function()? now,
+  String initialText = '',
 }) async {
   final clock = now ?? NowScope.clockOf(context);
   final draft = await showModalBottomSheet<Reminder>(
@@ -60,7 +62,7 @@ Future<void> showQuickCaptureSheet(
     useSafeArea: true,
     // Rises on spatialSlow; a 150 ms fade-length ease with Reduce Motion.
     sheetAnimationStyle: context.korMotion.sheetStyleOf(context),
-    builder: (_) => QuickCaptureSheet(clock: clock),
+    builder: (_) => QuickCaptureSheet(clock: clock, initialText: initialText),
   );
   if (draft == null || !context.mounted) return;
   await showReminderEditorSheet(context, draft: draft, now: clock);
@@ -68,9 +70,16 @@ Future<void> showQuickCaptureSheet(
 
 /// The sheet body; pops with a draft [Reminder] for "Tüm ayrıntılar".
 class QuickCaptureSheet extends StatefulWidget {
-  const QuickCaptureSheet({super.key, this.clock = DateTime.now});
+  const QuickCaptureSheet({
+    super.key,
+    this.clock = DateTime.now,
+    this.initialText = '',
+  });
 
   final DateTime Function() clock;
+
+  /// Text the field starts with (parsed on the first frame).
+  final String initialText;
 
   /// How long the "Eklendi" toast stays (design: 3 s); longer with a
   /// screen reader.
@@ -121,6 +130,18 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   void initState() {
     super.initState();
     _result = CaptureParser.parse('', now: widget.clock());
+    final initial = widget.initialText;
+    if (initial.isNotEmpty) {
+      _controller.value = TextEditingValue(
+        text: initial,
+        selection: TextSelection.collapsed(offset: initial.length),
+      );
+      // Parsing reads the theme and the category catalog: after the first
+      // build, not in initState.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _reparse(haptics: false);
+      });
+    }
     _controller.addListener(_onTextChanged);
   }
 
@@ -141,7 +162,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
     _reparse();
   }
 
-  void _reparse() {
+  void _reparse({bool haptics = true}) {
     final text = _controller.text;
     _lastParsed = text;
     final result = CaptureText.parse(
@@ -154,7 +175,7 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
     final keys = {
       for (final t in result.tokens) '${t.kind.name}:${t.text}',
     };
-    if (keys.difference(_tokenKeys).isNotEmpty) {
+    if (haptics && keys.difference(_tokenKeys).isNotEmpty) {
       KorHaptics.of(context).tokenRecognized();
     }
     _tokenKeys = keys;

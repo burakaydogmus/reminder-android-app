@@ -60,6 +60,27 @@ void main() {
       expect(router.take(), isNull);
     });
 
+    test('openTarget (app shortcuts, F5.3) replaces and notifies', () {
+      var notified = 0;
+      router.open(Uri.parse('reminderwidget://new'));
+      router.addListener(() => notified++);
+
+      router.openTarget(const TodayTarget());
+      router.openTarget(const NewReminderTarget(initialText: '#market '));
+
+      expect(notified, 2);
+      expect(router.take(), const NewReminderTarget(initialText: '#market '));
+      expect(router.pending, isNull);
+    });
+
+    test('prefilled and plain new-reminder targets differ', () {
+      expect(
+        const NewReminderTarget(initialText: '#market '),
+        isNot(const NewReminderTarget()),
+      );
+      expect(const NewReminderTarget().initialText, isEmpty);
+    });
+
     test('an unknown address neither replaces nor notifies', () {
       var notified = 0;
       router.open(Uri.parse('reminderwidget://permissions'));

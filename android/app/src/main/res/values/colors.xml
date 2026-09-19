@@ -21,4 +21,8 @@
     <color name="widget_cat_gunluk">#8A5300</color>
     <color name="widget_cat_diger">#6546C8</color>
     <color name="widget_cat_dogumgunu">#9A2A8A</color>
+
+    <!-- Uygulama kısayolu simgeleri (F5.3): Kor açık primaryContainer / onPrimaryContainer. -->
+    <color name="shortcut_background">#FFDCC8</color>
+    <color name="shortcut_foreground">#4A1A00</color>
 </resources>
