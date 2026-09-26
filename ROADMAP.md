@@ -155,6 +155,31 @@ Diğer tüm fazların temeli.
 - [ ] **F6.3 Release pipeline** · `chore/release-workflow`
   Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
 
+## Faz 8 — Entegrasyonlar
+
+*Cihazın kendi verisiyle buluşma noktaları. Faz 7'den bağımsız: buluta dokunmaz, yerel kalır.*
+
+- [x] **F8.1 Cihaz takvimi (salt okuma)** · `feat/calendar-integration`
+  Cihazın takvimindeki etkinlikler Bugün ve Takvim sekmelerinde hatırlatıcıların yanında, açıkça
+  ayrışan salt-okunur satırlar olarak görünür (tamamlanamaz, kaydırılamaz, düzenlenemez).
+  **Varsayılan kapalı:** Ayarlar › "Takvim etkinlikleri" anahtarı açar, açılış izin akışını
+  çalıştırır, ardından hangi takvimlerin gösterileceği tek tek seçilir (seçim saklanır).
+  Etkinliğe dokunmak onu sistemin kendi takvim görünümünde açar (açılamazsa salt-okunur bir
+  ayrıntı sayfası); "Hatırlatıcı oluştur" düzenleyiciyi etkinliğin başlığı ve saatiyle doldurur.
+  *Not:* eklenti `device_calendar_plus` — `device_calendar` bu araç zincirinde kullanılamıyor
+  (4.x `timezone ^0.9.0`'a sabit, AGP 9 ile uyumsuz; 3.9.0 Dart 2). Android'de yalnızca
+  `READ_CALENDAR`, iOS'ta `NSCalendarsFullAccessUsageDescription` + eski
+  `NSCalendarsUsageDescription` (EventKit'te salt-okuma katmanı yok). Etkinlikler tembel okunur ve
+  pencere olarak önbelleğe alınır; ön plana dönüşte ve görünen aralık değişince yenilenir. İzin
+  geri alınırsa anahtar kendiliğinden kapanır.
+- [ ] **F8.2 Cihaz takvimine yazma** · `feat/calendar-write` · *bağımlı: F8.1*
+  Hatırlatıcıdan cihaz takvimine etkinlik oluşturma / güncelleme. `WRITE_CALENDAR` ve iOS'ta ayrı
+  bir izin katmanı gerektirir, bu yüzden F8.1'in salt-okuma izin hikâyesini bilinçli olarak dışarıda
+  bıraktı; mağaza yayınından önce gerçekten istenip istenmediğine karar verilmeli.
+- [ ] **F8.3 Takvim günü işaretleri** · `feat/calendar-day-markers` · *bağımlı: F8.1*
+  Hafta şeridi ve ay ızgarasındaki gün noktaları şimdilik yalnızca hatırlatıcı ve doğum günlerini
+  gösteriyor; cihaz etkinlikleri için kategori renklerinden ayrı, nötr bir işaret token'ı gerekiyor.
+
 ## Faz 7 — İleri (bulut)
 
 - [ ] **F7.1 Firebase Auth + Firestore senkron** · `feat/cloud-sync` · *bağımlı: F2.1*
@@ -181,9 +206,10 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
                                    ↓
           F5.1 · F5.2 → F5.3   ‖   F6.1 → F4.6c · F6.2 → F6.3
                                    ↓
-                                  F7.x
+                        F8.1 → F8.2 · F8.3   ‖   F7.x
 ```
 
 - **F4.5 erişilebilirlik** tek seferlik bir adım değil: F4.1'den itibaren her PR'ın kabul kriteri, sonda kapanış denetimi.
 - **F4.1 ile Faz 1 paralelliği:** F1.6 (izin arayüzü) ve F1.8 (editörde geçmiş saat) `lib/ui` dosyalarına da dokunur; hangisi önce merge edilirse diğeri rebase eder.
+- **Faz 8 Faz 7'yi beklemez:** entegrasyonlar yereldir (cihaz takvimi), buluta dokunmaz; F8.1 yalnızca F4.4 (Takvim) ve F1.6 (izin akışı) üzerine kurulur.
 - **F1.6 artık F4.1'den sonra yürütülür:** izin durumu arayüzü yeni Ayarlar gruplu kartlarına (İzinler) ve yeni editörün "Nerede" kartına yerleşir; F4.1 bu bölümleri bilerek boş bıraktı.

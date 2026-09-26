@@ -1,6 +1,6 @@
 # Google Play — Data safety formu cevapları
 
-Durum: 13 Eylül 2026, `master` @ 4038806 kodu esas alınarak hazırlandı. Kod değişirse (özellikle
+Durum: 26 Eylül 2026 (F8.1 cihaz takvimi satırı eklendi; öncesi 13 Eylül 2026, `master` @ 4038806). Kod değişirse (özellikle
 F6.3 çökme raporlama, F7.x bulut senkronu) bu formun **yeniden** doldurulması gerekir.
 
 Kaynak: [Data safety bölümü yardım sayfası](https://support.google.com/googleplay/android-developer/answer/10787469)
@@ -22,6 +22,7 @@ Kaynak: [Data safety bölümü yardım sayfası](https://support.google.com/goog
 |---|---|
 | `lib/data/**` (Drift `reminder.sqlite`, SharedPreferences) | Yalnızca cihaz. Sunucu, SDK, analiz yok. |
 | `lib/services/notification_service.dart` | Yerel bildirim (`flutter_local_notifications`), push yok. |
+| `lib/services/device_calendar_service.dart` (F8.1, `device_calendar_plus`) | Cihaz takvimi **yalnızca okunur** (`CalendarContract` / EventKit), kullanıcı Ayarlar'dan açtıysa. Etkinlikler bellekte tutulur, veritabanına yazılmaz ve hiçbir sunucuya gönderilmez. Yazma metodu yok. |
 | `lib/services/geofence_*.dart` (`native_geofence`) | Bölgeler işletim sistemine kaydedilir; olaylar cihazda işlenir. Uygulama koordinatları hiçbir sunucuya göndermez. |
 | `lib/ui/maps/location_picker_page.dart` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` karo indirir (IP + user agent + görüntülenen bölge OSMF'ye ulaşır). Konum parametresi göndermez; karo adresi yalnızca görüntülenen harita bölgesini içerir. |
 | `lib/services/places_nearby_service.dart` | **Yalnızca `GOOGLE_MAPS_KEY` ile derlenmişse** (`mapsConfigured`) ve kullanıcı Market kategorisinde "Yakındaki marketleri göster"e basarsa: seçili noktanın enlem/boylamı `maps.googleapis.com`'a gider. Anahtarsız derlemede düğme görünmez, istek yapılmaz. |
@@ -50,7 +51,7 @@ A = anahtarsız derleme (önerilen) · B = `GOOGLE_MAPS_KEY` ile derleme
 | Mesajlar / e-posta / SMS | Hayır | Hayır | Hayır | Hayır | — | — | — |
 | Fotoğraflar ve videolar / Ses | Hayır | Hayır | Hayır | Hayır | — | — | — |
 | Dosyalar ve dokümanlar | Hayır | Hayır | Hayır | Hayır | — | — | Yedek dosyası kullanıcı başlatınca, kullanıcının seçtiği hedefe gider; geliştiriciye aktarım yok (kullanıcı başlatımlı aktarım istisnası). |
-| Takvim (etkinlikler) | Hayır | Hayır | Hayır | Hayır | — | — | Sistem takvimine erişim yok; hatırlatıcılar cihazda. |
+| Takvim (etkinlikler) | Hayır | Hayır | Hayır | Hayır | — | — | **F8.1:** kullanıcı Ayarlar'dan açarsa cihaz takvimi **okunuyor**, ama veri cihaz dışına çıkmıyor → Play tanımına göre "toplama" değil. Yazma yok (`WRITE_CALENDAR` tanımlı değil). Uygulamanın kendi hatırlatıcıları da cihazda. |
 | Kişiler | Hayır | Hayır | Hayır | Hayır | — | — | Rehber erişimi yok (F7.3 eklenirse değişir). |
 | Uygulama etkinliği (etkileşimler, arama geçmişi, kullanıcı içerikleri) | Hayır | Hayır | Hayır | Hayır | — | — | Hatırlatıcı metinleri kullanıcı içeriği ama cihaz dışına çıkmıyor. |
 | Web tarama | Hayır | Hayır | Hayır | Hayır | — | — | — |

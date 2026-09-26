@@ -18,6 +18,22 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Cihaz takvimi etkinlikleri (salt okuma):** Cihazının takvimindeki etkinlikler artık Bugün
+  ("Takvim etkinlikleri" bölümü) ve Takvim gündeminde hatırlatıcılarının yanında görünüyor.
+  Etkinlik satırları hatırlatıcılardan ayrışıyor: soldaki renk şeridi, takvim ikonu ve "takvim
+  etkinliği" yazan alt satırıyla; **tamamlanamaz, kaydırılamaz, düzenlenemez.** Tüm gün süren
+  etkinlikler "Tüm gün" olarak, çok günlü olanlar gün aralığıyla gösteriliyor; tekrarlayan
+  etkinlikler her tekrarında ayrı satır oluyor.
+  **Varsayılan kapalı.** Ayarlar › "Takvim etkinlikleri" anahtarı açar; açarken takvimi yalnızca
+  okuduğumuzu anlatan bir sayfa gösterilir ve izin bir kez istenir. Açıldıktan sonra hangi
+  takvimlerin gösterileceğini tek tek seçebilirsin (kişisel, iş, tatiller, doğum günleri…);
+  seçim saklanır. Etkinliğe dokunmak onu cihazın kendi takvim görünümünde açar; açılamazsa
+  salt-okunur bir ayrıntı sayfası gelir. Satırın ⋮ menüsündeki **"Hatırlatıcı oluştur"**
+  hatırlatıcı düzenleyicisini etkinliğin başlığı ve saatiyle doldurur — bu yalnızca uygulamanın
+  kendi listesine yazar.
+  **Takvimine hiçbir şey yazılmaz:** Android'de yalnızca `READ_CALENDAR` izni isteniyor,
+  `WRITE_CALENDAR` hiç tanımlı değil. İzni geri alırsan anahtar kendiliğinden kapanır ve boş bir
+  bölüm kalmaz. (F8.1)
 - **iOS ana ekran ve kilit ekranı widget'ları:** Dört widget geldi — **Sıradaki** (küçük: saat,
   başlık, tamamla dairesi, "+"), **Bugün** (orta: "Bugün · N" + üç satır + hap "+"), **Liste**
   (büyük: Kaçanlar / Bugün bölümleri, doğum günü satırı; uzun basıp "Yalnızca bugün"ü

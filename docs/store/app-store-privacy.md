@@ -29,6 +29,7 @@ Gerekçe:
 | Yerel bildirimler | `UNUserNotificationCenter` yerel zamanlama; push yok. |
 | OpenStreetMap karoları | İstek kullanıcı konumu parametresi içermez; IP ve user agent sunucu çağrısında gider, geliştirici tarafından saklanmaz. OSMF'nin kendi günlük kayıtları (IP kısaltılarak, 180 gün) üçüncü taraf *ortak* SDK'sı değil, harici bir içerik sunucusudur — bu yorum *doğrulanmalı*. |
 | JSON yedek | Kullanıcının başlattığı paylaşım; geliştiriciye aktarım yok. |
+| Cihaz takvimi etkinlikleri (F8.1) | EventKit'ten **yalnızca okunur**, kullanıcı Ayarlar › "Takvim etkinlikleri"ni açtıysa. Etkinlikler ekranda gösterilmek için bellekte tutulur; diske yazılmaz, hiçbir sunucuya gitmez, uygulama takvime yazmaz. |
 
 ## `GOOGLE_MAPS_KEY` ile derlenen sürüm (önerilmez)
 
@@ -53,6 +54,11 @@ daha iyi yol iOS sürümünü anahtarsız yayınlamaktır.
 - **Purpose string'ler** (§5.1.1(ii)) kullanımı açık ve eksiksiz anlatmalı. Mevcut `Info.plist`:
   - `NSLocationWhenInUseUsageDescription`: "Konum hatırlatmaları ve haritada konum seçmek için gerekli."
   - `NSLocationAlwaysAndWhenInUseUsageDescription`: "Seçtiğiniz yere yaklaştığınızda hatırlatma göndermek için konum gerekir."
+  - `NSCalendarsFullAccessUsageDescription` (F8.1, iOS 17+): "Takvim etkinliklerini Bugün ve Takvim
+    sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz."
+  - `NSCalendarsUsageDescription` (F8.1, iOS 15/16 için eski anahtar): aynı metin.
+    `NSCalendarsWriteOnlyAccessUsageDescription` **bilinçli olarak yok** — EventKit'in write-only
+    katmanı okuma yapamaz (bkz. [`permissions-review.md`](permissions-review.md) §9).
   Öneri: "uygulama kapalıyken de" ve "konumun cihazdan çıkmaz" vurgusu; uygulama dili "sen" iken
   metinler "siz" kullanıyor; `CFBundleLocalizations` `en` içerdiği halde İngilizce
   `InfoPlist.strings` yok (F6.1/F6.2 kapsamında).
