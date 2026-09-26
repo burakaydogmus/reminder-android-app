@@ -263,7 +263,10 @@ class _RoutineApplySheetState extends State<RoutineApplySheet> {
                     KorSizes.minTouch,
                   ),
                 ),
-                onPressed: plan.isEmpty || (!plan.hasNew && !plan.hasLinked)
+                // Only a repeating routine can update what it created; with
+                // nothing new and nothing to update the button is disabled and
+                // "Yine de hepsini ekle" stays the only way.
+                onPressed: !plan.hasNew && !(plan.hasLinked && routine.repeats)
                     ? null
                     : () => _apply(
                           plan.hasLinked && routine.repeats

@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/services/device_calendar_service.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
@@ -135,6 +136,45 @@ List<DeviceCalendarInfo> auditDeviceCalendars() => [
       ),
     ];
 
+/// Listeler › Rutinlerim sample (F3.7): a one-off routine with a timed step,
+/// a timeless step and subtasks, plus a repeating one with a long name.
+List<Routine> auditRoutines() => [
+      buildRoutine(
+        id: 'morning',
+        name: 'Sabah rutini',
+        items: [
+          buildRoutineStep(
+            id: 'sport',
+            title: 'Spor salonunda kardiyo ve esneme',
+            time: '07:00',
+            categoryId: ReminderCategoryIds.health,
+            priority: 2,
+          ),
+          buildRoutineStep(
+            id: 'vitamin',
+            title: 'Vitaminleri al',
+            time: '07:30',
+            categoryId: ReminderCategoryIds.health,
+            subtasks: buildSubtasks(['D vitamini', 'Omega 3']),
+          ),
+          buildRoutineStep(id: 'water', title: 'Bir bardak su iç'),
+        ],
+      ),
+      buildRoutine(
+        id: 'evening',
+        name: 'Akşam kapanış rutini ve hazırlık',
+        position: 1,
+        repeat: RecurrenceRule.weekly(const [
+          DateTime.monday,
+          DateTime.wednesday,
+          DateTime.friday,
+        ]),
+        items: [
+          buildRoutineStep(id: 'book', title: 'Kitap oku', time: '22:00'),
+        ],
+      ),
+    ];
+
 /// Pumps [HomeShell] with the sample data for [variant] (iOS: solid-free
 /// glass chrome with the glass scope off, like `home_shell_test.dart`).
 Future<UiHarness> pumpAuditShell(
@@ -146,6 +186,7 @@ Future<UiHarness> pumpAuditShell(
   final h = await UiHarness.create(
     reminders: reminders ?? auditReminders(),
     birthdays: auditBirthdays(),
+    routines: auditRoutines(),
     now: auditClock,
   );
   if (calendarEvents) {

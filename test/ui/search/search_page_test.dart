@@ -269,7 +269,7 @@ void main() {
     await tester.tap(find.byTooltip('Geri'));
     await tester.pumpAndSettle();
     expect(find.byType(SearchPage), findsNothing);
-    expect(find.text('Kategorilerim'), findsOneWidget);
+    expect(find.text('Rutinlerim'), findsOneWidget);
   });
 
   group('header Ara icon per platform', () {
@@ -326,7 +326,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Kategorilerim'), findsOneWidget);
+      expect(find.text('Rutinlerim'), findsOneWidget);
       expect(headerSearch, findsNothing);
 
       // A pushed page covers the tab bar, so its header keeps Ara.

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
@@ -11,6 +12,9 @@ import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/reminders/recurrence_sheet.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/snooze_sheet.dart';
+import 'package:reminder/ui/routines/routine_apply_sheet.dart';
+import 'package:reminder/ui/routines/routine_editor_sheet.dart';
+import 'package:reminder/ui/routines/routine_step_sheet.dart';
 
 import '../../helpers/factories.dart';
 import '../ui_harness.dart';
@@ -28,12 +32,14 @@ final _gym =
 Future<UiHarness> _openSheet(
   WidgetTester tester,
   A11yVariant variant,
-  void Function(BuildContext context) open,
-) async {
+  void Function(BuildContext context) open, {
+  List<Reminder>? reminders,
+}) async {
   final h = await UiHarness.create(
-    reminders: auditReminders(),
+    reminders: reminders ?? auditReminders(),
     birthdays: auditBirthdays(),
     categories: [_gym],
+    routines: auditRoutines(),
     now: auditClock,
   );
   await tester.pumpWidget(
@@ -240,4 +246,101 @@ void main() {
       ),
     );
   }, surface: const Size(390, 2400));
+
+  // F3.7 routines: the editor (with steps and a repeat), the step sheet and
+  // the apply sheet with its duplicate warning, in both languages.
+  a11yAudit(
+    'Rutin editörü (yeni)',
+    (tester, variant) async {
+      await _openSheet(tester, variant, showRoutineEditorSheet);
+      expect(find.byKey(RoutineEditorKeys.save), findsOneWidget);
+    },
+    platforms: _bothPlatforms,
+    surface: const Size(390, 2800),
+  );
+
+  a11yAudit(
+    'Rutin editörü (adımlar, haftalık tekrar)',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showRoutineEditorSheet(
+          context,
+          existing: auditRoutines().firstWhere((r) => r.id == 'evening'),
+        ),
+      );
+    },
+    surface: const Size(390, 2800),
+  );
+
+  a11yAudit(
+    'Rutin adımı',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showRoutineStepSheet(
+          context,
+          existing: auditRoutines()
+              .firstWhere((r) => r.id == 'morning')
+              .items
+              .firstWhere((i) => i.id == 'vitamin'),
+        ),
+      );
+      expect(find.byKey(RoutineStepKeys.save), findsOneWidget);
+    },
+    surface: const Size(390, 2400),
+  );
+
+  a11yAudit(
+    'Rutini uygula',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showRoutineApplySheet(
+          context,
+          routine: auditRoutines().firstWhere((r) => r.id == 'morning'),
+          now: auditClock,
+        ),
+      );
+      expect(find.byKey(RoutineApplyKeys.apply), findsOneWidget);
+    },
+    platforms: _bothPlatforms,
+    surface: const Size(390, 1400),
+  );
+
+  // The duplicate warning and its two actions must survive 200 % text.
+  a11yAudit(
+    'Rutini uygula (zaten uygulanmış)',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showRoutineApplySheet(
+          context,
+          routine: auditRoutines().firstWhere((r) => r.id == 'evening'),
+          now: auditClock,
+        ),
+        reminders: [
+          ...auditReminders(),
+          buildReminder(
+            id: 'routine-book',
+            title: 'Kitap oku',
+            remindAt: DateTime(2026, 9, 14, 22),
+            recurrence: RecurrenceRule.weekly(const [
+              DateTime.monday,
+              DateTime.wednesday,
+              DateTime.friday,
+            ]),
+            routineId: 'evening',
+            routineItemId: 'book',
+          ),
+        ],
+      );
+      expect(find.byKey(RoutineApplyKeys.warning), findsOneWidget);
+    },
+    surface: const Size(390, 1600),
+  );
 }

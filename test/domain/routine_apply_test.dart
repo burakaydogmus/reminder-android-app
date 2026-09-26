@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
-import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/routine.dart';

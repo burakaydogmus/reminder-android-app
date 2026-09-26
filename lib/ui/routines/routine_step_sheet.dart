@@ -182,12 +182,19 @@ class _RoutineStepSheetState extends State<RoutineStepSheet> {
             if (_timed)
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: ActionChip(
-                  key: RoutineStepKeys.timeChip,
-                  avatar: const Icon(Icons.schedule_rounded),
-                  label: Text(KorFormat.time(at)),
-                  tooltip: l10n.editorTimePick,
-                  onPressed: _pickTime,
+                // §3.6 rule 11: a time in semantics is spoken "saat 07:30".
+                child: Semantics(
+                  button: true,
+                  label: KorFormat.spokenTime(at, l10n),
+                  excludeSemantics: true,
+                  onTap: _pickTime,
+                  child: ActionChip(
+                    key: RoutineStepKeys.timeChip,
+                    avatar: const Icon(Icons.schedule_rounded),
+                    label: Text(KorFormat.time(at)),
+                    tooltip: l10n.editorTimePick,
+                    onPressed: _pickTime,
+                  ),
                 ),
               ),
             const SizedBox(height: KorSpacing.s5),
