@@ -1644,7 +1644,7 @@
   "settingsCalendarUnavailable": "Takvim şu an okunamıyor. Daha sonra tekrar dene.",
   "settingsCalendarDenied": "Takvim izni verilmedi. Ayarlardan izin verip tekrar dene.",
   "settingsCalendarAllHidden": "Her takvimi kapattın, bu yüzden etkinlik gösterilmiyor.",
-  "calendarEventsSection": "Takvim",
+  "calendarEventsSection": "Takvim etkinlikleri",
   "calendarEventAllDay": "Tüm gün",
   "calendarEventSpokenAllDay": "tüm gün",
   "calendarEventSpoken": "takvim etkinliği",

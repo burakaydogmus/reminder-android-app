@@ -2168,7 +2168,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'You turned every calendar off, so no events are shown.';
 
   @override
-  String get calendarEventsSection => 'Calendar';
+  String get calendarEventsSection => 'Calendar events';
 
   @override
   String get calendarEventAllDay => 'All day';

@@ -117,25 +117,31 @@ class CalendarEventCard extends StatelessWidget {
             onTap: open,
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: KorSizes.minTouch),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              // A Stack, not a stretched Row: the row's height comes from its
+              // text, which a stretch cross-axis cannot resolve inside a
+              // sliver list (unbounded height).
+              child: Stack(
                 children: [
                   // Non-semantic colour rail; the label carries the meaning.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: KorSpacing.s3,
-                    ),
-                    child: SizedBox(
-                      width: railWidth,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: rail,
-                          borderRadius: KorRadius.smAll,
-                        ),
+                  Positioned.directional(
+                    textDirection: Directionality.of(context),
+                    start: 0,
+                    top: KorSpacing.s3,
+                    bottom: KorSpacing.s3,
+                    width: railWidth,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: rail,
+                        borderRadius: KorRadius.smAll,
                       ),
                     ),
                   ),
-                  Expanded(child: _body(context, theme, scheme, l10n)),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: railWidth,
+                    ),
+                    child: _body(context, theme, scheme, l10n),
+                  ),
                 ],
               ),
             ),

@@ -571,7 +571,7 @@
   "settingsCalendarUnavailable": "The calendar can't be read right now. Try again later.",
   "settingsCalendarDenied": "Calendar permission was not granted. Allow it in Settings and try again.",
   "settingsCalendarAllHidden": "You turned every calendar off, so no events are shown.",
-  "calendarEventsSection": "Calendar",
+  "calendarEventsSection": "Calendar events",
   "calendarEventAllDay": "All day",
   "calendarEventSpokenAllDay": "all day",
   "calendarEventSpoken": "calendar event",

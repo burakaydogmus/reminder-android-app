@@ -140,7 +140,8 @@ class _CalendarEventSheet extends StatelessWidget {
     final place = event.location;
     return SafeArea(
       key: CalendarEventSheetKeys.sheet,
-      child: Padding(
+      // Scrolls so the whole sheet survives 200 % text (§3.6 rule 6).
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           KorSpacing.s6,
           KorSpacing.s5,

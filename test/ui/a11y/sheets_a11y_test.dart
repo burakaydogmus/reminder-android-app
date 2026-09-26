@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
+import 'package:reminder/ui/calendar/calendar_event_actions.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -127,6 +128,47 @@ void main() {
       ),
     );
   }, surface: const Size(390, 1600));
+
+  // F8.1: the read-only fallback shown when the platform cannot open the
+  // event itself. It has no editing controls, only "Hatırlatıcı oluştur".
+  a11yAudit(
+    'Takvim etkinliği (salt okunur)',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showCalendarEventSheet(
+          context,
+          auditCalendarEvents().firstWhere((e) => e.id == 'review'),
+          calendarName: 'İş',
+          now: auditClock,
+        ),
+      );
+      expect(
+        find.byKey(CalendarEventSheetKeys.createReminder),
+        findsOneWidget,
+      );
+    },
+    platforms: _bothPlatforms,
+    surface: _phone,
+  );
+
+  a11yAudit(
+    'Takvim etkinliği (tüm gün, çok günlü)',
+    (tester, variant) async {
+      await _openSheet(
+        tester,
+        variant,
+        (context) => showCalendarEventSheet(
+          context,
+          auditCalendarEvents().firstWhere((e) => e.id == 'trip'),
+          calendarName: 'Kişisel',
+          now: auditClock,
+        ),
+      );
+    },
+    surface: _phone,
+  );
 
   a11yAudit('Ertele', (tester, variant) async {
     await _openSheet(

@@ -2126,7 +2126,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Her takvimi kapattın, bu yüzden etkinlik gösterilmiyor.';
 
   @override
-  String get calendarEventsSection => 'Takvim';
+  String get calendarEventsSection => 'Takvim etkinlikleri';
 
   @override
   String get calendarEventAllDay => 'Tüm gün';

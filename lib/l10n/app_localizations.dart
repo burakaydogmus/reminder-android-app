@@ -3527,7 +3527,7 @@ abstract class AppLocalizations {
   /// No description provided for @calendarEventsSection.
   ///
   /// In tr, this message translates to:
-  /// **'Takvim'**
+  /// **'Takvim etkinlikleri'**
   String get calendarEventsSection;
 
   /// No description provided for @calendarEventAllDay.

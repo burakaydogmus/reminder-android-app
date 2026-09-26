@@ -83,9 +83,13 @@ class DeviceCalendarController extends ChangeNotifier
   /// Whether [id] is shown. Unchosen (`null`) means every calendar is shown.
   bool isCalendarVisible(String id) => _visibleIds?.contains(id) ?? true;
 
-  /// Every calendar is hidden, so there is deliberately nothing to show.
+  /// The user turned **every** calendar off, so there is deliberately nothing
+  /// to show. An untouched selection (`null` = all) is never "hidden".
   bool get allCalendarsHidden =>
-      _enabled && _calendars.isNotEmpty && _visibleCalendarIdList().isEmpty;
+      _enabled &&
+      _calendars.isNotEmpty &&
+      _visibleIds != null &&
+      _visibleCalendarIdList().isEmpty;
 
   /// Reads the stored opt-in and, when on, the calendar list. Called once by
   /// [DeviceCalendarScope].
@@ -201,6 +205,8 @@ class DeviceCalendarController extends ChangeNotifier
 
   @override
   void dispose() {
+    // Idempotent: the scope and a test tear-down may both dispose.
+    if (_disposed) return;
     _disposed = true;
     super.dispose();
   }

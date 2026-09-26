@@ -43,10 +43,32 @@ void main() {
     await pumpAuditShell(tester, variant, reminders: const []);
   }, surface: _shellSurface);
 
+  // F8.1: read-only device calendar rows next to the reminders.
+  a11yAudit(
+    'Bugün with device calendar events',
+    (tester, variant) async {
+      await pumpAuditShell(tester, variant, calendarEvents: true);
+      expect(find.text(_l10n(variant).calendarEventsSection), findsOneWidget);
+    },
+    platforms: _bothPlatforms,
+    surface: _shellSurface,
+  );
+
   a11yAudit(
     'Takvim week view with agenda',
     (tester, variant) async {
       await pumpAuditShell(tester, variant);
+      await _selectTab(tester, _l10n(variant).calendarTitle);
+      expect(find.byType(CalendarPage), findsOneWidget);
+    },
+    platforms: _bothPlatforms,
+    surface: _calendarSurface,
+  );
+
+  a11yAudit(
+    'Takvim agenda with device calendar events',
+    (tester, variant) async {
+      await pumpAuditShell(tester, variant, calendarEvents: true);
       await _selectTab(tester, _l10n(variant).calendarTitle);
       expect(find.byType(CalendarPage), findsOneWidget);
     },

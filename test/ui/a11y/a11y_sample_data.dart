@@ -4,10 +4,12 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/services/device_calendar_service.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 
 import '../../helpers/factories.dart';
+import '../../services/fake_device_calendar_platform.dart';
 import '../ui_harness.dart';
 import 'a11y_audit.dart';
 
@@ -82,18 +84,75 @@ List<Birthday> auditBirthdays() => [
       ),
     ];
 
+/// F8.1 device calendar sample: an all-day row, a long-titled timed row with a
+/// place and a multi-day span, plus one on a later day for the Takvim agenda.
+List<DeviceCalendarEvent> auditCalendarEvents() => [
+      buildCalendarEvent(
+        id: 'holiday',
+        calendarId: 'cal-holidays',
+        title: 'Resmî tatil — kurumlar kapalı',
+        start: DateTime(2026, 9, 13),
+        isAllDay: true,
+      ),
+      buildCalendarEvent(
+        id: 'review',
+        calendarId: 'cal-work',
+        title: 'Çeyrek dönem değerlendirme toplantısı ve planlama',
+        start: DateTime(2026, 9, 13, 16, 30),
+        end: DateTime(2026, 9, 13, 18),
+        location: 'Merkez ofis, 4. kat toplantı odası',
+      ),
+      buildCalendarEvent(
+        id: 'trip',
+        calendarId: 'cal-personal',
+        title: 'Şehir dışı gezi',
+        start: DateTime(2026, 9, 13),
+        end: DateTime(2026, 9, 16),
+        isAllDay: true,
+      ),
+      buildCalendarEvent(
+        id: 'dentist',
+        calendarId: 'cal-personal',
+        title: 'Diş hekimi kontrolü',
+        start: DateTime(2026, 9, 15, 9, 45),
+      ),
+    ];
+
+/// The device calendars behind [auditCalendarEvents].
+List<DeviceCalendarInfo> auditDeviceCalendars() => [
+      buildDeviceCalendar(id: 'cal-personal', name: 'Kişisel'),
+      buildDeviceCalendar(
+        id: 'cal-work',
+        name: 'İş',
+        accountName: 'is@example.com',
+        colorHex: '#0B8043',
+      ),
+      buildDeviceCalendar(
+        id: 'cal-holidays',
+        name: 'Resmî tatiller',
+        accountName: null,
+        colorHex: null,
+      ),
+    ];
+
 /// Pumps [HomeShell] with the sample data for [variant] (iOS: solid-free
 /// glass chrome with the glass scope off, like `home_shell_test.dart`).
 Future<UiHarness> pumpAuditShell(
   WidgetTester tester,
   A11yVariant variant, {
   List<Reminder>? reminders,
+  bool calendarEvents = false,
 }) async {
   final h = await UiHarness.create(
     reminders: reminders ?? auditReminders(),
     birthdays: auditBirthdays(),
     now: auditClock,
   );
+  if (calendarEvents) {
+    h.calendarPlatform
+      ..calendarList = auditDeviceCalendars()
+      ..eventList = auditCalendarEvents();
+  }
   final prefs = A11yPrefs(A11yPrefsData.none);
   addTearDown(prefs.dispose);
   await tester.pumpWidget(
@@ -109,6 +168,11 @@ Future<UiHarness> pumpAuditShell(
     ),
   );
   await tester.pumpAndSettle();
+  if (calendarEvents) {
+    // F8.1 is opt-in, so the audit turns it on the way Ayarlar does.
+    await h.calendar.setEnabled(true);
+    await tester.pumpAndSettle();
+  }
   return h;
 }
 
