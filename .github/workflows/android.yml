@@ -74,13 +74,27 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      # Which key actually signed it. A debug-signed APK prints
-      # "CN=Android Debug"; the personal key prints its own subject, and its
-      # SHA-256 fingerprint should match `keytool -list -v -keystore <jks>`.
+      # Which key actually signed it, and that the signature verifies at all.
+      # `apksigner`, not `keytool -printcert -jarfile`: minSdk 26 means AGP
+      # signs with APK Signature Scheme v2/v3 only, and keytool can read just
+      # the old v1 (JAR) signature, so it silently prints nothing.
+      #
+      # A debug-signed APK shows "CN=Android Debug"; the personal key shows its
+      # own DN, and the printed SHA-256 should match
+      # `apksigner verify --print-certs` (or `keytool -list -v`) on the local
+      # keystore. With the secret set, a debug signature means the signing step
+      # did not take effect, so fail instead of shipping an APK that cannot be
+      # installed over the previous one.
       - name: Show the APK signer
         run: |
-          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk \
-            | grep -E 'Owner|SHA256:|Valid' || true
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          apksigner=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -1)
+          certs=$("$apksigner" verify --print-certs "$apk")
+          echo "$certs" | grep -E 'certificate DN|SHA-256 digest'
+          if [ -n "$KEYSTORE_BASE64" ] && echo "$certs" | grep -q 'CN=Android Debug'; then
+            echo "::error::signed with the debug key even though ANDROID_KEYSTORE_BASE64 is set"
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
