@@ -18,6 +18,20 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Rehberden doğum günü aktarma:** Doğum günleri sayfasındaki yeni **"Rehberden aktar"**
+  düğmesi rehberindeki doğum günlerini elle yazmaktan kurtarıyor. Rehber **bir kez** okunuyor;
+  doğum günü olan kişiler ad, tarih ve yıl bilinmiyorsa "yıl bilinmiyor" notuyla listeleniyor,
+  seçtiklerin listeye ekleniyor. Hiçbir satır seçili başlamıyor — "Tümünü seç" bir dokunuş.
+  Listede **zaten eklediğin** bir doğum günü varsa "zaten ekli" yazıp seçilemez oluyor, yani ikinci
+  bir kayıt oluşmuyor ve satır sessizce kaybolmuyor (ad karşılaştırması Türkçe İ/ı kurallarına göre,
+  `İLKAY` = `ilkay`). Aktarma bitince özet sayfası neyin eklendiğini ve neyin atlandığını
+  gösteriyor, kapanınca sayılar bildirim çubuğunda tekrarlanıyor. Yılsız doğum günleri gerçekten
+  yılsız aktarılıyor (yaş gösterilmez); aktarılanlar uygulamanın varsayılan bildirim saatini ve
+  önbildirimlerini alıyor.
+  **Rehberine hiçbir şey yazılmaz:** Android'de yalnızca `READ_CONTACTS` izni isteniyor,
+  `WRITE_CONTACTS` hiç tanımlı değil; yalnızca ad ve tarih saklanıyor — kişi kimliği, fotoğraf,
+  telefon ve e-posta hiç okunmuyor. İzin vermezsen (ya da sonradan geri alırsan) sayfa ne
+  yapacağını anlatıp Ayarlar'a götürüyor; doğum günlerini elle eklemeye devam edebilirsin. (F7.3)
 - **Cihaz takvimi etkinlikleri (salt okuma):** Cihazının takvimindeki etkinlikler artık Bugün
   ("Takvim etkinlikleri" bölümü) ve Takvim gündeminde hatırlatıcılarının yanında görünüyor.
   Etkinlik satırları hatırlatıcılardan ayrışıyor: soldaki renk şeridi, takvim ikonu ve "takvim
