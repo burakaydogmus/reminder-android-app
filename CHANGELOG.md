@@ -32,6 +32,14 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
   `WRITE_CONTACTS` hiç tanımlı değil; yalnızca ad ve tarih saklanıyor — kişi kimliği, fotoğraf,
   telefon ve e-posta hiç okunmuyor. İzin vermezsen (ya da sonradan geri alırsan) sayfa ne
   yapacağını anlatıp Ayarlar'a götürüyor; doğum günlerini elle eklemeye devam edebilirsin. (F7.3)
+- **Mimari başına APK (CI):** Android iş akışı artık `--split-per-abi` ile derliyor ve iki
+  artifact yüklüyor — `app-release-arm64-apk` (**indirilecek olan**, ~25 MB) ve armeabi-v7a +
+  x86_64 için `app-release-other-abis-apk`. Önceden tek bir 76 MB'lık paket vardı ve içindeki
+  üç mimariden ikisi her telefonda gereksizdi. İmza kontrolü her APK için ayrı yapılıyor.
+  Flutter split'lere mimariye göre `versionCode` kaydırması verdiği için bir cihazda **aynı
+  varyantta kalmak** gerekir (arm64 → tek parça APK'ya dönüş, Android'in engellediği bir sürüm
+  düşürmesidir). Bkz. [`docs/android-signing.md`](docs/android-signing.md).
+
 - **Cihaz takvimi etkinlikleri (salt okuma):** Cihazının takvimindeki etkinlikler artık Bugün
   ("Takvim etkinlikleri" bölümü) ve Takvim gündeminde hatırlatıcılarının yanında görünüyor.
   Etkinlik satırları hatırlatıcılardan ayrışıyor: soldaki renk şeridi, takvim ikonu ve "takvim

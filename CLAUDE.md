@@ -1542,7 +1542,10 @@ read-only pass**. There is no background sync and nothing is ever written to con
   replace each other on a device (uninstall = data loss). Details and the owner's setup steps:
   [`docs/android-signing.md`](docs/android-signing.md). R8 + `shrinkResources` are on;
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
-  `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
+  `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage; it builds
+  `--split-per-abi` and uploads `app-release-arm64-apk` (the one to install) plus an
+  `…-other-abis-apk` for armeabi-v7a and x86_64. Splits carry Flutter's per-ABI
+  `versionCode` offsets, so a device must stay on one variant.
 - Widget and geofence behaviour differs per platform, but both platforms now have home screen
   widgets over one payload (see **Home screen widgets — shared contract**): Android
   RemoteViews (F5.1), iOS WidgetKit (F5.2, `docs/ios-widget-setup.md`).
