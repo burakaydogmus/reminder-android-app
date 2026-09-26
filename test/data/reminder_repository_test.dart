@@ -264,6 +264,41 @@ void main() {
       );
     });
 
+    test('a bulk birthday save that fails mid-way leaves no half-written state',
+        () async {
+      // Rehberden aktarma (F7.3) tek listeyi tek transaction'da yazar. Ortada
+      // bir satır reddedilirse hiçbiri kalmamalı.
+      await db.customStatement(
+        "CREATE TRIGGER reject_boom BEFORE INSERT ON birthdays "
+        "WHEN NEW.id = 'boom' BEGIN SELECT RAISE(ABORT, 'boom'); END",
+      );
+
+      await expectLater(
+        repository.saveBirthdays([
+          buildBirthday(id: 'a'),
+          buildBirthday(id: 'boom'),
+          buildBirthday(id: 'c'),
+        ]),
+        throwsA(anything),
+      );
+
+      // Transaction geri alındı: 'a' bile yazılmadı.
+      expect(await db.select(db.birthdays).get(), isEmpty);
+      expect(await repository.loadBirthdays(), isEmpty);
+
+      // Tetikleyici kalkınca aynı liste eksiksiz yazılır.
+      await db.customStatement('DROP TRIGGER reject_boom');
+      await repository.saveBirthdays([
+        buildBirthday(id: 'a'),
+        buildBirthday(id: 'boom'),
+        buildBirthday(id: 'c'),
+      ]);
+      expect(
+        (await repository.loadBirthdays()).map((b) => b.id),
+        ['a', 'boom', 'c'],
+      );
+    });
+
     test('settings', () async {
       await repository.saveSettings(
         const AppSettings(

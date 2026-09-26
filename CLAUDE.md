@@ -1604,10 +1604,12 @@ read-only pass**. There is no background sync and nothing is ever written to con
   pre-v6 sentinel. A date the provider cannot mean (month 0/13, 30 February, a future year) is
   dropped at the seam (`PluginContactsPlatform.validBirthday`) rather than imported; an
   implausible **year** only clears the year, the date still imports.
-- **The cubit is not touched:** the sheet calls `ReminderCubit.addBirthday` once per imported
-  birthday (there is no bulk add). That is N persists + N schedule syncs; the diff sync makes
-  each one cheap, and the parallel F9 routines work owns `lib/bloc/**`. A bulk
-  `addBirthdays` would be the obvious follow-up once that branch lands.
+- **Bulk add:** the sheet calls `ReminderCubit.addBirthdays(birthdays)` **once**, not
+  `addBirthday` per row. The bulk path emits one state change, writes the whole list with a
+  single `saveBirthdays` transaction and runs `ScheduleSync.syncAll` **once** at the end
+  (importing 200 contacts used to mean 200 persists + 200 diff syncs). It does not rewrite
+  reminders or settings, since only birthdays changed, and an empty list is a no-op. The
+  single-add API is unchanged — use `addBirthday` for one, `addBirthdays` for a batch.
 - **Nothing is preselected.** A first run on a large address book would otherwise flood the
   birthday list on one tap; "Tümünü seç (N)" makes the bulk case one tap anyway, and the
   import button stays disabled at zero selected.

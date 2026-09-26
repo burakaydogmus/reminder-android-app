@@ -221,6 +221,32 @@ class ReminderCubit extends Cubit<ReminderState> {
     await _persistAndSync();
   }
 
+  /// Birden çok doğum günü ekler (rehberden aktarma, F7.3): liste **tek**
+  /// [ReminderRepository.saveBirthdays] transaction'ıyla yazılır ve sonda
+  /// **bir kez** [ScheduleSync.syncAll] çalışır.
+  ///
+  /// [addBirthday]'i N kez çağırmak N kalıcılaştırma + N fark tabanlı zamanlama
+  /// eşitlemesi demekti; 200 kişilik bir aktarma bunu görünür biçimde
+  /// yavaşlatıyordu. Tekli API aynen korunur.
+  ///
+  /// Yalnızca doğum günleri değiştiği için hatırlatıcılar ve ayarlar yeniden
+  /// yazılmaz. Yazma başarısız olursa transaction geri alınır: yarım yazılmış
+  /// bir durum kalmaz.
+  Future<void> addBirthdays(Iterable<Birthday> birthdays) async {
+    final added = birthdays.toList(growable: false);
+    if (added.isEmpty) return;
+    final next = [...state.birthdays, ...added];
+    emit(state.copyWith(birthdays: next));
+    final s = state;
+    await _repository.saveBirthdays(s.birthdays);
+    await _schedules.syncAll(
+      reminders: s.reminders,
+      birthdays: s.birthdays,
+      settings: s.settings,
+      categories: s.categories,
+    );
+  }
+
   Future<void> updateBirthday(Birthday updated) async {
     final next = state.birthdays
         .map((b) => b.id == updated.id ? updated : b)

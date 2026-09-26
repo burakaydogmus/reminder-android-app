@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:reminder/domain/contact_birthday_import.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/l10n/app_language.dart';
@@ -157,6 +158,22 @@ void main() {
       ['İlkay Öz', 'Ayşe Yılmaz'],
       reason: 'no second record for the already stored birthday',
     );
+  });
+
+  testWidgets('importing several contacts persists once, not once per birthday',
+      (tester) async {
+    final (h, _) = await _pump(tester, contacts: [ayse, bora, ilkay]);
+    await _openSheet(tester);
+
+    await tester.tap(find.byKey(ContactImportKeys.selectAll));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ContactImportKeys.importButton));
+    await tester.pumpAndSettle();
+
+    expect(h.cubit.state.birthdays.length, 3);
+    // The bulk path: one transaction for N birthdays (the old loop called
+    // addBirthday — and therefore saveBirthdays — three times).
+    verify(() => h.repository.saveBirthdays(any())).called(1);
   });
 
   testWidgets('select all / clear selection drives the import button',
