@@ -18,6 +18,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **CI'da kalıcı imzalama (kişisel kullanım):** `ANDROID_KEYSTORE_BASE64`,
+  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` ve `ANDROID_KEY_PASSWORD` gizli
+  değişkenleri tanımlıysa Android iş akışı `android/key.properties` dosyasını üretir ve
+  release APK'yı o anahtarla imzalar; artifact adı `app-release-apk` olur ve APK'yı imzalayan
+  sertifika koşu kaydına yazılır. Böylece her CI koşusundan indirilen APK öncekinin **üzerine
+  güncelleme olarak** kurulur — gizli değişkenler yokken her koşucu kendi debug anahtarını
+  üretiyordu ve imzalar uyuşmadığı için cihazda uygulamayı silmek (yani veriyi kaybetmek)
+  gerekiyordu. Kurulum: [`docs/android-signing.md`](docs/android-signing.md). Gizli değişkenler
+  tanımsızsa davranış eskisi gibi (debug anahtarı, uyarı).
+
 - **Yıllık tekrar ("Her yıl"):** Tekrar sayfasına **Yıllık** seçeneği geldi — "Her yıl",
   "2 yılda bir" … (99'a kadar) ve istenirse bitiş tarihi. Tekrar, hatırlatıcının kendi
   ay/gününde çalışır; **29 Şubat'a kurulu bir tekrar, artık yıl olmayan yıllarda 28 Şubat'ta**

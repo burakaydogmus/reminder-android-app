@@ -58,7 +58,12 @@ keyAlias=...
 storeFile=/mutlak/yol/upload-keystore.jks
 ```
 
-Dosya yoksa (CI, yeni klon) release derlemesi **debug anahtarıyla** imzalanır ve Gradle bir uyarı yazar; bu APK yayınlanmamalıdır. `key.properties` ve `.jks` / keystore dosyaları repoda tutulmaz (`.gitignore`).
+Dosya yoksa (yeni klon) release derlemesi **debug anahtarıyla** imzalanır ve Gradle bir uyarı yazar; bu APK yayınlanmamalıdır. `key.properties` ve `.jks` / keystore dosyaları repoda tutulmaz (`.gitignore`).
+
+CI'da `key.properties` gizli değişkenlerden üretilir; kurulum ve nedenleri
+[`docs/android-signing.md`](docs/android-signing.md) içinde. Gizli değişkenler
+yoksa CI yine derler, ama APK her koşuda **farklı** bir debug anahtarıyla
+imzalanır ve cihazda üst üste kurulamaz.
 
 Release derlemesinde R8 (`minifyEnabled`) ve kaynak küçültme (`shrinkResources`) açıktır; eklentiler için keep kuralları `android/app/proguard-rules.pro`, çalışma anında adla bulunan kaynaklar `android/app/src/main/res/raw/keep.xml` içindedir. CI her PR'da `flutter build apk --release` çalıştırır.
 
