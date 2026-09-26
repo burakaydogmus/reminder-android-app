@@ -136,6 +136,19 @@ void main() {
       }
     });
 
+    test('deviceEvent is a neutral token, not a category colour (F8.3)', () {
+      expect(KorColors.light.deviceEvent, KorPaletteLight.deviceEvent);
+      expect(KorColors.dark.deviceEvent, KorPaletteDark.deviceEvent);
+      expect(KorColors.light.deviceEvent, isNot(KorColors.dark.deviceEvent));
+      // It must not collide with any category colour, in either brightness.
+      for (final key in KorColorKey.values) {
+        expect(KorColors.light.deviceEvent,
+            isNot(KorColors.light.category(key).fg));
+        expect(
+            KorColors.dark.deviceEvent, isNot(KorColors.dark.category(key).fg));
+      }
+    });
+
     test('lerp interpolates between light and dark', () {
       expect(KorColors.light.lerp(KorColors.dark, 0), KorColors.light);
       expect(KorColors.light.lerp(KorColors.dark, 1), KorColors.dark);
@@ -144,6 +157,14 @@ void main() {
       expect(
         mid.nowLine,
         Color.lerp(KorPaletteLight.nowLine, KorPaletteDark.nowLine, 0.5),
+      );
+      expect(
+        mid.deviceEvent,
+        Color.lerp(
+          KorPaletteLight.deviceEvent,
+          KorPaletteDark.deviceEvent,
+          0.5,
+        ),
       );
       expect(
         mid.category(KorColorKey.ev).fg,
@@ -160,6 +181,7 @@ void main() {
       const red = Color(0xFFFF0000);
       final copy = KorColors.light.copyWith(nowLine: red);
       expect(copy.nowLine, red);
+      expect(copy.deviceEvent, KorColors.light.deviceEvent);
       expect(copy.success, KorColors.light.success);
       expect(copy.categories, KorColors.light.categories);
     });

@@ -208,10 +208,53 @@ List<AgendaDay> buildAgenda({
   ];
 }
 
-/// Category dots for the week strip / month grid: per day in `[from, to)`,
-/// at most [maxDots] distinct colour keys — birthdays (`dogumGunu`) first,
-/// then reminder categories in time order. Days without entries are absent.
-Map<DateTime, List<KorColorKey>> calendarDayMarkers({
+/// One dot on a week strip / month grid day.
+///
+/// Either a category colour (a reminder's category, or `dogumGunu` for a
+/// birthday) or the **neutral** device calendar marker (F8.3): a device event
+/// has no category, so it cannot be expressed as a [KorColorKey] and gets its
+/// own token (`KorColors.deviceEvent`). The UI decides the colour
+/// (`CategoryDots`); this stays a pure value.
+class CalendarDayMarker {
+  /// A reminder category or birthday colour.
+  const CalendarDayMarker.category(KorColorKey key) : colorKey = key;
+
+  /// A device calendar event (F8.1) — neutral, no category.
+  const CalendarDayMarker.deviceEvent() : colorKey = null;
+
+  /// The category colour, or `null` for [CalendarDayMarker.deviceEvent].
+  final KorColorKey? colorKey;
+
+  bool get isDeviceEvent => colorKey == null;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CalendarDayMarker && other.colorKey == colorKey;
+
+  @override
+  int get hashCode => colorKey.hashCode;
+
+  @override
+  String toString() =>
+      colorKey == null ? 'CalendarDayMarker.deviceEvent' : 'marker:$colorKey';
+}
+
+/// Day dots for the week strip / month grid: per day in `[from, to)`, at most
+/// [maxDots] distinct markers — birthdays (`dogumGunu`) first, then reminder
+/// categories in time order, then the neutral device calendar marker for every
+/// day in [deviceEventDays]. Days without entries are absent.
+///
+/// The device marker comes **last** on purpose: on a day already at [maxDots]
+/// the user's own reminders keep their dots, and a read-only device event never
+/// pushes one out. Unlike reminders and birthdays it is not gated by [filter] —
+/// the agenda shows device event cards under every filter too, so the dots
+/// follow the rows.
+///
+/// [deviceEventDays] holds midnights (`CalendarDates.dateOnly`) of days that
+/// have at least one device event. The caller passes it only while the calendar
+/// feature is on, and the controller has already applied the per-calendar
+/// selection when it read those events, so there is nothing to filter here.
+Map<DateTime, List<CalendarDayMarker>> calendarDayMarkers({
   required List<Reminder> reminders,
   required List<Birthday> birthdays,
   required DateTime now,
@@ -220,18 +263,22 @@ Map<DateTime, List<KorColorKey>> calendarDayMarkers({
   CalendarFilter filter = CalendarFilter.all,
   int maxDots = 3,
   CategoryCatalog? categories,
+  Set<DateTime> deviceEventDays = const {},
 }) {
   final start = CalendarDates.dateOnly(from);
   final end = CalendarDates.dateOnly(to);
-  final keys = <DateTime, List<KorColorKey>>{};
-  void add(DateTime day, KorColorKey key) {
+  final keys = <DateTime, List<CalendarDayMarker>>{};
+  void add(DateTime day, CalendarDayMarker marker) {
     final list = keys.putIfAbsent(day, () => []);
-    if (list.length < maxDots && !list.contains(key)) list.add(key);
+    if (list.length < maxDots && !list.contains(marker)) list.add(marker);
   }
 
   if (filter.showsBirthdays) {
     for (final o in _birthdayOccurrences(birthdays, start, end, now)) {
-      add(o.date, CategoryVisuals.birthdayColorKey);
+      add(
+        o.date,
+        const CalendarDayMarker.category(CategoryVisuals.birthdayColorKey),
+      );
     }
   }
   final occurrences = _occurrences(reminders, start, end, filter)
@@ -239,8 +286,14 @@ Map<DateTime, List<KorColorKey>> calendarDayMarkers({
   for (final o in occurrences) {
     add(
       CalendarDates.dateOnly(o.at),
-      CategoryVisuals.colorKeyFor(o.reminder.categoryId, categories),
+      CalendarDayMarker.category(
+        CategoryVisuals.colorKeyFor(o.reminder.categoryId, categories),
+      ),
     );
+  }
+  for (final day in deviceEventDays) {
+    if (day.isBefore(start) || !day.isBefore(end)) continue;
+    add(day, const CalendarDayMarker.deviceEvent());
   }
   return {
     for (final e in keys.entries) e.key: List.unmodifiable(e.value),

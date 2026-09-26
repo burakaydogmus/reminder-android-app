@@ -52,6 +52,14 @@ abstract final class KorPaletteLight {
   static const glassStroke = Color(0x141F1B16);
   static const nowLine = Color(0xFFB8430F);
 
+  /// Calendar day dot for a **device calendar** event (F8.3). Device events
+  /// have no category, so this is deliberately *not* a [KorColorKey] but a
+  /// neutral ink tone: it must not read as one of the twelve category colours,
+  /// and "not this app's own record" is exactly what neutral says. Same tone as
+  /// [onSurfaceVariant] (design §3.1's neutral scale). A 5 px dot only needs
+  /// the non-text minimum (≥ 3.0), but this value clears the text one too.
+  static const deviceEvent = Color(0xFF5C554C);
+
   /// Text/icons drawn on top of a filled category `fg` colour.
   static const onCategory = Color(0xFFFFFFFF);
 }
@@ -99,6 +107,10 @@ abstract final class KorPaletteDark {
   /// rgba(237,230,220,.10)
   static const glassStroke = Color(0x1AEDE6DC);
   static const nowLine = Color(0xFFFF9B63);
+
+  /// Calendar day dot for a **device calendar** event (F8.3); see
+  /// [KorPaletteLight.deviceEvent]. Same tone as [onSurfaceVariant].
+  static const deviceEvent = Color(0xFFB9B0A4);
 
   /// Text/icons drawn on top of a filled category `fg` colour.
   static const onCategory = Color(0xFF14120F);

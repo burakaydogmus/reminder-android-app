@@ -1135,6 +1135,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   places with literal values). Categories store a `KorColorKey`, never a hex.
 - New colour tokens must pass `test/ui/theme/contrast_test.dart` (text ≥ 4.5, UI ≥ 3.0);
   a failing design value is skipped with its measured ratio, not silently changed.
+- A new **non-category** token (the F8.3 `deviceEvent` day dot is the latest) goes in
+  `kor_palette.dart` as a documented `static const` in **both** `KorPaletteLight` and
+  `KorPaletteDark` under the same name, then through `KorColors` as a plain field
+  (constructor, `light`, `dark`, `==`, `hashCode`, `copyWith`, `lerp`) — copy `nowLine`
+  end to end. Do **not** add a `KorColorKey` value for it: that enum is the persisted
+  *user category* palette and its `storageKey` list is a pinned contract, so a 13th
+  value would show up in the category colour picker and break the round-trip test.
 
 ## UI structure
 
@@ -1252,7 +1259,18 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (`ReminderOccurrence.isStored` false → read-only `AgendaOccurrenceRow`, tap opens the
   series), birthdays as all-day rows (29 Şubat → 28 Şubat in non-leap years, like the
   notifications); filters Tümü / Hatırlatıcılar / Doğum günleri / Konumlu also apply
-  to the ≤3 category dots (`calendarDayMarkers`, birthdays first). Selecting a day
+  to the ≤3 day dots (`calendarDayMarkers`, birthdays first). A dot is a
+  `CalendarDayMarker` (`agenda.dart`): either a category colour (`colorKey`) or the
+  **neutral** device calendar marker (F8.3, `colorKey == null`) — a device event has no
+  category, so it cannot be a `KorColorKey` and uses the `KorColors.deviceEvent` token
+  instead; `CategoryDots.colorOf` is the only marker → colour mapping. Device markers
+  come **last**, so on a day already at the 3-dot cap the user's own reminders keep
+  their dots; they are passed in as `deviceEventDays` (day midnights) only while the
+  calendar feature is on, they follow the agenda rows in ignoring the filter chips, and
+  the controller has already applied the per-calendar selection when it read those
+  events — never filter by calendar again in the marker code. `CalendarPage` reads the
+  events for the agenda **and** the marker range in one `eventsInRange` call so paging
+  does not thrash the controller's cached window. Selecting a day
   (strip, grid, "Bugün") re-bases the agenda on it. The week strip changes week on a
   horizontal fling (chevrons are the button alternative); it is deliberately not a
   `Scrollable`, so the agenda stays the page's only vertical scroll view (the iOS
@@ -1546,9 +1564,10 @@ Device calendar events are shown **read-only** next to reminders, opt-in and off
   `calendarEventDraft` (pure) then `showReminderEditorSheet(draft:)`. An all-day event
   drafts 09:00 on its day; a start already in the past drafts an **untimed** reminder,
   because the editor rightly refuses a past time (F1.8b).
-- **Not done on purpose:** writing to the device calendar (F8.2) and day dots for device
-  events in the week strip / month grid (F8.3 — they would need a neutral marker token
-  beside the category `KorColorKey`s).
+- **Day dots (F8.3):** days with device events get a neutral dot in the week strip and
+  month grid, through `CalendarDayMarker` and the `KorColors.deviceEvent` token — see
+  **Takvim** for the ordering, the cap and the single widened `eventsInRange` call.
+- **Not done on purpose:** writing to the device calendar (F8.2).
 
 ## Contacts import (F7.3)
 

@@ -4,10 +4,10 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/domain/model/reminder.dart';
+import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
-import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
@@ -42,13 +42,22 @@ String daySemanticsLabel(
   ].join(', ');
 }
 
-/// ≤3 category dots (5 px).
+/// ≤3 day dots (5 px): a category/birthday colour, or the neutral device
+/// calendar token (F8.3).
 class CategoryDots extends StatelessWidget {
-  const CategoryDots({super.key, required this.keys});
+  const CategoryDots({super.key, required this.markers});
 
-  final List<KorColorKey> keys;
+  final List<CalendarDayMarker> markers;
 
   static const double size = 5;
+
+  /// The dot colour: a category `fg`, or the neutral `deviceEvent` token for a
+  /// device calendar event — the one place that mapping lives.
+  static Color colorOf(KorColors colors, CalendarDayMarker marker) =>
+      switch (marker.colorKey) {
+        final key? => colors.category(key).fg,
+        null => colors.deviceEvent,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +67,13 @@ class CategoryDots extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var i = 0; i < keys.length; i++) ...[
+          for (var i = 0; i < markers.length; i++) ...[
             if (i > 0) const SizedBox(width: KorSpacing.s1),
             Container(
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: colors.category(keys[i]).fg,
+                color: colorOf(colors, markers[i]),
                 shape: BoxShape.circle,
               ),
             ),
@@ -94,7 +103,7 @@ class CalendarDayCell extends StatelessWidget {
   final DateTime day;
   final bool today;
   final bool selected;
-  final List<KorColorKey> dots;
+  final List<CalendarDayMarker> dots;
   final VoidCallback onTap;
   final DayDropHandler? drop;
   final bool showWeekday;
@@ -182,7 +191,7 @@ class CalendarDayCell extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: KorSpacing.s1),
-                    CategoryDots(keys: dots),
+                    CategoryDots(markers: dots),
                   ],
                 ),
               ),
@@ -230,7 +239,7 @@ class WeekStrip extends StatelessWidget {
   final DateTime week;
   final DateTime today;
   final DateTime selected;
-  final List<KorColorKey> Function(DateTime day) dotsFor;
+  final List<CalendarDayMarker> Function(DateTime day) dotsFor;
   final ValueChanged<DateTime> onSelect;
 
   /// `-1` previous week, `1` next week.
@@ -318,7 +327,7 @@ class MonthGrid extends StatelessWidget {
   final DateTime month;
   final DateTime today;
   final DateTime selected;
-  final List<KorColorKey> Function(DateTime day) dotsFor;
+  final List<CalendarDayMarker> Function(DateTime day) dotsFor;
   final ValueChanged<DateTime> onSelect;
   final ValueChanged<int> onMonthChange;
   final DayDropHandler? drop;

@@ -4,15 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/services/device_calendar_service.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/calendar/agenda_rows.dart';
 import 'package:reminder/ui/calendar/calendar_page.dart';
 import 'package:reminder/ui/calendar/week_strip.dart';
 import 'package:reminder/ui/common/now_scope.dart';
+import 'package:reminder/ui/theme/extensions/kor_colors_ext.dart';
 import 'package:reminder/ui/theme/kor_theme.dart';
 import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 
 import '../../helpers/factories.dart';
+import '../../services/fake_device_calendar_platform.dart';
 import '../ui_harness.dart';
 
 // 13 Sep 2026 is a Sunday (last day of its Mon-first week).
@@ -86,11 +89,15 @@ Future<UiHarness> _pump(
 
 Finder _day(DateTime d) => find.byKey(CalendarStripKeys.day(d));
 
-List<KorColorKey> _dots(WidgetTester tester, DateTime d) => tester
+List<CalendarDayMarker> _dots(WidgetTester tester, DateTime d) => tester
     .widget<CategoryDots>(
       find.descendant(of: _day(d), matching: find.byType(CategoryDots)),
     )
-    .keys;
+    .markers;
+
+/// The category colour keys of a day's dots, device markers as `null`.
+List<KorColorKey?> _dotKeys(WidgetTester tester, DateTime d) =>
+    [for (final m in _dots(tester, d)) m.colorKey];
 
 Reminder _byId(UiHarness h, String id) =>
     h.cubit.state.reminders.firstWhere((r) => r.id == id);
@@ -121,8 +128,8 @@ void main() {
         find.bySemanticsLabel('Pazar 13 Eylül, bugün, planlı kayıt var'),
         findsOneWidget,
       );
-      expect(_dots(tester, DateTime(2026, 9, 13)), [KorColorKey.is_]);
-      expect(_dots(tester, DateTime(2026, 9, 12)), isEmpty);
+      expect(_dotKeys(tester, DateTime(2026, 9, 13)), [KorColorKey.is_]);
+      expect(_dotKeys(tester, DateTime(2026, 9, 12)), isEmpty);
 
       // Sticky Turkish headers, birthday as all-day row, empty days.
       expect(find.text('BUGÜN · PAZAR 13 EYLÜL'), findsOneWidget);
@@ -154,7 +161,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(_day(DateTime(2026, 9, 13)), findsNothing);
-    expect(_dots(tester, DateTime(2026, 9, 14)), [
+    expect(_dotKeys(tester, DateTime(2026, 9, 14)), [
       KorColorKey.dogumGunu,
       KorColorKey.is_,
       KorColorKey.gunluk,
@@ -194,7 +201,7 @@ void main() {
     // 6×7 cells from Mon 31 Aug to Sun 11 Oct.
     expect(_day(DateTime(2026, 8, 31)), findsOneWidget);
     expect(_day(DateTime(2026, 10, 11)), findsOneWidget);
-    expect(_dots(tester, DateTime(2026, 9, 21)), [KorColorKey.is_]);
+    expect(_dotKeys(tester, DateTime(2026, 9, 21)), [KorColorKey.is_]);
 
     await tester.tap(find.byKey(CalendarPageKeys.next));
     await tester.pumpAndSettle();
@@ -232,7 +239,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Zeynep Aydın'), findsOneWidget);
     expect(find.text('Sunum slaytları'), findsNothing);
-    expect(_dots(tester, DateTime(2026, 9, 13)), isEmpty);
+    expect(_dotKeys(tester, DateTime(2026, 9, 13)), isEmpty);
 
     await tester
         .tap(find.byKey(CalendarPageKeys.filter(CalendarFilter.located)));
@@ -301,7 +308,7 @@ void main() {
         find.text('“Sunum slaytları” taşındı · Per 17 Eyl 16:00'),
         findsOneWidget,
       );
-      expect(_dots(tester, DateTime(2026, 9, 17)), [KorColorKey.is_]);
+      expect(_dotKeys(tester, DateTime(2026, 9, 17)), [KorColorKey.is_]);
 
       await tester.tap(find.text('Geri al'));
       await tester.pumpAndSettle();
@@ -398,6 +405,116 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(DatePickerDialog), findsOneWidget);
       semantics.dispose();
+    });
+  });
+
+  group('device calendar day dots (F8.3)', () {
+    // The strip shows the week of the selected day, Mon-first: 7-13 Sep.
+    // 12 Sep (Saturday) has no reminder at all, so a dot there can only come
+    // from the device calendar; 13 Sep has one "iş" reminder.
+    List<DeviceCalendarEvent> events() => [
+          buildCalendarEvent(
+            id: 'trip',
+            title: 'Şehir dışı',
+            start: DateTime(2026, 9, 12),
+            isAllDay: true,
+          ),
+          buildCalendarEvent(
+            id: 'standup',
+            title: 'Günlük toplantı',
+            start: DateTime(2026, 9, 13, 9),
+          ),
+          buildCalendarEvent(
+            id: 'dentist',
+            title: 'Diş hekimi',
+            start: DateTime(2026, 9, 14, 11),
+          ),
+        ];
+
+    Future<UiHarness> pump(WidgetTester tester, {required bool enabled}) async {
+      _tallView(tester);
+      final h = await UiHarness.create(
+        reminders: _reminders,
+        birthdays: _birthdays,
+        now: () => _sunday,
+      );
+      h.calendarPlatform
+        ..calendarList = [
+          buildDeviceCalendar(id: 'cal-personal', name: 'Kişisel'),
+          buildDeviceCalendar(id: 'cal-work', name: 'İş'),
+        ]
+        ..eventList = events();
+      await tester.pumpWidget(
+        h.app(
+          home: NowScope(
+            clock: () => _sunday,
+            child: const Scaffold(body: CalendarPage()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      if (enabled) {
+        await h.calendar.setEnabled(true);
+        await tester.pumpAndSettle();
+      }
+      return h;
+    }
+
+    testWidgets('feature off: the dots are exactly what they were before F8.3',
+        (tester) async {
+      await pump(tester, enabled: false);
+      expect(_dotKeys(tester, DateTime(2026, 9, 12)), isEmpty);
+      expect(_dotKeys(tester, DateTime(2026, 9, 13)), [KorColorKey.is_]);
+    });
+
+    testWidgets('feature on: a device-only day gets the neutral dot',
+        (tester) async {
+      await pump(tester, enabled: true);
+      final dots = _dots(tester, DateTime(2026, 9, 12));
+      expect(dots, hasLength(1));
+      expect(dots.single.isDeviceEvent, isTrue);
+      expect(dots.single.colorKey, isNull);
+      // The neutral token, and not one of the category colours.
+      final colors = KorTheme.light().extension<KorColors>()!;
+      expect(
+        CategoryDots.colorOf(colors, dots.single),
+        KorPaletteLight.deviceEvent,
+      );
+      for (final key in KorColorKey.values) {
+        expect(colors.deviceEvent, isNot(colors.category(key).fg));
+      }
+    });
+
+    testWidgets('the device dot comes after the reminder dots', (tester) async {
+      await pump(tester, enabled: true);
+      expect(_dotKeys(tester, DateTime(2026, 9, 13)), [KorColorKey.is_, null]);
+    });
+
+    testWidgets('a hidden calendar takes its dots away', (tester) async {
+      final h = await pump(tester, enabled: true);
+      expect(_dots(tester, DateTime(2026, 9, 12)), hasLength(1));
+
+      // The per-calendar selection is applied when the events are read, so
+      // hiding the only calendar that has events clears the dot too.
+      await h.calendar.setCalendarVisible('cal-personal', false);
+      await tester.pumpAndSettle();
+      expect(_dotKeys(tester, DateTime(2026, 9, 12)), isEmpty);
+    });
+
+    testWidgets('the month grid shows them, and a full day keeps its reminders',
+        (tester) async {
+      await pump(tester, enabled: true);
+      await tester.tap(find.byKey(CalendarPageKeys.toggleMonth));
+      await tester.pumpAndSettle();
+      expect(find.byKey(CalendarStripKeys.grid), findsOneWidget);
+      expect(_dots(tester, DateTime(2026, 9, 12)).single.isDeviceEvent, isTrue);
+      // 14 Sep is already at the 3-dot cap, so the device event is dropped
+      // instead of pushing one of the user's own markers out.
+      expect(_dotKeys(tester, DateTime(2026, 9, 14)), [
+        KorColorKey.dogumGunu,
+        KorColorKey.is_,
+        KorColorKey.gunluk,
+      ]);
     });
   });
 

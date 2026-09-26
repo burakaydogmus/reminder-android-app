@@ -101,6 +101,21 @@ List<_Pair> _pairs(_Theme t) {
       ),
     );
 
+  // F8.3 device calendar day dot: a 5 px shape, so the non-text minimum — the
+  // same treatment `outline on background` gets. It sits on a week-strip pill
+  // or month-grid cell, i.e. on the page background or a surface.
+  pairs
+    ..add(_Pair('deviceEvent on background', c.deviceEvent, t.background, _ui))
+    ..add(_Pair('deviceEvent on surface', c.deviceEvent, s.surface, _ui))
+    ..add(
+      _Pair(
+        'deviceEvent on surfaceContainer',
+        c.deviceEvent,
+        s.surfaceContainer,
+        _ui,
+      ),
+    );
+
   for (final key in KorColorKey.values) {
     final cat = c.category(key);
     final k = key.storageKey;

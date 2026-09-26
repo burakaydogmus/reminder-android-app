@@ -60,6 +60,7 @@ class KorColors extends ThemeExtension<KorColors> {
     required this.glassTint,
     required this.glassStroke,
     required this.nowLine,
+    required this.deviceEvent,
     required this.categories,
   });
 
@@ -76,6 +77,11 @@ class KorColors extends ThemeExtension<KorColors> {
   /// Time ribbon "now" line.
   final Color nowLine;
 
+  /// Calendar day dot for a **device calendar** event (F8.3) — the neutral
+  /// marker that sits beside the category dots, see
+  /// [KorPaletteLight.deviceEvent].
+  final Color deviceEvent;
+
   /// Colours for every [KorColorKey].
   final Map<KorColorKey, CategoryColors> categories;
 
@@ -89,6 +95,7 @@ class KorColors extends ThemeExtension<KorColors> {
     glassTint: KorPaletteLight.glassTint,
     glassStroke: KorPaletteLight.glassStroke,
     nowLine: KorPaletteLight.nowLine,
+    deviceEvent: KorPaletteLight.deviceEvent,
     categories: _resolve(
       KorCategoryPalette.light,
       KorPaletteLight.onCategory,
@@ -102,6 +109,7 @@ class KorColors extends ThemeExtension<KorColors> {
     glassTint: KorPaletteDark.glassTint,
     glassStroke: KorPaletteDark.glassStroke,
     nowLine: KorPaletteDark.nowLine,
+    deviceEvent: KorPaletteDark.deviceEvent,
     categories: _resolve(KorCategoryPalette.dark, KorPaletteDark.onCategory),
   );
 
@@ -129,6 +137,7 @@ class KorColors extends ThemeExtension<KorColors> {
       other.glassTint == glassTint &&
       other.glassStroke == glassStroke &&
       other.nowLine == nowLine &&
+      other.deviceEvent == deviceEvent &&
       mapEquals(other.categories, categories);
 
   @override
@@ -139,6 +148,7 @@ class KorColors extends ThemeExtension<KorColors> {
         glassTint,
         glassStroke,
         nowLine,
+        deviceEvent,
         Object.hashAll(KorColorKey.values.map((k) => categories[k])),
       );
 
@@ -150,6 +160,7 @@ class KorColors extends ThemeExtension<KorColors> {
     Color? glassTint,
     Color? glassStroke,
     Color? nowLine,
+    Color? deviceEvent,
     Map<KorColorKey, CategoryColors>? categories,
   }) {
     return KorColors(
@@ -159,6 +170,7 @@ class KorColors extends ThemeExtension<KorColors> {
       glassTint: glassTint ?? this.glassTint,
       glassStroke: glassStroke ?? this.glassStroke,
       nowLine: nowLine ?? this.nowLine,
+      deviceEvent: deviceEvent ?? this.deviceEvent,
       categories: categories ?? this.categories,
     );
   }
@@ -177,6 +189,7 @@ class KorColors extends ThemeExtension<KorColors> {
       glassTint: Color.lerp(glassTint, other.glassTint, t)!,
       glassStroke: Color.lerp(glassStroke, other.glassStroke, t)!,
       nowLine: Color.lerp(nowLine, other.nowLine, t)!,
+      deviceEvent: Color.lerp(deviceEvent, other.deviceEvent, t)!,
       categories: Map.unmodifiable({
         for (final key in KorColorKey.values)
           key: CategoryColors.lerp(
