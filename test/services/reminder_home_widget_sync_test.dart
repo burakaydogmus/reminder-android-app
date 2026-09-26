@@ -33,14 +33,16 @@ void main() {
       );
 
   group('platform branching', () {
-    test('Android writes the payload and refreshes the four providers', () async {
+    test('Android writes the payload and refreshes the four providers',
+        () async {
       final platform = FakeHomeWidgetPlatform(isAndroid: true);
 
       await sync(platform);
 
       expect(platform.appGroupIds, isEmpty,
           reason: 'Android ignores the App Group; the call stays iOS-only');
-      expect(platform.saved.keys, [kHomeWidgetPayloadKey, 'reminders_active_json']);
+      expect(platform.saved.keys,
+          [kHomeWidgetPayloadKey, 'reminders_active_json']);
       expect(platform.saved['reminders_active_json'], isNull);
       expect(platform.androidUpdates, [
         for (final widget in ReminderHomeWidget.values) widget.qualifiedName,
@@ -48,7 +50,8 @@ void main() {
       expect(platform.iosUpdates, isEmpty);
     });
 
-    test('iOS sets the App Group, then writes and reloads every kind', () async {
+    test('iOS sets the App Group, then writes and reloads every kind',
+        () async {
       final platform = FakeHomeWidgetPlatform(isIOS: true);
 
       await sync(platform);
@@ -56,7 +59,8 @@ void main() {
       expect(platform.appGroupIds, [kHomeWidgetAppGroupId]);
       expect(platform.calls.first, 'setAppGroupId:$kHomeWidgetAppGroupId',
           reason: 'saving before the group id would land in the app sandbox');
-      expect(platform.saved.keys, [kHomeWidgetPayloadKey, 'reminders_active_json']);
+      expect(platform.saved.keys,
+          [kHomeWidgetPayloadKey, 'reminders_active_json']);
       expect(platform.saved['reminders_active_json'], isNull);
       expect(platform.iosUpdates, kIosWidgetKinds);
       expect(platform.androidUpdates, isEmpty);
@@ -159,7 +163,8 @@ void main() {
 
     test('the shared keys match ReminderWidgetStore.swift', () {
       final swift = read('ios/ReminderWidget/ReminderWidgetStore.swift');
-      expect(swift, contains('static let payloadKey = "$kHomeWidgetPayloadKey"'));
+      expect(
+          swift, contains('static let payloadKey = "$kHomeWidgetPayloadKey"'));
       expect(
         swift,
         contains('static let completionsKey = "$kWidgetCompletionsKey"'),

@@ -109,8 +109,8 @@ Future<int> applyPendingWidgetCompletions({
   if (!platform.isIOS) return 0;
 
   await platform.setAppGroupId(kHomeWidgetAppGroupId);
-  final completions =
-      parseWidgetCompletions(await platform.readWidgetData(kWidgetCompletionsKey));
+  final completions = parseWidgetCompletions(
+      await platform.readWidgetData(kWidgetCompletionsKey));
   if (completions.isEmpty) return 0;
 
   final reminders = await repository.loadReminders();

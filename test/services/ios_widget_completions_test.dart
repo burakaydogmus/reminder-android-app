@@ -56,7 +56,8 @@ void main() {
       ]));
 
       expect(parsed, [
-        WidgetCompletion('good', DateTime.fromMillisecondsSinceEpoch(1789999200000)),
+        WidgetCompletion(
+            'good', DateTime.fromMillisecondsSinceEpoch(1789999200000)),
       ]);
     });
 
@@ -131,7 +132,9 @@ void main() {
     test('does nothing off iOS, even with a queue', () async {
       final platform = FakeHomeWidgetPlatform(
         isAndroid: true,
-        stored: {kWidgetCompletionsKey: _queue([('open', _now)])},
+        stored: {
+          kWidgetCompletionsKey: _queue([('open', _now)])
+        },
       );
 
       expect(await apply(platform), 0);
@@ -157,7 +160,9 @@ void main() {
       final at = _now.subtract(const Duration(minutes: 3));
       final platform = FakeHomeWidgetPlatform(
         isIOS: true,
-        stored: {kWidgetCompletionsKey: _queue([('open', at)])},
+        stored: {
+          kWidgetCompletionsKey: _queue([('open', at)])
+        },
       );
 
       expect(await apply(platform), 1);
@@ -183,16 +188,19 @@ void main() {
       verify(() => anyHomeWidgetSync(homeWidget)).called(1);
     });
 
-    test('a recurring reminder advances instead of being marked done', () async {
+    test('a recurring reminder advances instead of being marked done',
+        () async {
       final platform = FakeHomeWidgetPlatform(
         isIOS: true,
-        stored: {kWidgetCompletionsKey: _queue([('repeating', _now)])},
+        stored: {
+          kWidgetCompletionsKey: _queue([('repeating', _now)])
+        },
       );
 
       expect(await apply(platform), 1);
 
-      final stored =
-          (await repository.loadReminders()).firstWhere((r) => r.id == 'repeating');
+      final stored = (await repository.loadReminders())
+          .firstWhere((r) => r.id == 'repeating');
       expect(stored.isDone, isFalse);
       expect(stored.remindAt, DateTime(2026, 9, 14, 16));
     });
@@ -232,8 +240,8 @@ void main() {
 
       expect(await apply(platform), 1);
 
-      final stored =
-          (await repository.loadReminders()).firstWhere((r) => r.id == 'repeating');
+      final stored = (await repository.loadReminders())
+          .firstWhere((r) => r.id == 'repeating');
       // Clamped: the next occurrence is tomorrow, not a month away.
       expect(stored.remindAt, DateTime(2026, 9, 14, 16));
     });
