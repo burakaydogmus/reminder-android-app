@@ -5,6 +5,8 @@ import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
+import 'package:reminder/ui/calendar/calendar_event_card.dart';
+import 'package:reminder/ui/calendar/device_calendar_scope.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
 import 'package:reminder/ui/components/birthday_card.dart';
@@ -26,6 +28,7 @@ import 'package:reminder/ui/permissions/permission_scope.dart';
 /// Keys for tests.
 abstract final class TodayPageKeys {
   static const notificationBanner = Key('today.notificationBanner');
+  static const calendarEvents = Key('today.calendarEvents');
   static const moveOverdue = Key('today.moveOverdue');
   static const ribbonCompletedToggle = Key('today.ribbonCompletedToggle');
 }
@@ -145,6 +148,7 @@ class _TodayPageState extends State<TodayPage> {
                 ),
               ..._overdue(context, sections, now),
               if (!allDoneCollapsed) ..._ribbon(context, sections, now),
+              ..._calendarEvents(context, now),
               ..._section(
                 context,
                 title: context.l10n.todayUntimed,
@@ -181,6 +185,51 @@ class _TodayPageState extends State<TodayPage> {
         );
       },
     );
+  }
+
+  /// Takvim (F8.1): today's device calendar events, read-only, below the
+  /// ribbon. Absent entirely while the feature is off, while nothing is
+  /// loaded yet and when the day has no event — never an empty header.
+  List<Widget> _calendarEvents(BuildContext context, DateTime now) {
+    final controller = DeviceCalendarScope.maybeOf(context);
+    if (controller == null || !controller.enabled) return const [];
+    final events = controller.eventsOnDay(now);
+    if (events.isEmpty) return const [];
+    final theme = Theme.of(context);
+    return [
+      _padded(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: KorSpacing.s5),
+            child: SectionHeader(
+              key: TodayPageKeys.calendarEvents,
+              title: context.l10n.calendarEventsSection,
+              icon: Icons.event_outlined,
+              trailing: Text(
+                '${events.length}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      _padded(
+        SliverList.separated(
+          itemCount: events.length,
+          separatorBuilder: (_, __) =>
+              const SizedBox(height: KorSpacing.cardGap),
+          itemBuilder: (context, i) => CalendarEventCard(
+            key: ValueKey(events[i].id),
+            event: events[i],
+            now: now,
+            calendarName: calendarNameOf(controller, events[i].calendarId),
+            showDateRange: true,
+          ),
+        ),
+      ),
+    ];
   }
 
   List<Widget> _overdue(

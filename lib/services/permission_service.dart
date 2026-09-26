@@ -191,7 +191,9 @@ CalendarPermissionState resolveCalendarState({
   required ph.PermissionStatus status,
   required bool requested,
 }) {
-  if (status.isGranted || status.isLimited) return CalendarPermissionState.granted;
+  if (status.isGranted || status.isLimited) {
+    return CalendarPermissionState.granted;
+  }
   if (status.isPermanentlyDenied || status.isRestricted || requested) {
     return CalendarPermissionState.denied;
   }

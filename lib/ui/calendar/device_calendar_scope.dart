@@ -75,8 +75,10 @@ class DeviceCalendarController extends ChangeNotifier
   List<DeviceCalendarInfo> get calendars => _calendars;
 
   /// Ids the user chose to show, or `null` for "all" (nothing chosen yet).
-  Set<String>? get visibleCalendarIds =>
-      _visibleIds == null ? null : Set.unmodifiable(_visibleIds!);
+  Set<String>? get visibleCalendarIds {
+    final visible = _visibleIds;
+    return visible == null ? null : Set.unmodifiable(visible);
+  }
 
   /// Whether [id] is shown. Unchosen (`null`) means every calendar is shown.
   bool isCalendarVisible(String id) => _visibleIds?.contains(id) ?? true;
@@ -89,8 +91,7 @@ class DeviceCalendarController extends ChangeNotifier
   /// [DeviceCalendarScope].
   Future<void> load() async {
     _enabled = await _store.isEnabled();
-    final stored = await _store.visibleCalendarIds();
-    _visibleIds = stored == null ? null : stored.toSet();
+    _visibleIds = (await _store.visibleCalendarIds())?.toSet();
     _ready = true;
     if (_enabled) {
       await _loadCalendars();
@@ -166,6 +167,21 @@ class DeviceCalendarController extends ChangeNotifier
             (e.end.isAfter(from) || !e.end.isAfter(e.start)))
           e,
     ];
+  }
+
+  /// Shows one occurrence in the platform's own (read-only) event view.
+  /// `false` when the platform could not, so the caller can fall back to the
+  /// in-app sheet; a revoked permission degrades the feature to off.
+  Future<bool> openEvent(String occurrenceId) async {
+    if (!_enabled) return false;
+    try {
+      return await _platform.openEvent(occurrenceId);
+    } on DeviceCalendarReadException catch (error) {
+      if (error.failure == DeviceCalendarFailure.permissionDenied) {
+        await _degrade();
+      }
+      return false;
+    }
   }
 
   /// Cached occurrences covering the day starting at [day] (midnight).
@@ -309,6 +325,15 @@ class DeviceCalendarController extends ChangeNotifier
   void _notify() {
     if (!_disposed) notifyListeners();
   }
+}
+
+/// Name of the calendar [calendarId] belongs to, or `null` when it is unknown
+/// (a calendar added since the last read).
+String? calendarNameOf(DeviceCalendarController controller, String calendarId) {
+  for (final c in controller.calendars) {
+    if (c.id == calendarId) return c.name;
+  }
+  return null;
 }
 
 /// Row order inside a day: all-day events first, then by start, then by title

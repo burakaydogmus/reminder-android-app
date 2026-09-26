@@ -261,7 +261,8 @@ class PluginDeviceCalendarPlatform implements DeviceCalendarPlatform {
           ? DateTime(start.year, start.month, start.day + 1)
           : end,
       isAllDay: e.isAllDay,
-      location: (e.location?.trim().isEmpty ?? true) ? null : e.location!.trim(),
+      location:
+          (e.location?.trim().isEmpty ?? true) ? null : e.location!.trim(),
     );
   }
 

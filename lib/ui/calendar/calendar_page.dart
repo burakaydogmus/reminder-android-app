@@ -4,10 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/calendar_dates.dart';
 import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/services/device_calendar_service.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/calendar/agenda_rows.dart';
+import 'package:reminder/ui/calendar/calendar_event_card.dart';
+import 'package:reminder/ui/calendar/device_calendar_scope.dart';
 import 'package:reminder/ui/calendar/reschedule.dart';
 import 'package:reminder/ui/calendar/week_strip.dart';
 import 'package:reminder/ui/common/kor_format.dart';
@@ -153,7 +156,25 @@ class _CalendarPageState extends State<CalendarPage> {
           filter: _filter,
           includeEmptyDays: true,
         );
-        final hasEntries = agenda.any((d) => !d.isEmpty);
+        // F8.1: device calendar events live next to the reminder rows. The
+        // controller answers from its cache, so this costs nothing per
+        // rebuild; a range outside the cache schedules one lazy read.
+        final calendar = DeviceCalendarScope.maybeOf(context);
+        final eventsByDay = <DateTime, List<DeviceCalendarEvent>>{};
+        if (calendar != null && calendar.enabled) {
+          final end = CalendarDates.addDays(selected, CalendarPage.days);
+          final events = calendar.eventsInRange(selected, end);
+          for (var i = 0; i < CalendarPage.days; i++) {
+            final day = CalendarDates.addDays(selected, i);
+            final onDay = [
+              for (final e in events)
+                if (e.coversDay(day)) e,
+            ];
+            if (onDay.isNotEmpty) eventsByDay[day] = onDay;
+          }
+        }
+        final hasEntries =
+            agenda.any((d) => !d.isEmpty) || eventsByDay.isNotEmpty;
 
         final grid = CalendarDates.monthGrid(_gridMonth!);
         final markers = calendarDayMarkers(
@@ -328,7 +349,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       )
                     else
                       for (final day in agenda)
-                        if (day.isEmpty)
+                        if (day.isEmpty && !eventsByDay.containsKey(day.date))
                           SliverPadding(
                             padding: KorSpacing.screenPadding,
                             sliver: SliverToBoxAdapter(
@@ -339,7 +360,14 @@ class _CalendarPageState extends State<CalendarPage> {
                             ),
                           )
                         else
-                          _daySliver(context, day, now, theme),
+                          _daySliver(
+                            context,
+                            day,
+                            now,
+                            theme,
+                            events: eventsByDay[day.date] ?? const [],
+                            calendar: calendar,
+                          ),
                     SliverPadding(
                       padding: EdgeInsets.only(bottom: bottom + KorSpacing.s7),
                     ),
@@ -380,8 +408,10 @@ class _CalendarPageState extends State<CalendarPage> {
     BuildContext context,
     AgendaDay day,
     DateTime now,
-    ThemeData theme,
-  ) {
+    ThemeData theme, {
+    List<DeviceCalendarEvent> events = const [],
+    DeviceCalendarController? calendar,
+  }) {
     return SliverMainAxisGroup(
       slivers: [
         SliverPersistentHeader(
@@ -427,6 +457,21 @@ class _CalendarPageState extends State<CalendarPage> {
                             existing: o.birthday,
                           ),
                         ),
+                ),
+              // F8.1: read-only device events, after the all-day birthday
+              // rows and before the reminders of that day — they cannot be
+              // completed, snoozed, dragged or deleted.
+              for (final e in events)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: KorSpacing.cardGap),
+                  child: CalendarEventCard(
+                    key: ValueKey(e.id),
+                    event: e,
+                    now: now,
+                    calendarName: calendar == null
+                        ? null
+                        : calendarNameOf(calendar, e.calendarId),
+                  ),
                 ),
               for (final o in day.reminders)
                 Padding(

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/ui/calendar/device_calendar_scope.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/permissions/permission_flows.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
@@ -13,6 +14,7 @@ abstract final class PermissionsGroupKeys {
   static const notifications = Key('permissions.notifications');
   static const location = Key('permissions.location');
   static const exactAlarms = Key('permissions.exactAlarms');
+  static const calendar = Key('permissions.calendar');
 }
 
 /// Ayarlar → İzinler (§3.3.9): live status per permission with a fix action.
@@ -46,7 +48,47 @@ class _PermissionsGroupState extends State<PermissionsGroup> {
         if (snapshot != null &&
             snapshot.exactAlarms != ExactAlarmState.notRequired)
           _exactAlarms(context, snapshot.exactAlarms),
+        // F8.1: only while the user opted into calendar events — the app never
+        // asks for the calendar on its own, so an untouched install should not
+        // see a warning about a permission it does not need.
+        if (DeviceCalendarScope.maybeOf(context)?.enabled ?? false)
+          _calendar(context, snapshot?.calendar),
       ],
+    );
+  }
+
+  /// Device calendar **read** access (F8.1). The app never writes, so a
+  /// granted row says so explicitly.
+  Widget _calendar(BuildContext context, CalendarPermissionState? state) {
+    final l10n = context.l10n;
+    final (status, level) = switch (state) {
+      null => (l10n.permissionChecking, _Level.unknown),
+      CalendarPermissionState.granted => (
+          l10n.permissionCalendarGranted,
+          _Level.ok,
+        ),
+      CalendarPermissionState.notRequested => (
+          l10n.permissionCalendarNotRequested,
+          _Level.warning,
+        ),
+      CalendarPermissionState.denied => (
+          l10n.permissionCalendarDenied,
+          _Level.warning,
+        ),
+    };
+    final fix = state == null ? PermissionFix.none : calendarFix(state);
+    return _PermissionRow(
+      key: PermissionsGroupKeys.calendar,
+      icon: Icons.event_available_outlined,
+      title: l10n.permissionCalendar,
+      status: status,
+      level: level,
+      actionLabel: switch (fix) {
+        PermissionFix.none => null,
+        PermissionFix.request => l10n.permissionAllow,
+        PermissionFix.openSettings => l10n.permissionOpenSettings,
+      },
+      onAction: () => PermissionFlows.fixCalendar(context),
     );
   }
 
