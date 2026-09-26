@@ -190,8 +190,14 @@ Diğer tüm fazların temeli.
   Doğum günü yılı artık gerçekten opsiyonel: şema **v6** (`birthdays.date` metni → `birth_month` / `birth_day` + nullable `birth_year`; v5 → v6 geçişi nöbetçi yıl 4'ü `NULL` yapar), `Birthday.year` nullable, yedek biçimi v2 kalır (JSON'da geriye dönük `date` + yeni `birthYear`; eski yedekler dönüştürülerek okunur). Ayrıca: madde silmede "Geri al" (`UndoSnackBar`), iOS bildiriminde açık maddeler (`DarwinNotificationDetails.subtitle`, parmak izi v7), §3.5 başlık üstü çizgisinin animasyonu (`StrikeThroughTitle`, Reduce Motion'da anında), SQLite yabancı anahtarları `beforeOpen`'da açıldı.
 - [ ] **F6.2 Mağaza hazırlığı** · `chore/store-readiness` · *bağımlı: F6.2a*
   Kalanlar: gizlilik politikasının herkese açık URL'de yayınlanması (+ `AppLinks.privacyPolicy` güncellemesi), arka plan konumu beyanı + video, mağaza görselleri, iOS izin metinleri, sürümleme, Play Console / App Store Connect kurulumu.
-- [ ] **F6.3 Release pipeline** · `chore/release-workflow`
-  Tag ile imzalı Android AAB ve iOS build; opsiyonel crash raporlama.
+- [x] **F6.3a CI imzalama (kişisel)** · `chore/android-signing`
+  Android iş akışı, gizli değişkenler tanımlıysa `android/key.properties` üretip release APK'yı
+  sahibin kalıcı anahtarıyla imzalar; artifact adı imzaya göre değişir ve imzalayan sertifika
+  koşu kaydına yazılır. Amaç mağaza değil, **cihazda güncelleyebilmek**: debug anahtarı her CI
+  koşucusunda yeniden üretildiği için APK'lar üst üste kurulamıyordu. Kurulum
+  [`docs/android-signing.md`](docs/android-signing.md).
+- [ ] **F6.3 Release pipeline** · `chore/release-workflow` · *bağımlı: F6.3a*
+  Tag ile imzalı Android AAB (Play App Signing) ve iOS build; opsiyonel crash raporlama.
 
 ## Faz 8 — Entegrasyonlar
 

@@ -25,6 +25,17 @@ jobs:
     name: Build Android (release APK, R8)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Optional personal signing key (docs/android-signing.md). When the
+      # secrets are absent the build still works and Gradle falls back to the
+      # debug key — but a debug key is generated per runner, so consecutive
+      # APKs have different signatures and Android refuses to install one over
+      # the other (uninstall = data loss). With the secrets set, every APK is
+      # an update over the last one.
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -43,14 +54,54 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # No key.properties on CI: Gradle signs with the debug key. The APK is
-      # for device testing only and must not be published.
+      # `android/app/build.gradle` picks signingConfigs.release as soon as
+      # android/key.properties exists (and warns and falls back to the debug
+      # key when it does not), so writing the file is all CI has to do.
+      - name: Write the signing config
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          keystore="$RUNNER_TEMP/reminder-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$keystore"
+          # An absolute path: Gradle resolves a relative storeFile against
+          # android/app, not android/.
+          {
+            echo "storeFile=$keystore"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=${KEY_ALIAS:-reminder}"
+            echo "keyPassword=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } > android/key.properties
+
       - name: Build release APK
         run: flutter build apk --release
+
+      # Which key actually signed it, and that the signature verifies at all.
+      # `apksigner`, not `keytool -printcert -jarfile`: minSdk 26 means AGP
+      # signs with APK Signature Scheme v2/v3 only, and keytool can read just
+      # the old v1 (JAR) signature, so it silently prints nothing.
+      #
+      # A debug-signed APK shows "CN=Android Debug"; the personal key shows its
+      # own DN, and the printed SHA-256 should match
+      # `apksigner verify --print-certs` (or `keytool -list -v`) on the local
+      # keystore. With the secret set, a debug signature means the signing step
+      # did not take effect, so fail instead of shipping an APK that cannot be
+      # installed over the previous one.
+      - name: Show the APK signer
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          apksigner=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -1)
+          certs=$("$apksigner" verify --print-certs "$apk")
+          echo "$certs" | grep -E 'certificate DN|SHA-256 digest'
+          if [ -n "$KEYSTORE_BASE64" ] && echo "$certs" | grep -q 'CN=Android Debug'; then
+            echo "::error::signed with the debug key even though ANDROID_KEYSTORE_BASE64 is set"
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-debugsigned-apk
+          name: >-
+            ${{ env.KEYSTORE_BASE64 != ''
+                && 'app-release-apk'
+                || 'app-release-debugsigned-apk' }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7

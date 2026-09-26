@@ -1445,7 +1445,12 @@ Device calendar events are shown **read-only** next to reminders, opt-in and off
   `group.com.burakaydogmus.reminder` (`ios/Runner/Runner.entitlements` +
   `ios/ReminderWidget/ReminderWidgetExtension.entitlements`, F5.2).
 - Release (Android): signed from `android/key.properties` when present, otherwise with the
-  debug key plus a Gradle warning (never publish those). R8 + `shrinkResources` are on;
+  debug key plus a Gradle warning (never publish those). CI writes that file from the optional
+  `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` /
+  `ANDROID_KEY_PASSWORD` secrets, so consecutive APKs share one signature and install over each
+  other; without the secrets every runner generates its own debug key and the APKs cannot
+  replace each other on a device (uninstall = data loss). Details and the owner's setup steps:
+  [`docs/android-signing.md`](docs/android-signing.md). R8 + `shrinkResources` are on;
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
 - Widget and geofence behaviour differs per platform, but both platforms now have home screen
