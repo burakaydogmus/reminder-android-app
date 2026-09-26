@@ -15,16 +15,15 @@ part of '../../capture_parser.dart';
 /// - `every month`, `monthly` (monthly on the first occurrence's day),
 ///   `every month on the 17th`, `monthly on the 17th`, `every 17th of the
 ///   month`.
+/// - `every year`, `yearly`, `annually` (yearly on the first occurrence's
+///   month and day), `every 2 years`, `every other year`.
 /// - `every 3 days`, `every other day` (every 2 days), `every 2 weeks`,
 ///   `every other week`, `every 3 months`, `every other monday`
 ///   (`every 1 day` = daily).
-/// - **Not supported** (left as text, exactly like the Turkish `her yıl`):
-///   `every year`, `yearly`, `annually` — `RecurrenceSpec` has no yearly
-///   kind, and `RecurrenceRule` (F3.1) cannot store one either. Yearly
-///   birthdays are a separate feature.
-/// - The adverbs `daily` / `weekly` / `monthly` / `nightly` are **not**
-///   repeats in front of a noun (`weekly report`, `daily standup`), the
-///   same guard the Turkish day parts use.
+/// - The adjective forms `daily` / `weekly` / `monthly` / `yearly` /
+///   `nightly` are **not** repeats in front of a noun (`weekly report`,
+///   `daily standup`, `yearly budget`), the same guard the Turkish `yıllık`
+///   uses. `annually` is only ever an adverb, so it always repeats.
 extension _EnRecurrenceRules on _EnScanner {
   static const RecurrenceSpec _daily = RecurrenceSpec(
     kind: RecurrenceKind.daily,
@@ -35,6 +34,9 @@ extension _EnRecurrenceRules on _EnScanner {
   static const RecurrenceSpec _monthlyAny = RecurrenceSpec(
     kind: RecurrenceKind.monthly,
   );
+  static const RecurrenceSpec _yearlyAny = RecurrenceSpec(
+    kind: RecurrenceKind.yearly,
+  );
   static const RecurrenceSpec _weekdaysSpec = RecurrenceSpec(
     kind: RecurrenceKind.weekly,
     weekdays: [1, 2, 3, 4, 5],
@@ -44,7 +46,8 @@ extension _EnRecurrenceRules on _EnScanner {
     weekdays: [6, 7],
   );
 
-  /// Nouns that turn `daily` / `weekly` / `monthly` into an adjective.
+  /// Nouns that turn `daily` / `weekly` / `monthly` / `yearly` into an
+  /// adjective.
   static const Set<String> _repeatNouns = {
     'report',
     'reports',
@@ -102,6 +105,11 @@ extension _EnRecurrenceRules on _EnScanner {
         final day = _dayOfMonthTail(i + 1);
         if (day != null) return _rec(i, day.end, _monthly(day.day), 1);
         return _rec(i, i + 1, _monthlyAny, 1);
+      case 'yearly':
+        return _adjective(i) ? null : _rec(i, i + 1, _yearlyAny, 1);
+      // `annually` is only ever an adverb, so no noun guard.
+      case 'annually':
+        return _rec(i, i + 1, _yearlyAny, 1);
       case 'weekdays':
         return _rec(i, i + 1, _weekdaysSpec, 0.9);
       case 'weekends':
@@ -144,6 +152,8 @@ extension _EnRecurrenceRules on _EnScanner {
         final day = _dayOfMonthTail(i + 2);
         if (day != null) return _rec(i, day.end, _monthly(day.day), 1);
         return _rec(i, i + 2, _monthlyAny, 1);
+      case 'year':
+        return _rec(i, i + 2, _yearlyAny, 1);
       case 'weekday':
       case 'weekdays':
         return _rec(i, i + 2, _weekdaysSpec, 1);
@@ -167,6 +177,13 @@ extension _EnRecurrenceRules on _EnScanner {
               i,
               i + 3,
               const RecurrenceSpec(kind: RecurrenceKind.monthly, interval: 2),
+              1,
+            );
+          case 'year':
+            return _rec(
+              i,
+              i + 3,
+              const RecurrenceSpec(kind: RecurrenceKind.yearly, interval: 2),
               1,
             );
         }
@@ -199,6 +216,9 @@ extension _EnRecurrenceRules on _EnScanner {
         'month' ||
         'months' =>
           RecurrenceSpec(kind: RecurrenceKind.monthly, interval: n),
+        'year' ||
+        'years' =>
+          RecurrenceSpec(kind: RecurrenceKind.yearly, interval: n),
         _ => null,
       };
       if (spec != null) return _rec(i, i + 3, spec, 0.95);

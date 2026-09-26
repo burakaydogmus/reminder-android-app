@@ -453,6 +453,12 @@ class NotificationService implements NotificationSync {
   /// - Her hafta tek gün → [DateTimeComponents.dayOfWeekAndTime]
   /// - Her ayın 1–28'i → [DateTimeComponents.dayOfMonthAndTime] (29–31 kısa
   ///   aylarda ay sonuna kırpılır; sistem o ayı atlardı)
+  /// - Her yıl → [DateTimeComponents.dateAndTime] (doğum günlerinin kullandığı
+  ///   mod). **29 Şubat kuralı hariç:** sistem tekrarı yalnızca artık yıllarda
+  ///   çalışırdı, kural ise ara yıllarda 28 Şubat'ta çalışıyor — bu yüzden
+  ///   `null` döner ve sonraki tekrarı uygulamanın kendi yeniden kurulumu
+  ///   halleder. Ay/gününü `anchor`'dan alan yıllık kuralda [anchor]
+  ///   verilmezse hedef bilinemez; güvenli tarafta kalınıp `null` döner.
   /// - Aralıklı (`interval > 1`), haftada birden çok gün, bitiş tarihli → `null`:
   ///   sistem tekrarı aralığı/bitişi bilmez; sonraki tekrar uygulama açıldığında
   ///   veya hatırlatıcı değiştiğinde kurulur.
@@ -461,7 +467,10 @@ class NotificationService implements NotificationSync {
   /// (erken tamamlama dahil) sistem tekrarı yalnızca uygulama açılmadığında
   /// devreye girer.
   @visibleForTesting
-  static DateTimeComponents? reminderRepeatComponents(RecurrenceRule rule) {
+  static DateTimeComponents? reminderRepeatComponents(
+    RecurrenceRule rule, {
+    DateTime? anchor,
+  }) {
     if (rule.interval != 1 || rule.until != null) return null;
     return switch (rule.frequency) {
       RecurrenceFrequency.none => null,
@@ -471,7 +480,18 @@ class NotificationService implements NotificationSync {
       RecurrenceFrequency.monthly => (rule.dayOfMonth ?? 31) <= 28
           ? DateTimeComponents.dayOfMonthAndTime
           : null,
+      RecurrenceFrequency.yearly =>
+        _yearlyRepeats(rule, anchor) ? DateTimeComponents.dateAndTime : null,
     };
+  }
+
+  /// Yıllık kural sistem tekrarıyla kurulabilir mi: hedef ay/gün bilinmeli
+  /// ve 29 Şubat olmamalı.
+  static bool _yearlyRepeats(RecurrenceRule rule, DateTime? anchor) {
+    final month = rule.month ?? anchor?.month;
+    final day = rule.dayOfMonth ?? anchor?.day;
+    if (month == null || day == null) return false;
+    return !(month == DateTime.february && day == 29);
   }
 
   /// Android BigText görünümünde listelenen en fazla açık madde sayısı.
@@ -581,7 +601,8 @@ class NotificationService implements NotificationSync {
       body: body,
       scheduledDate: scheduled,
       details: details,
-      matchDateTimeComponents: reminderRepeatComponents(r.recurrence),
+      matchDateTimeComponents:
+          reminderRepeatComponents(r.recurrence, anchor: r.remindAt),
       payload: ReminderPayload(r.id).encode(),
       recurrence: jsonEncode(r.recurrence.toJson()),
       subtasks: bigText,

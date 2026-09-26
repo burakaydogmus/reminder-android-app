@@ -13,6 +13,7 @@ abstract final class RecurrenceSheetKeys {
   static const decrement = Key('recurrenceSheet.interval.decrement');
   static const increment = Key('recurrenceSheet.interval.increment');
   static const intervalLabel = Key('recurrenceSheet.interval.label');
+  static const yearNote = Key('recurrenceSheet.yearNote');
   static const until = Key('recurrenceSheet.until');
   static const clearUntil = Key('recurrenceSheet.until.clear');
   static const preview = Key('recurrenceSheet.preview');
@@ -21,12 +22,14 @@ abstract final class RecurrenceSheetKeys {
 }
 
 /// Segments of the Tekrar sheet (§3.3.4). "Özel" is every N ≥ 2 days;
-/// Günlük is every day.
+/// Günlük is every day. "Yıllık" repeats on the reminder's own month and day
+/// (29 February → 28 February in non-leap years).
 enum RecurrenceMode {
   none,
   daily,
   weekly,
   monthly,
+  yearly,
   custom;
 
   String labelIn(AppLocalizations l10n) => switch (this) {
@@ -34,6 +37,7 @@ enum RecurrenceMode {
         daily => l10n.recurrenceModeDaily,
         weekly => l10n.recurrenceModeWeekly,
         monthly => l10n.recurrenceModeMonthly,
+        yearly => l10n.recurrenceModeYearly,
         custom => l10n.recurrenceModeCustom,
       };
 
@@ -42,6 +46,7 @@ enum RecurrenceMode {
         RecurrenceFrequency.daily => rule.interval == 1 ? daily : custom,
         RecurrenceFrequency.weekly => weekly,
         RecurrenceFrequency.monthly => monthly,
+        RecurrenceFrequency.yearly => yearly,
       };
 }
 
@@ -115,6 +120,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
   late Set<int> _weekdays;
   late int _weeks;
   late int _months;
+  late int _years;
   late int _days;
   late int _dayOfMonth;
   DateTime? _until;
@@ -130,6 +136,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
         : {widget.anchor.weekday};
     _weeks = weekly ? r.interval : 1;
     _months = r.frequency == RecurrenceFrequency.monthly ? r.interval : 1;
+    _years = r.frequency == RecurrenceFrequency.yearly ? r.interval : 1;
     _days = _mode == RecurrenceMode.custom ? r.interval : 2;
     _dayOfMonth = r.dayOfMonth ?? widget.anchor.day;
     _until = r.until;
@@ -145,6 +152,11 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             interval: _months,
             until: _until,
           ),
+        // Month and day come from the anchor, so the series always follows
+        // the reminder's own date (a 29 February anchor fires on 28 February
+        // in non-leap years).
+        RecurrenceMode.yearly =>
+          RecurrenceRule.yearly(interval: _years, until: _until),
         RecurrenceMode.custom =>
           RecurrenceRule.daily(interval: _days, until: _until),
       };
@@ -242,22 +254,26 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
           ],
           if (_mode == RecurrenceMode.weekly ||
               _mode == RecurrenceMode.monthly ||
+              _mode == RecurrenceMode.yearly ||
               _mode == RecurrenceMode.custom) ...[
             const SizedBox(height: KorSpacing.s4),
             _IntervalStepper(
               label: switch (_mode) {
                 RecurrenceMode.weekly => l10n.recurrenceWeekly(_weeks),
                 RecurrenceMode.monthly => l10n.recurrenceEveryMonth(_months),
+                RecurrenceMode.yearly => l10n.recurrenceYearly(_years),
                 _ => l10n.recurrenceDaily(_days),
               },
               canDecrement: switch (_mode) {
                 RecurrenceMode.weekly => _weeks > 1,
                 RecurrenceMode.monthly => _months > 1,
+                RecurrenceMode.yearly => _years > 1,
                 _ => _days > 2,
               },
               canIncrement: switch (_mode) {
                 RecurrenceMode.weekly => _weeks < RecurrenceRule.maxInterval,
                 RecurrenceMode.monthly => _months < RecurrenceRule.maxInterval,
+                RecurrenceMode.yearly => _years < RecurrenceRule.maxInterval,
                 _ => _days < RecurrenceRule.maxInterval,
               },
               onChanged: (delta) => setState(() {
@@ -266,6 +282,8 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
                     _weeks += delta;
                   case RecurrenceMode.monthly:
                     _months += delta;
+                  case RecurrenceMode.yearly:
+                    _years += delta;
                   default:
                     _days += delta;
                 }
@@ -281,6 +299,16 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
                   : l10n.recurrenceMonthDay(
                       RecurrenceText.dayOfMonthLabel(_dayOfMonth, l10n),
                     ),
+              style: muted,
+            ),
+          if (_mode == RecurrenceMode.yearly)
+            Text(
+              anchor.month == DateTime.february && anchor.day == 29
+                  ? l10n.recurrenceYearLeapDay
+                  : l10n.recurrenceYearDay(
+                      KorFormat.pattern(l10n.dateFormatDayMonth, anchor, l10n),
+                    ),
+              key: RecurrenceSheetKeys.yearNote,
               style: muted,
             ),
           if (_mode != RecurrenceMode.none) ...[

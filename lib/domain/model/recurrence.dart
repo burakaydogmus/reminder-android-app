@@ -13,6 +13,10 @@ enum RecurrenceFrequency {
 
   /// Her [RecurrenceRule.interval] ayda bir, ayın belirli gününde.
   monthly,
+
+  /// Her [RecurrenceRule.interval] yılda bir, yılın belirli ay/gününde
+  /// ("Her yıl", "2 yılda bir").
+  yearly,
 }
 
 /// Bir hatırlatıcının tekrar kuralı (saf Dart, değer tipi).
@@ -22,8 +26,8 @@ enum RecurrenceFrequency {
 /// `DateTime` alanlarıyla yapılır (`DateTime(y, m, d + n, h, min)`), `Duration`
 /// eklenmez: yaz saati geçişinde 09:00 yine 09:00 kalır.
 ///
-/// Aralıklı kurallar (`interval > 1`) `anchor`'dan sayılır: gün/hafta/ay
-/// dizisi `anchor`'ın günü/haftası (Pazartesi başlangıçlı)/ayıyla başlar.
+/// Aralıklı kurallar (`interval > 1`) `anchor`'dan sayılır: gün/hafta/ay/yıl
+/// dizisi `anchor`'ın günü/haftası (Pazartesi başlangıçlı)/ayı/yılıyla başlar.
 /// Tamamlanınca `remindAt` bir sonraki tekrara ilerlediği için yeni `anchor`
 /// aynı dizinin üzerindedir; faz korunur.
 class RecurrenceRule {
@@ -31,6 +35,7 @@ class RecurrenceRule {
     required this.frequency,
     this.interval = 1,
     this.weekdays = const [],
+    this.month,
     this.dayOfMonth,
     this.until,
   });
@@ -84,6 +89,27 @@ class RecurrenceRule {
         until: _dateOnly(until),
       );
 
+  /// Her [interval] yılda bir, [month] ayının [dayOfMonth]. günü. İkisi de
+  /// `null` bırakılabilir: o zaman `anchor`'ın ayı/günü kullanılır (kural
+  /// hatırlatıcının tarihini izler).
+  ///
+  /// Kısa aylarda gün ayın son gününe kırpılır — yani **29 Şubat'a kurulu
+  /// yıllık kural artık yıl olmayan yıllarda 28 Şubat'ta** çalışır; doğum
+  /// günlerinin kuralıyla (`Birthday.occurrenceInYear`) aynı davranış.
+  factory RecurrenceRule.yearly({
+    int interval = 1,
+    int? month,
+    int? dayOfMonth,
+    DateTime? until,
+  }) =>
+      RecurrenceRule._(
+        frequency: RecurrenceFrequency.yearly,
+        interval: _clampInterval(interval),
+        month: month?.clamp(1, 12),
+        dayOfMonth: dayOfMonth?.clamp(1, 31),
+        until: _dateOnly(until),
+      );
+
   final RecurrenceFrequency frequency;
 
   /// Aralık (≥ 1): "2 haftada bir" için 2.
@@ -92,7 +118,12 @@ class RecurrenceRule {
   /// Haftalık kuralın günleri, sıralı (Pazartesi = 1). Diğer sıklıklarda boş.
   final List<int> weekdays;
 
-  /// Aylık kuralın günü (1–31). Diğer sıklıklarda `null`.
+  /// Yıllık kuralın ayı (1–12); `null` ise `anchor`'ın ayı. Yalnızca
+  /// [RecurrenceFrequency.yearly] kullanır.
+  final int? month;
+
+  /// Aylık kuralın günü (1–31; her zaman dolu) ya da yıllık kuralın ayın
+  /// günü (`null` ise `anchor`'ın günü). Diğer sıklıklarda `null`.
   final int? dayOfMonth;
 
   /// Son tekrar günü (dahil, yalnızca tarih). `null`: bitiş yok.
@@ -106,14 +137,18 @@ class RecurrenceRule {
           frequency: frequency,
           interval: interval,
           weekdays: weekdays,
+          month: month,
           dayOfMonth: dayOfMonth,
           until: _dateOnly(value),
         );
 
   /// Serinin tarihi [date]'e taşınınca ("tüm seri") kuralı yeni güne uyarlar:
   /// tek günlük haftalık kural o güne geçer, çok günlüye gün eklenir; aylık
-  /// kural ayın yeni gününü alır (ay sonu kırpılmış gün aynı kalır). Diğer
-  /// kurallar değişmez. Aralık ve bitiş korunur.
+  /// kural ayın yeni gününü alır (ay sonu kırpılmış gün aynı kalır); yıllık
+  /// kuralın açık ay/günü yeni tarihe geçer (kırpılmış gün — 29 Şubat kuralı
+  /// 28 Şubat'a taşınırsa — aynı kalır), ay/günü `anchor`'dan alan kural
+  /// zaten yeni tarihi izler. Diğer kurallar değişmez. Aralık ve bitiş
+  /// korunur.
   RecurrenceRule alignedTo(DateTime date) {
     switch (frequency) {
       case RecurrenceFrequency.weekly:
@@ -133,6 +168,19 @@ class RecurrenceRule {
           interval: interval,
           until: until,
         );
+      case RecurrenceFrequency.yearly:
+        final m = month ?? date.month;
+        final dom = dayOfMonth ?? date.day;
+        if (m == date.month &&
+            math.min(dom, daysInMonth(date.year, m)) == date.day) {
+          return this;
+        }
+        return RecurrenceRule.yearly(
+          interval: interval,
+          month: date.month,
+          dayOfMonth: date.day,
+          until: until,
+        );
       case RecurrenceFrequency.none:
       case RecurrenceFrequency.daily:
         return this;
@@ -150,6 +198,7 @@ class RecurrenceRule {
       RecurrenceFrequency.daily => _nextDaily(after, anchor),
       RecurrenceFrequency.weekly => _nextWeekly(after, anchor),
       RecurrenceFrequency.monthly => _nextMonthly(after, anchor),
+      RecurrenceFrequency.yearly => _nextYearly(after, anchor),
     };
     if (candidate == null) return null;
     final end = until;
@@ -232,6 +281,31 @@ class RecurrenceRule {
     }
   }
 
+  DateTime _nextYearly(DateTime after, DateTime anchor) {
+    final m = month ?? anchor.month;
+    final dom = dayOfMonth ?? anchor.day;
+    final anchorDay = _epochDay(anchor.year, anchor.month, anchor.day);
+    final start = anchor.year;
+    var k = math.max(0, (after.year - start) ~/ interval - 1);
+    while (true) {
+      final year = start + k * interval;
+      // Kısa ayda ayın son günü: 29 Şubat kuralı artık yıl olmayan yılda
+      // 28 Şubat'ta çalışır (doğum günleriyle aynı davranış).
+      final day = math.min(dom, daysInMonth(year, m));
+      k++;
+      if (_epochDay(year, m, day) < anchorDay) continue;
+      final c = _at(anchor, year, m, day);
+      if (c.isAfter(after)) return c;
+    }
+  }
+
+  /// Yıllık kuralın hedef ay/günü, `null` alanları [anchor]'dan tamamlanmış
+  /// hali; kural yıllık değilse `null`.
+  ({int month, int day})? yearlyTarget(DateTime anchor) =>
+      frequency == RecurrenceFrequency.yearly
+          ? (month: month ?? anchor.month, day: dayOfMonth ?? anchor.day)
+          : null;
+
   /// [year]/[month] ayındaki gün sayısı (artık yıl dahil).
   static int daysInMonth(int year, int month) =>
       DateTime.utc(year, month + 1, 0).day;
@@ -275,6 +349,10 @@ class RecurrenceRule {
       'interval': interval,
       if (frequency == RecurrenceFrequency.weekly) 'weekdays': weekdays,
       if (frequency == RecurrenceFrequency.monthly) 'dayOfMonth': dayOfMonth,
+      if (frequency == RecurrenceFrequency.yearly && month != null)
+        'month': month,
+      if (frequency == RecurrenceFrequency.yearly && dayOfMonth != null)
+        'dayOfMonth': dayOfMonth,
       if (end != null)
         'until': '${end.year.toString().padLeft(4, '0')}-'
             '${end.month.toString().padLeft(2, '0')}-'
@@ -283,6 +361,11 @@ class RecurrenceRule {
   }
 
   /// Toleranslı çözüm: `null`, bilinmeyen sıklık veya bozuk değer → [none].
+  ///
+  /// **Geriye dönük uyumluluk:** bu tolerans bilerek böyle; `yearly`
+  /// bilmeyen **eski bir sürüm** (ya da eski bir yedek okuyucusu) yıllık
+  /// kuralı [none] olarak okur — hatırlatıcı korunur, yalnızca tekrarını
+  /// kaybeder.
   static RecurrenceRule fromJson(Object? json) {
     if (json is! Map) return none;
     try {
@@ -306,6 +389,13 @@ class RecurrenceRule {
             interval: interval,
             until: until,
           );
+        case 'yearly':
+          return RecurrenceRule.yearly(
+            interval: interval,
+            month: (json['month'] as num?)?.toInt(),
+            dayOfMonth: (json['dayOfMonth'] as num?)?.toInt(),
+            until: until,
+          );
       }
     } catch (_) {
       // Bozuk kural: tekrar yok say.
@@ -319,6 +409,7 @@ class RecurrenceRule {
       other.frequency == frequency &&
       other.interval == interval &&
       _listEquals(other.weekdays, weekdays) &&
+      other.month == month &&
       other.dayOfMonth == dayOfMonth &&
       other.until == until;
 
@@ -327,6 +418,7 @@ class RecurrenceRule {
         frequency,
         interval,
         Object.hashAll(weekdays),
+        month,
         dayOfMonth,
         until,
       );
