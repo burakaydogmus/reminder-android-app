@@ -18,6 +18,10 @@ class FakePermissionService implements PermissionService {
   /// State after [requestLocationAlways] (default: always).
   LocationPermissionState alwaysRequestResult = LocationPermissionState.always;
 
+  /// State after [requestCalendar] (default: granted, F8.1).
+  CalendarPermissionState calendarRequestResult =
+      CalendarPermissionState.granted;
+
   final Set<PermissionPrompt> shownPrompts = {};
   final List<String> calls = [];
 
@@ -59,6 +63,13 @@ class FakePermissionService implements PermissionService {
     calls.add('requestLocationAlways');
     snapshot = snapshot.copyWith(location: alwaysRequestResult);
     return alwaysRequestResult;
+  }
+
+  @override
+  Future<CalendarPermissionState> requestCalendar() async {
+    calls.add('requestCalendar');
+    snapshot = snapshot.copyWith(calendar: calendarRequestResult);
+    return calendarRequestResult;
   }
 
   @override

@@ -90,6 +90,56 @@ abstract final class PermissionFlows {
     }
   }
 
+  /// When the user turns "Takvim etkinlikleri" on (F8.1): explains that the
+  /// calendar is only **read**, then asks once. After a denial the system
+  /// prompt is gone, so this opens app settings instead — like every other
+  /// permission here. Returns the resulting state.
+  static Future<CalendarPermissionState> calendar(BuildContext context) async {
+    final controller = PermissionScope.read(context);
+    final service = controller.service;
+    final state = (await controller.refresh()).calendar;
+    if (state == CalendarPermissionState.granted) return state;
+
+    if (state == CalendarPermissionState.notRequested &&
+        await service.shouldShowPrompt(PermissionPrompt.calendar)) {
+      await service.markPromptShown(PermissionPrompt.calendar);
+      if (!context.mounted) return state;
+      final l10n = context.l10n;
+      final ok = await showPermissionSheet(
+        context,
+        icon: Icons.event_available_outlined,
+        title: l10n.permCalendarTitle,
+        body: l10n.permCalendarBody,
+        points: [
+          l10n.permCalendarPoint1,
+          l10n.permCalendarPoint2,
+          l10n.permCalendarPoint3,
+        ],
+        confirmLabel: l10n.permCalendarConfirm,
+        dismissLabel: l10n.permNotNow,
+      );
+      if (!ok) return (await controller.refresh()).calendar;
+    }
+
+    await service.requestCalendar();
+    return (await controller.refresh()).calendar;
+  }
+
+  /// "Düzelt" / "Ayarları aç" for calendar read access (Settings › İzinler).
+  static Future<void> fixCalendar(BuildContext context) async {
+    final controller = PermissionScope.read(context);
+    final state = (await controller.refresh()).calendar;
+    switch (calendarFix(state)) {
+      case PermissionFix.none:
+        break;
+      case PermissionFix.request:
+        await controller.service.requestCalendar();
+      case PermissionFix.openSettings:
+        await controller.service.openAppSettings();
+    }
+    await controller.refresh();
+  }
+
   /// "Düzelt" / "Ayarları aç" for notifications (Settings, Bugün banner).
   static Future<void> fixNotifications(BuildContext context) async {
     final controller = PermissionScope.read(context);

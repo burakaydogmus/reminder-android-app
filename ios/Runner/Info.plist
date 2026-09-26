@@ -90,5 +90,19 @@
 	<string>Konum hatırlatmaları ve haritada konum seçmek için gerekli.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Seçtiğiniz yere yaklaştığınızda hatırlatma göndermek için konum gerekir.</string>
+	<!--
+	  F8.1 device calendar, read only. EventKit has no read-only tier: on
+	  iOS 17+ reading events needs *full* access
+	  (requestFullAccessToEvents → NSCalendarsFullAccessUsageDescription);
+	  the write-only tier cannot read, so
+	  NSCalendarsWriteOnlyAccessUsageDescription is deliberately absent. The
+	  legacy NSCalendarsUsageDescription still covers iOS 15/16
+	  (requestAccess(to: .event)), which the app's deployment target (15.0)
+	  still includes. Localized copies live in {tr,en}.lproj/InfoPlist.strings.
+	-->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.</string>
 </dict>
 </plist>

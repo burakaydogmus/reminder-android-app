@@ -3493,6 +3493,210 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Yarın sabah'**
   String get notifActionTomorrowMorning;
+
+  /// No description provided for @permCalendarTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvimindeki etkinlikleri de görelim'**
+  String get permCalendarTitle;
+
+  /// Pre-permission sheet body for read-only device calendar access (F8.1).
+  ///
+  /// In tr, this message translates to:
+  /// **'Cihazının takvimindeki etkinlikleri Bugün ve Takvim sekmelerinde hatırlatıcılarının yanında gösterelim. Yalnızca okuruz: takvimine hiçbir şey yazılmaz, hiçbir etkinlik değiştirilmez.'**
+  String get permCalendarBody;
+
+  /// No description provided for @permCalendarPoint1.
+  ///
+  /// In tr, this message translates to:
+  /// **'Etkinlikler yalnızca bu cihazda okunur'**
+  String get permCalendarPoint1;
+
+  /// No description provided for @permCalendarPoint2.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvimine hiçbir şey yazılmaz'**
+  String get permCalendarPoint2;
+
+  /// No description provided for @permCalendarPoint3.
+  ///
+  /// In tr, this message translates to:
+  /// **'İstediğin zaman kapatabilirsin'**
+  String get permCalendarPoint3;
+
+  /// No description provided for @permCalendarConfirm.
+  ///
+  /// In tr, this message translates to:
+  /// **'İzin ver'**
+  String get permCalendarConfirm;
+
+  /// No description provided for @permissionCalendar.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim'**
+  String get permissionCalendar;
+
+  /// No description provided for @permissionCalendarNotRequested.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim etkinlikleri için izin gerekiyor'**
+  String get permissionCalendarNotRequested;
+
+  /// No description provided for @permissionCalendarDenied.
+  ///
+  /// In tr, this message translates to:
+  /// **'İzin verilmedi — takvim etkinlikleri gösterilemiyor'**
+  String get permissionCalendarDenied;
+
+  /// No description provided for @permissionCalendarGranted.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yalnızca okuma izni var'**
+  String get permissionCalendarGranted;
+
+  /// No description provided for @settingsCalendar.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim etkinlikleri'**
+  String get settingsCalendar;
+
+  /// No description provided for @settingsCalendarToggle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim etkinlikleri'**
+  String get settingsCalendarToggle;
+
+  /// Ayarlar > Takvim etkinlikleri switch subtitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Cihazının takvimindeki etkinlikler Bugün ve Takvim\'de görünür. Yalnızca okunur.'**
+  String get settingsCalendarToggleHint;
+
+  /// No description provided for @settingsCalendarPickerTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Gösterilecek takvimler'**
+  String get settingsCalendarPickerTitle;
+
+  /// No description provided for @settingsCalendarPickerHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'Kapattığın takvimlerin etkinlikleri gösterilmez.'**
+  String get settingsCalendarPickerHint;
+
+  /// No description provided for @settingsCalendarLoading.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvimler okunuyor…'**
+  String get settingsCalendarLoading;
+
+  /// No description provided for @settingsCalendarNone.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bu cihazda takvim bulunamadı.'**
+  String get settingsCalendarNone;
+
+  /// No description provided for @settingsCalendarUnavailable.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim şu an okunamıyor. Daha sonra tekrar dene.'**
+  String get settingsCalendarUnavailable;
+
+  /// No description provided for @settingsCalendarDenied.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim izni verilmedi. Ayarlardan izin verip tekrar dene.'**
+  String get settingsCalendarDenied;
+
+  /// No description provided for @settingsCalendarAllHidden.
+  ///
+  /// In tr, this message translates to:
+  /// **'Her takvimi kapattın, bu yüzden etkinlik gösterilmiyor.'**
+  String get settingsCalendarAllHidden;
+
+  /// No description provided for @calendarEventsSection.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim etkinlikleri'**
+  String get calendarEventsSection;
+
+  /// No description provided for @calendarEventAllDay.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tüm gün'**
+  String get calendarEventAllDay;
+
+  /// No description provided for @calendarEventSpokenAllDay.
+  ///
+  /// In tr, this message translates to:
+  /// **'tüm gün'**
+  String get calendarEventSpokenAllDay;
+
+  /// Screen reader marker that a row is a device calendar event, not a reminder.
+  ///
+  /// In tr, this message translates to:
+  /// **'takvim etkinliği'**
+  String get calendarEventSpoken;
+
+  /// No description provided for @calendarEventSpokenReadOnly.
+  ///
+  /// In tr, this message translates to:
+  /// **'yalnızca okunur'**
+  String get calendarEventSpokenReadOnly;
+
+  /// No description provided for @calendarEventOpenInCalendar.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvimde aç'**
+  String get calendarEventOpenInCalendar;
+
+  /// No description provided for @calendarEventCreateReminder.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcı oluştur'**
+  String get calendarEventCreateReminder;
+
+  /// No description provided for @calendarEventDetailsTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Etkinlik'**
+  String get calendarEventDetailsTitle;
+
+  /// No description provided for @calendarEventNoCalendarApp.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim uygulaması açılamadı.'**
+  String get calendarEventNoCalendarApp;
+
+  /// No description provided for @calendarEventMoreActions.
+  ///
+  /// In tr, this message translates to:
+  /// **'Etkinlik işlemleri'**
+  String get calendarEventMoreActions;
+
+  /// No description provided for @calendarEventCalendarLabel.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvim: {name}'**
+  String calendarEventCalendarLabel(String name);
+
+  /// No description provided for @calendarEventLocationLabel.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yer: {place}'**
+  String calendarEventLocationLabel(String place);
+
+  /// No description provided for @calendarEventWhenLabel.
+  ///
+  /// In tr, this message translates to:
+  /// **'Zaman'**
+  String get calendarEventWhenLabel;
+
+  /// Start and end of a multi-day or all-day span.
+  ///
+  /// In tr, this message translates to:
+  /// **'{start} – {end}'**
+  String calendarEventMultiDay(String start, String end);
 }
 
 class _AppLocalizationsDelegate

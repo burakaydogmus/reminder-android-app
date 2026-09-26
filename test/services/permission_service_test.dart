@@ -59,6 +59,22 @@ class _FakeLocation implements LocationPermissionBackend {
   Future<void> openAppSettings() async => calls.add('appSettings');
 }
 
+/// F8.1 calendar backend (`Permission.calendarFullAccess`).
+class _FakeCalendar implements CalendarPermissionBackend {
+  PermissionStatus current = PermissionStatus.denied;
+  PermissionStatus result = PermissionStatus.granted;
+  final calls = <String>[];
+
+  @override
+  Future<PermissionStatus> status() async => current;
+
+  @override
+  Future<PermissionStatus> request() async {
+    calls.add('request');
+    return current = result;
+  }
+}
+
 void main() {
   group('decision logic', () {
     test('notification state: granted / not requested / denied', () {
@@ -163,17 +179,20 @@ void main() {
   group('PlatformPermissionService', () {
     late _FakeNotifications notifications;
     late _FakeLocation location;
+    late _FakeCalendar calendar;
     late PermissionService service;
 
     PermissionService build() => PlatformPermissionService(
           notifications: notifications,
           location: location,
+          calendar: calendar,
         );
 
     setUp(() {
       SharedPreferences.setMockInitialValues({});
       notifications = _FakeNotifications();
       location = _FakeLocation();
+      calendar = _FakeCalendar();
       service = build();
     });
 

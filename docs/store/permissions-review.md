@@ -1,7 +1,8 @@
 # İzinler ve mağaza politikası incelemesi
 
-Durum: 13 Eylül 2026, `master` @ 4038806. Politika sayfaları bu tarihte kontrol edildi; Google Play
-politikaları sık değişir, başvurudan hemen önce bağlantılar tekrar okunmalı.
+Durum: 26 Eylül 2026 (§9 F8.1 ile eklendi; diğer bölümler 13 Eylül 2026, `master` @ 4038806).
+Politika sayfaları bu tarihlerde kontrol edildi; Google Play politikaları sık değişir, başvurudan
+hemen önce bağlantılar tekrar okunmalı.
 
 ## 1. Android — manifestteki izinler
 
@@ -21,6 +22,8 @@ burada **yok**; release derlemesinden sonra
 | `VIBRATE` | Normal | Bildirim titreşimi | Beyan yok | Tut (kodda `KorHaptics` sistem haptiği kullanıyor; bildirim kanalı için gerekli olup olmadığı *doğrulanmalı*) |
 | `POST_NOTIFICATIONS` | Tehlikeli (API 33+) | Tüm hatırlatmalar | Beyan yok; bağlamsal isteme önerilir (§4) | Tut — zaten bağlamsal |
 | `SCHEDULE_EXACT_ALARM` | Özel erişim (kullanıcı verir) | İzin varsa `AndroidScheduleMode.exactAllowWhileIdle`, yoksa `inexactAllowWhileIdle` (F6.2c) | Beyan yok; Android 14+'da yeni kurulumlarda **varsayılan kapalı** | Tut — inexact yedeği var (§3) |
+| `READ_CALENDAR` | Tehlikeli (çalışma anı) | Cihaz takvimi etkinliklerini Bugün ve Takvim'de göstermek (F8.1, `lib/services/device_calendar_service.dart`) | Beyan yok — Play'in kısıtlı izin listesinde takvim yok (§9) | Tut — kullanıcı açmadan hiç istenmiyor |
+| ~~`WRITE_CALENDAR`~~ | Tehlikeli | — | Yazma yok | **Tanımlanmadı** (§9) |
 | ~~`USE_EXACT_ALARM`~~ | Normal ama **Play kısıtlı** | — | Yalnızca çalar saat/zamanlayıcı veya etkinlik bildirimi gösteren takvim uygulamaları | **Kaldırıldı** (F6.2c, §3) |
 
 Diğer gözlemler:
@@ -210,6 +213,61 @@ Kaynaklar: [App Review Guidelines](https://developer.apple.com/app-store/review/
 - **Privacy manifest:** `ios/Runner/PrivacyInfo.xcprivacy` yok → *doğrulanmalı*.
 - iOS'ta bölge sınırı 20 (uygulama zaten en yeni 20'yi kaydediyor).
 
+## 9. `READ_CALENDAR` (F8.1)
+
+Kaynaklar:
+- [Calendar provider (developer.android.com)](https://developer.android.com/identity/providers/calendar-provider)
+- [Kısıtlı izinler ve hassas veriye erişen API'ler](https://support.google.com/googleplay/android-developer/answer/16558241)
+- [Accessing the event store (Apple, EventKit)](https://developer.apple.com/documentation/eventkit/accessing-the-event-store)
+
+**Ne yapıyor:** Kullanıcı Ayarlar › "Takvim etkinlikleri" anahtarını açarsa cihazın takvimindeki
+etkinlikler Bugün ve Takvim gündeminde salt-okunur satırlar olarak gösteriliyor. Etkinlikler
+yalnızca okunuyor; hiçbir kod yolu cihaz takvimine yazamıyor (`DeviceCalendarPlatform` seam'inde
+yazma metodu **yok**).
+
+**Gerekçe (Play beyan metni taslağı, İngilizce):**
+
+> Hatırlatıcı can show the events already in the user's device calendar alongside their reminders,
+> so the Today and Calendar screens are a single view of the day. The feature is off by default and
+> the permission is requested only when the user turns it on in Settings. The app reads events
+> only; it never creates, edits or deletes calendar data, and `WRITE_CALENDAR` is not declared.
+> Events are read on the device and never sent anywhere.
+
+**Play politikası durumu:** Takvim izinleri, 26 Eylül 2026'da kontrol edilen kısıtlı izin
+listesinde (SMS/arama kaydı, arka plan konumu, geniş Fotoğraf/Video, `MANAGE_EXTERNAL_STORAGE`,
+`QUERY_ALL_PACKAGES`, Erişilebilirlik, `REQUEST_INSTALL_PACKAGES`, vücut sensörleri, Health
+Connect, VpnService, `USE_EXACT_ALARM`, `USE_FULL_SCREEN_INTENT`, yaş sinyalleri) **yok**; 27 Ocak
+2027'de yürürlüğe girecek önizleme sayfası da takvimden söz etmiyor. Yani **beyan formu
+gerekmiyor**; en az kapsam ilkesi ve Data safety beyanı geçerli (bkz.
+[`play-data-safety.md`](play-data-safety.md)). Başvuru öncesi liste *tekrar okunmalı*.
+
+**Neden `WRITE_CALENDAR` yok:** Kullanılan eklenti (`device_calendar_plus`) "tam erişim" izin
+isteğinde manifestte hem `READ_CALENDAR` hem `WRITE_CALENDAR` bekliyor. Bu yüzden eklentinin kendi
+izin çağrıları **kullanılmıyor**; izin projenin `PermissionService`'inden `permission_handler`
+(`Permission.calendarFullAccess`) ile isteniyor ve permission_handler yalnızca manifestte tanımlı
+izinleri istiyor (`PermissionUtils.getManifestNames`). Eklentinin okuma uçları da zaten yalnızca
+`READ_CALENDAR`'ı kontrol ediyor (`PermissionGates.readAccessFailure`). Sonuç: hem çalışma anı
+isteği hem manifest salt-okuma. Bu bağ eklenti yükseltmelerinde *doğrulanmalı*.
+
+**iOS:** EventKit'te salt-okuma katmanı yok — okumak için *tam erişim* gerekiyor. `Info.plist`'e
+eklenen anahtarlar:
+
+- `NSCalendarsFullAccessUsageDescription` — iOS 17+ (`requestFullAccessToEvents`). Okuma için
+  gereken anahtar bu.
+- `NSCalendarsUsageDescription` — iOS 16 ve altı (`requestAccess(to: .event)`). Uygulamanın
+  minimumu iOS 15 olduğu için **tutuluyor**; minimum 17'ye çıkarsa kaldırılabilir.
+- `NSCalendarsWriteOnlyAccessUsageDescription` — **bilinçli olarak eklenmedi.** Write-only katman
+  okuma yapamaz; eklenmesi kullanıcının okunamayan bir katmanı vermesine yol açardı.
+
+Metinler Türkçe/İngilizce `InfoPlist.strings` dosyalarında da var (F6.1 kalıbı); Podfile
+`PERMISSION_EVENTS=1` ve `PERMISSION_EVENTS_FULL_ACCESS=1` tanımlıyor. App Review notuna özelliğin
+Ayarlar'dan açıldığı ve yazma yapmadığı yazılmalı (§7 ile aynı mantık).
+
+**Kullanıcı deneyimi:** İzin istenmeden önce açıklama sayfası gösteriliyor ("Takvimindeki
+etkinlikleri de görelim… Yalnızca okuruz: takvimine hiçbir şey yazılmaz"). İzin verilmezse anahtar
+kapalı kalıyor ve Ayarlar'da ne yapılacağı yazıyor; izin sonradan geri alınırsa anahtar
+kendiliğinden kapanıyor, boş bölüm kalmıyor.
+
 ## 8. Öncelikli yapılacaklar
 
 Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar olarak ele alınmalı.
@@ -228,3 +286,6 @@ Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar ol
 | 10 | Orta | iOS: `PrivacyInfo.xcprivacy` gerekliliğini doğrula; İngilizce `InfoPlist.strings`, "sen" hitabı | Kod (iOS) | F6.1 ile |
 | 11 | Orta | Places özelliği kalacaksa: Google haritası/atıf/saklama kurallarına göre yeniden tasarım, yoksa kaldır | Kod | |
 | 12 | Düşük | `VIBRATE` gerekliliğini ve `dataExtractionRules` davranışını doğrula | Doğrulama | |
+| 13 | Orta | F8.1: birleştirilmiş manifestte `WRITE_CALENDAR`'ın **olmadığını** doğrula (eklenti kendi manifestinde izin bildirmiyor, ama yükseltmede değişebilir) | Doğrulama | §9 |
+| 14 | Orta | F8.1: cihazda izin akışını dene (Android 14+, iOS 17 tam erişim ve iOS 15/16 eski anahtar) | Cihaz testi | §9; Windows'ta doğrulanamaz |
+| 15 | Düşük | `device_calendar_plus` 0.x → 1.0 çıkınca sürümü yükselt ve tekrarlayan etkinlik hatalarının (upstream #173, #163) düzelip düzelmediğini kontrol et | Bağımlılık | pre-1.0 |
