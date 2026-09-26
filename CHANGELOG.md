@@ -18,6 +18,26 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **"Tamamlandıktan sonra" tekrar:** Tekrar sayfasına **Tekrar ölçütü** seçimi geldi —
+  *Takvime göre* (bugüne kadarki davranış: tarihler sabit, geç tamamlamak sıradakini
+  kaydırmaz) ya da *Tamamlandıktan sonra*. İkincisinde sıradaki tekrar **tamamladığın
+  günden** sayılır: "çarşafları yıkadıktan 14 gün sonra". 10:00'a kurulu 14 günlük bir
+  hatırlatıcıyı ayın 3'ünde 23:40'ta tamamlarsan sıradakisi 17'si **10:00** olur —
+  hatırlatıcının kendi saati korunur. Gün, hafta, ay ve yıl aralıklarıyla (1–99)
+  çalışıyor, bitiş tarihi de verilebilir. Tamamlamadıkça hatırlatıcı **yerinde kalır ve
+  gecikir** (özelliğin amacı bu); "Hepsini yarına al" tekrarlayanları zaten atlıyor.
+  Bu modda haftanın günleri ve ayın günü anlamsız olduğu için gizlenir; Takvim sayfası
+  **yalnızca mevcut tekrarı** gösterir (ileriki tarihler henüz belli değil, tahmin
+  gösterilmez) ve bildirimi işletim sisteminin kendi tekrarı yerine her tamamlamadan
+  sonra yeniden kurulur.
+  **Geriye dönük uyumluluk:** ölçüt, hatırlatıcının JSON'unda **ek bir alan** olarak
+  saklanır, bu yüzden **bu değişikliği bilmeyen eski bir sürüm** (ya da eski bir yedek
+  okuyucusu) alanı yok sayar: tekrar çalışmaya devam eder ama **takvime göre** — artık
+  tamamlama tarihini takip etmez. Tek istisna *aylık* ölçüt: eski okuyucu ayın gününü
+  beklediği ve bu modda böyle bir gün olmadığı için o hatırlatıcı tekrarını kaybeder
+  ("Tekrar yok" olur); hatırlatıcının kendisi, saati ve maddeleri her durumda korunur.
+  Veritabanı şeması değişmedi (`reminders.recurrence` zaten nullable TEXT), yedek biçimi
+  (v2) aynı kaldı ve kurulu bildirimler yeniden kurulmadı. (F3.1c)
 - **CI'da kalıcı imzalama (kişisel kullanım):** `ANDROID_KEYSTORE_BASE64`,
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` ve `ANDROID_KEY_PASSWORD` gizli
   değişkenleri tanımlıysa Android iş akışı `android/key.properties` dosyasını üretir ve

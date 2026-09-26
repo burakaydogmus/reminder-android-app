@@ -93,6 +93,32 @@ Diğer tüm fazların temeli.
   *Not:* şema değişmedi (`reminders.recurrence` nullable TEXT) ve yedek biçimi v2 kaldı;
   `RecurrenceRule.fromJson` toleransı gereği **yıllık tekrarı tanımayan eski bir sürüm** bu
   hatırlatıcıyı açar ama tekrarını kaybeder (`none`).
+- [x] **F3.1c Tamamlandıktan sonra tekrar** · `feat/completion-recurrence` · *bağımlı: F3.1, F3.1b*
+  Tekrarın **ölçütü** yeni bir sıklık değil, kuralın üstünde bir mod: `RecurrenceAnchor
+  { schedule, completion }`. `RecurrenceRule.afterCompletion(frequency, {interval, until})`
+  gün/hafta/ay/yıl aralıklarıyla geçerli; takvim alanlarını (`weekdays`, `dayOfMonth`,
+  `month`) **hiç almaz** ve `fromJson` bu modda onları düşürür. Sıradaki tekrar
+  `nextAfterCompletion` ile **tamamlama günü + aralık**, saat hatırlatıcının kendi
+  saatinden (10:00'lık bir hatırlatıcı ayın 3'ünde 23:40'ta tamamlanırsa, 14 günlük
+  aralıkla 17'si 10:00 olur); hesap yine takvim alanlarıyla, `Duration` eklenmeden.
+  Tamamlanmadıkça hatırlatıcı yerinde kalıp gecikir — asıl amaç bu; "Hepsini yarına al"
+  onu `movableOverdue`'daki mevcut "tekrarlayanları atla" kuralıyla zaten atlıyor.
+  `nextOccurrence` bu modda `null` döner: takvimde bilinen bir gelecek tarih yok. Bunun
+  iki sonucu bilinçli: **bildirimde sistem tekrarı imkânsız** (`reminderRepeatComponents`
+  → `null`; sıradaki tarih tamamlanınca doğar, olağan "tamamlanınca yeniden kur" yolu
+  halleder) ve **takvim yalnızca mevcut tekrarı gösterir** (`reminderOccurrences`; seriyi
+  ileriye yansıtmak tahmini gerçek gibi sunmak olurdu). Tekrar sayfasında "Tekrar ölçütü"
+  segmenti (Takvime göre / Tamamlandıktan sonra) + tek satırlık açıklama; tamamlama
+  modunda gün/ayın-günü kontrolleri gizli. Özetler iki dilde ("Tamamlandıktan 14 gün
+  sonra" / "14 days after completion").
+  *Not:* şema değişmedi (`reminders.recurrence` nullable TEXT), yedek biçimi v2 kaldı ve
+  bildirim parmak izi (`_ScheduleSpec._version`) 7'de kaldı — ölçüt **ek** bir JSON alanı
+  (`anchor`), takvime bağlı kuralın JSON'u bit bit aynı, saklı hiçbir kural yeni modu
+  taşıyamaz. **Ölçütü tanımayan eski bir sürüm** `anchor` alanını yok sayar: tekrar
+  çalışmaya devam eder ama takvime göre — tamamlama tarihini artık takip etmez (aylık
+  kural istisna: `dayOfMonth` yazılamadığı için eski okuyucuda `none` olur).
+  *Sonraki adım:* hızlı yakalama ayrıştırıcısı bilinçli olarak dokunulmadı — doğal dildeki
+  ifadesi ("yıkadıktan 14 gün sonra") belirsiz ve corpus'lar büyük; ayrı bir madde olmalı.
 - [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [x] **F3.3 Alt görevler / checklist** · `feat/subtasks`

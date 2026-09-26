@@ -12,18 +12,25 @@ abstract final class RecurrenceText {
   /// date adds " · bitiş 31 Ara 2026". English: "Every day", "Every 3
   /// days", "Every Saturday", "Every 2 weeks on Mon, Wed", "Every weekday",
   /// "Monthly on the 17th", "… · until Dec 31, 2026".
+  ///
+  /// A completion-anchored rule (F3.1c) reads "Tamamlandıktan 14 gün sonra" /
+  /// "14 days after completion" instead: its calendar fields are empty and the
+  /// interval counts from the completion, not from a date. An end date is added
+  /// the same way.
   static String summary(RecurrenceRule rule, AppLocalizations l10n) {
     final interval = rule.interval;
-    final base = switch (rule.frequency) {
-      RecurrenceFrequency.none => l10n.recurrenceNone,
-      RecurrenceFrequency.daily => l10n.recurrenceDaily(interval),
-      RecurrenceFrequency.weekly => _weekly(rule, l10n),
-      RecurrenceFrequency.monthly => l10n.recurrenceMonthly(
-          interval,
-          dayOfMonthLabel(rule.dayOfMonth ?? 1, l10n),
-        ),
-      RecurrenceFrequency.yearly => _yearly(rule, l10n),
-    };
+    final base = rule.isCompletionAnchored
+        ? afterCompletion(rule.frequency, interval, l10n)
+        : switch (rule.frequency) {
+            RecurrenceFrequency.none => l10n.recurrenceNone,
+            RecurrenceFrequency.daily => l10n.recurrenceDaily(interval),
+            RecurrenceFrequency.weekly => _weekly(rule, l10n),
+            RecurrenceFrequency.monthly => l10n.recurrenceMonthly(
+                interval,
+                dayOfMonthLabel(rule.dayOfMonth ?? 1, l10n),
+              ),
+            RecurrenceFrequency.yearly => _yearly(rule, l10n),
+          };
     final end = rule.until;
     if (rule.isNone || end == null) return base;
     return l10n.recurrenceUntil(
@@ -31,6 +38,25 @@ abstract final class RecurrenceText {
       KorFormat.pattern(l10n.dateFormatShortYear, end, l10n),
     );
   }
+
+  /// "Tamamlandıktan 14 gün sonra" / "14 days after completion" (F3.1c), also
+  /// used by the Tekrar sheet's interval stepper label.
+  static String afterCompletion(
+    RecurrenceFrequency frequency,
+    int interval,
+    AppLocalizations l10n,
+  ) =>
+      switch (frequency) {
+        RecurrenceFrequency.none => l10n.recurrenceNone,
+        RecurrenceFrequency.daily =>
+          l10n.recurrenceAfterCompletionDays(interval),
+        RecurrenceFrequency.weekly =>
+          l10n.recurrenceAfterCompletionWeeks(interval),
+        RecurrenceFrequency.monthly =>
+          l10n.recurrenceAfterCompletionMonths(interval),
+        RecurrenceFrequency.yearly =>
+          l10n.recurrenceAfterCompletionYears(interval),
+      };
 
   /// "Her yıl" / "2 yılda bir"; a rule with an explicit month **and** day
   /// names it ("Her yıl 14 Şubat" / "Every year on February 14"). A rule that
