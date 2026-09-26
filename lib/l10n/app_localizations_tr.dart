@@ -2056,4 +2056,120 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get notifActionTomorrowMorning => 'Yarın sabah';
+
+  @override
+  String get permCalendarTitle => 'Takvimindeki etkinlikleri de görelim';
+
+  @override
+  String get permCalendarBody =>
+      'Cihazının takvimindeki etkinlikleri Bugün ve Takvim sekmelerinde hatırlatıcılarının yanında gösterelim. Yalnızca okuruz: takvimine hiçbir şey yazılmaz, hiçbir etkinlik değiştirilmez.';
+
+  @override
+  String get permCalendarPoint1 => 'Etkinlikler yalnızca bu cihazda okunur';
+
+  @override
+  String get permCalendarPoint2 => 'Takvimine hiçbir şey yazılmaz';
+
+  @override
+  String get permCalendarPoint3 => 'İstediğin zaman kapatabilirsin';
+
+  @override
+  String get permCalendarConfirm => 'İzin ver';
+
+  @override
+  String get permissionCalendar => 'Takvim';
+
+  @override
+  String get permissionCalendarNotRequested =>
+      'Takvim etkinlikleri için izin gerekiyor';
+
+  @override
+  String get permissionCalendarDenied =>
+      'İzin verilmedi — takvim etkinlikleri gösterilemiyor';
+
+  @override
+  String get permissionCalendarGranted => 'Yalnızca okuma izni var';
+
+  @override
+  String get settingsCalendar => 'Takvim etkinlikleri';
+
+  @override
+  String get settingsCalendarToggle => 'Takvim etkinlikleri';
+
+  @override
+  String get settingsCalendarToggleHint =>
+      'Cihazının takvimindeki etkinlikler Bugün ve Takvim\'de görünür. Yalnızca okunur.';
+
+  @override
+  String get settingsCalendarPickerTitle => 'Gösterilecek takvimler';
+
+  @override
+  String get settingsCalendarPickerHint =>
+      'Kapattığın takvimlerin etkinlikleri gösterilmez.';
+
+  @override
+  String get settingsCalendarLoading => 'Takvimler okunuyor…';
+
+  @override
+  String get settingsCalendarNone => 'Bu cihazda takvim bulunamadı.';
+
+  @override
+  String get settingsCalendarUnavailable =>
+      'Takvim şu an okunamıyor. Daha sonra tekrar dene.';
+
+  @override
+  String get settingsCalendarDenied =>
+      'Takvim izni verilmedi. Ayarlardan izin verip tekrar dene.';
+
+  @override
+  String get settingsCalendarAllHidden =>
+      'Her takvimi kapattın, bu yüzden etkinlik gösterilmiyor.';
+
+  @override
+  String get calendarEventsSection => 'Takvim';
+
+  @override
+  String get calendarEventAllDay => 'Tüm gün';
+
+  @override
+  String get calendarEventSpokenAllDay => 'tüm gün';
+
+  @override
+  String get calendarEventSpoken => 'takvim etkinliği';
+
+  @override
+  String get calendarEventSpokenReadOnly => 'yalnızca okunur';
+
+  @override
+  String get calendarEventOpenInCalendar => 'Takvimde aç';
+
+  @override
+  String get calendarEventCreateReminder => 'Hatırlatıcı oluştur';
+
+  @override
+  String get calendarEventDetailsTitle => 'Etkinlik';
+
+  @override
+  String get calendarEventNoCalendarApp => 'Takvim uygulaması açılamadı.';
+
+  @override
+  String get calendarEventMoreActions => 'Etkinlik işlemleri';
+
+  @override
+  String calendarEventCalendarLabel(String name) {
+    return 'Takvim: $name';
+  }
+
+  @override
+  String calendarEventLocationLabel(String place) {
+    return 'Yer: $place';
+  }
+
+  @override
+  String get calendarEventWhenLabel => 'Zaman';
+
+  @override
+  String calendarEventMultiDay(String start, String end) {
+    return '$start – $end';
+  }
 }

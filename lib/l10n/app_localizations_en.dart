@@ -2098,4 +2098,121 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifActionTomorrowMorning => 'Tomorrow morning';
+
+  @override
+  String get permCalendarTitle => 'Show your calendar events too';
+
+  @override
+  String get permCalendarBody =>
+      'Let\'s show the events from your device calendar next to your reminders in the Today and Calendar tabs. Read only: nothing is ever written to your calendar and no event is changed.';
+
+  @override
+  String get permCalendarPoint1 => 'Events are read on this device only';
+
+  @override
+  String get permCalendarPoint2 => 'Nothing is written to your calendar';
+
+  @override
+  String get permCalendarPoint3 => 'You can turn it off any time';
+
+  @override
+  String get permCalendarConfirm => 'Allow';
+
+  @override
+  String get permissionCalendar => 'Calendar';
+
+  @override
+  String get permissionCalendarNotRequested =>
+      'Calendar events need permission';
+
+  @override
+  String get permissionCalendarDenied =>
+      'Not allowed — calendar events can\'t be shown';
+
+  @override
+  String get permissionCalendarGranted => 'Read-only access granted';
+
+  @override
+  String get settingsCalendar => 'Calendar events';
+
+  @override
+  String get settingsCalendarToggle => 'Calendar events';
+
+  @override
+  String get settingsCalendarToggleHint =>
+      'Events from your device calendar appear in Today and Calendar. Read only.';
+
+  @override
+  String get settingsCalendarPickerTitle => 'Calendars to show';
+
+  @override
+  String get settingsCalendarPickerHint =>
+      'Events from calendars you turn off are not shown.';
+
+  @override
+  String get settingsCalendarLoading => 'Reading calendars…';
+
+  @override
+  String get settingsCalendarNone => 'No calendar was found on this device.';
+
+  @override
+  String get settingsCalendarUnavailable =>
+      'The calendar can\'t be read right now. Try again later.';
+
+  @override
+  String get settingsCalendarDenied =>
+      'Calendar permission was not granted. Allow it in Settings and try again.';
+
+  @override
+  String get settingsCalendarAllHidden =>
+      'You turned every calendar off, so no events are shown.';
+
+  @override
+  String get calendarEventsSection => 'Calendar';
+
+  @override
+  String get calendarEventAllDay => 'All day';
+
+  @override
+  String get calendarEventSpokenAllDay => 'all day';
+
+  @override
+  String get calendarEventSpoken => 'calendar event';
+
+  @override
+  String get calendarEventSpokenReadOnly => 'read only';
+
+  @override
+  String get calendarEventOpenInCalendar => 'Open in calendar';
+
+  @override
+  String get calendarEventCreateReminder => 'Create reminder';
+
+  @override
+  String get calendarEventDetailsTitle => 'Event';
+
+  @override
+  String get calendarEventNoCalendarApp =>
+      'The calendar app could not be opened.';
+
+  @override
+  String get calendarEventMoreActions => 'Event actions';
+
+  @override
+  String calendarEventCalendarLabel(String name) {
+    return 'Calendar: $name';
+  }
+
+  @override
+  String calendarEventLocationLabel(String place) {
+    return 'Location: $place';
+  }
+
+  @override
+  String get calendarEventWhenLabel => 'When';
+
+  @override
+  String calendarEventMultiDay(String start, String end) {
+    return '$start – $end';
+  }
 }
