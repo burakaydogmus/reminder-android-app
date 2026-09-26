@@ -54,6 +54,19 @@ class Reminders extends Table {
   /// Sabitlenmiş (v4, F3.4). Eski satırlar `false` alır.
   BoolColumn get pinned => boolean().withDefault(const Constant(false))();
 
+  /// Bu hatırlatıcıyı oluşturan rutin (v7, F3.7); elle oluşturulanlarda NULL.
+  ///
+  /// **Yabancı anahtar değildir** (kategori kimliği gibi gevşek bağ): yedekten
+  /// geri yükleme hatırlatıcıları rutinlerden ayrı transaction'da yazar ve
+  /// eski bir yedekte rutin hiç olmayabilir; kısıtlama koyulsa böyle bir içe
+  /// aktarma tamamen başarısız olurdu. Bilinmeyen kimlik yalnızca bağın kaybı
+  /// demektir.
+  TextColumn get routineId => text().nullable()();
+
+  /// Hatırlatıcıyı oluşturan rutin adımı (v7, F3.7); [routineId] ile birlikte
+  /// "bu adım zaten uygulanmış" denetimini kesinleştirir.
+  TextColumn get routineItemId => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -133,6 +146,64 @@ class Birthdays extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// `Routine` satırları (v7, F3.7): hazır hatırlatıcı paketleri.
+///
+/// `color_key` `KorColorKey.storageKey`, `icon_key` `CategoryIconKeys`
+/// değeridir (kategorilerle aynı sözlük); ikisi de NULL olabilir, o zaman
+/// arayüz varsayılanı kullanılır. `repeat_rule` otomatik uygulama kuralıdır:
+/// `RecurrenceRule.toJson()` JSON metni, `NULL` = yalnızca elle uygulama.
+/// `created_at` model zamanı biçiminde (ISO metni, duvar saati), `updated_at` /
+/// `deleted_at` depo defter alanları. Rutin yumuşak silinir; sildiği rutinden
+/// oluşmuş **hatırlatıcılara dokunulmaz** (bağ gevşektir).
+@DataClassName('RoutineRow')
+class Routines extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get colorKey => text().nullable()();
+  TextColumn get iconKey => text().nullable()();
+
+  /// Otomatik uygulama kuralı (`RecurrenceRule.toJson()`); `NULL` = tekrar yok.
+  TextColumn get repeatRule => text().nullable()();
+  TextColumn get createdAt => text()();
+  IntColumn get position => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get deletedAt => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// `RoutineItem` satırları (v7, F3.7): rutinin adımları.
+///
+/// `subtasks` tablosuyla aynı desen: birincil anahtar `(routine_id, id)`,
+/// `routine_id` **yabancı anahtarla** `routines.id`'ye bağlı (varsayılan
+/// `NO ACTION` = kısıtla, `PRAGMA foreign_keys` açık), rutinle aynı
+/// transaction'da yazılır ve rutin yumuşak silinince adımları da `deleted_at`
+/// alır. `time_of_day` `HH:MM` metni (`RoutineTime.storage`) ya da NULL
+/// (saatsiz adım); `subtasks` şablon maddelerinin JSON listesi
+/// (`Subtask.toJson()`), NULL = madde yok. Adımın kendi `created_at` alanı
+/// yoktur: rutinle birlikte yazılır, tıpkı `subtasks` satırları gibi.
+@DataClassName('RoutineItemRow')
+class RoutineItems extends Table {
+  TextColumn get routineId => text().references(Routines, #id)();
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+
+  /// Günün saati, `HH:MM`; NULL = saatsiz adım.
+  TextColumn get timeOfDay => text().nullable()();
+  TextColumn get categoryId => text()();
+  IntColumn get priority => integer().withDefault(const Constant(0))();
+
+  /// Şablon maddeleri, JSON dizi metni; NULL = madde yok.
+  TextColumn get subtasks => text().nullable()();
+  IntColumn get position => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get deletedAt => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {routineId, id};
+}
+
 /// Tek satırlık `AppSettings` tablosu (`id` her zaman
 /// [AppDatabase.settingsRowId]).
 @DataClassName('SettingsRow')
@@ -158,7 +229,16 @@ class AppMeta extends Table {
 }
 
 @DriftDatabase(
-  tables: [Reminders, Subtasks, Categories, Birthdays, Settings, AppMeta],
+  tables: [
+    Reminders,
+    Subtasks,
+    Categories,
+    Routines,
+    RoutineItems,
+    Birthdays,
+    Settings,
+    AppMeta,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// [executor] verilmezse cihazdaki `reminder.sqlite` dosyası açılır
@@ -173,7 +253,7 @@ class AppDatabase extends _$AppDatabase {
   static const prefsMigrationKey = 'prefs_migration_v1';
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -208,7 +288,15 @@ class AppDatabase extends _$AppDatabase {
             // + nullable `birth_year`. Nöbetçi yıl 4 "bilinmiyor" olur.
             await migrateBirthdayYear(m);
           }
-          if (to > 6) {
+          if (from < 7) {
+            // v7 (F3.7): rutinler + rutin adımları tabloları ve
+            // hatırlatıcıdaki gevşek rutin bağı. Eski satırlarda bağ NULL.
+            await m.createTable(routines);
+            await m.createTable(routineItems);
+            await m.addColumn(reminders, reminders.routineId);
+            await m.addColumn(reminders, reminders.routineItemId);
+          }
+          if (to > 7) {
             throw UnsupportedError('No migration from v$from to v$to');
           }
         },

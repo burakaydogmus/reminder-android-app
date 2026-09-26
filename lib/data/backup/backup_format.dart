@@ -5,6 +5,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 
 /// Why a backup file was rejected as a whole. Nothing is applied in any of
 /// these cases.
@@ -19,7 +20,7 @@ enum BackupErrorKind {
   unsupportedVersion,
 
   /// Right format, broken structure (missing/invalid `version`,
-  /// `reminders`, `birthdays` or `categories` not a list).
+  /// `reminders`, `birthdays`, `categories` or `routines` not a list).
   invalid,
 }
 
@@ -46,12 +47,14 @@ class BackupDocument {
     required this.reminders,
     required this.birthdays,
     this.categories = const [],
+    this.routines = const [],
     this.settings,
     this.exportedAt,
     this.appVersion,
     this.skippedReminders = 0,
     this.skippedBirthdays = 0,
     this.skippedCategories = 0,
+    this.skippedRoutines = 0,
     this.settingsSkipped = false,
   });
 
@@ -66,6 +69,10 @@ class BackupDocument {
   /// reminders already point to them.
   final List<ReminderCategory> categories;
 
+  /// Routines (F3.7) in the file's order; empty for files written before
+  /// routines existed (the key is optional, see [BackupFormat]).
+  final List<Routine> routines;
+
   /// `null` when the file has no (readable) `settings` object.
   final AppSettings? settings;
   final DateTime? exportedAt;
@@ -73,6 +80,7 @@ class BackupDocument {
   final int skippedReminders;
   final int skippedBirthdays;
   final int skippedCategories;
+  final int skippedRoutines;
 
   /// `settings` was present but could not be read.
   final bool settingsSkipped;
@@ -82,10 +90,12 @@ class BackupDocument {
       skippedReminders +
       skippedBirthdays +
       skippedCategories +
+      skippedRoutines +
       (settingsSkipped ? 1 : 0);
 }
 
-/// Versioned JSON backup (F2.2; version 2 adds `categories`, F4.3):
+/// Versioned JSON backup (F2.2; version 2 adds `categories`, F4.3, and
+/// `routines`, F3.7):
 ///
 /// ```json
 /// {
@@ -96,6 +106,7 @@ class BackupDocument {
 ///   "reminders": [Reminder.toJson(), ...],
 ///   "birthdays": [Birthday.toJson(), ...],
 ///   "categories": [ReminderCategory.toJson(), ...],
+///   "routines": [Routine.toJson(), ...],
 ///   "settings": AppSettings.toJson()
 /// }
 /// ```
@@ -103,6 +114,17 @@ class BackupDocument {
 /// Version 2 (F4.3) bumped the version because a version 1 reader would drop
 /// the categories and show user-category reminders as "Diğer". Version 1
 /// files are still read: their "Diğer + özel ad" labels become categories.
+///
+/// **Routines (F3.7) did not bump the version.** `routines` is an optional
+/// top-level key and a reminder's `routineId` / `routineItemId` are optional
+/// fields, so the rule above applies: an older reader drops what it does not
+/// know and still restores every reminder, birthday, category and setting
+/// correctly — only the routines (and the link) are lost. Bumping to 3 would
+/// have made an older build reject the **whole** file
+/// ([BackupErrorKind.unsupportedVersion], "update the app"), which is a worse
+/// outcome for a feature nothing else depends on. Routines are self-contained:
+/// no reminder needs its routine to be readable (the link is loose, exactly
+/// like a category id that no longer exists).
 ///
 /// Items are the models' own `toJson`/`fromJson`, so model fields added later
 /// are exported and imported without touching this file (model times keep
@@ -123,6 +145,7 @@ abstract final class BackupFormat {
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
     List<ReminderCategory> categories = const [],
+    List<Routine> routines = const [],
     required AppSettings settings,
     required DateTime exportedAt,
     String? appVersion,
@@ -135,6 +158,7 @@ abstract final class BackupFormat {
       'reminders': [for (final r in reminders) r.toJson()],
       'birthdays': [for (final b in birthdays) b.toJson()],
       'categories': [for (final c in categories) c.toJson()],
+      'routines': [for (final r in routines) r.toJson()],
       'settings': settings.toJson(),
     };
   }
@@ -143,6 +167,7 @@ abstract final class BackupFormat {
     required List<Reminder> reminders,
     required List<Birthday> birthdays,
     List<ReminderCategory> categories = const [],
+    List<Routine> routines = const [],
     required AppSettings settings,
     required DateTime exportedAt,
     String? appVersion,
@@ -151,6 +176,7 @@ abstract final class BackupFormat {
       reminders: reminders,
       birthdays: birthdays,
       categories: categories,
+      routines: routines,
       settings: settings,
       exportedAt: exportedAt,
       appVersion: appVersion,
@@ -226,6 +252,13 @@ abstract final class BackupFormat {
       categories = labelled.created;
     }
 
+    final routines = _decodeList(
+      decoded['routines'],
+      'routines',
+      Routine.fromJson,
+      (r) => r.id,
+    );
+
     AppSettings? settings;
     var settingsSkipped = false;
     final rawSettings = decoded['settings'];
@@ -248,12 +281,14 @@ abstract final class BackupFormat {
       reminders: reminderItems,
       birthdays: birthdays.items,
       categories: categories,
+      routines: RoutineList.normalized(routines.items),
       settings: settings,
       exportedAt: exportedAt is String ? DateTime.tryParse(exportedAt) : null,
       appVersion: appVersion is String ? appVersion : null,
       skippedReminders: reminders.skipped,
       skippedBirthdays: birthdays.skipped,
       skippedCategories: storedCategories.skipped,
+      skippedRoutines: routines.skipped,
       settingsSkipped: settingsSkipped,
     );
   }

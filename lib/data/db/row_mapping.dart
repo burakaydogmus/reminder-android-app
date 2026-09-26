@@ -7,6 +7,7 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
 /// Domain modelleri ↔ Drift satırları. Senkron alanları (`position`,
@@ -48,6 +49,8 @@ ReminderRow reminderToRow(
     recurrence: recurrenceToStored(r.recurrence),
     priority: ReminderPriority.normalize(r.priority),
     pinned: r.pinned,
+    routineId: r.routineId,
+    routineItemId: r.routineItemId,
   );
 }
 
@@ -92,6 +95,8 @@ Reminder reminderFromRow(
     subtasks: SubtaskList.normalized(subtasks.map(subtaskFromRow)),
     priority: ReminderPriority.normalize(row.priority),
     pinned: row.pinned,
+    routineId: row.routineId,
+    routineItemId: row.routineItemId,
   );
 }
 
@@ -121,6 +126,92 @@ Subtask subtaskFromRow(SubtaskRow row) {
     isDone: row.isDone,
     position: row.position,
   );
+}
+
+/// Rutin satırı (v7, F3.7); `position` listedeki sıra. Adımlar ayrı tabloda
+/// (`routine_items`), depo tarafından aynı transaction'da yazılır.
+RoutineRow routineToRow(
+  Routine r, {
+  required int position,
+  required int updatedAt,
+  int? deletedAt,
+}) {
+  return RoutineRow(
+    id: r.id,
+    name: r.name,
+    colorKey: r.colorKey,
+    iconKey: r.iconKey,
+    repeatRule: recurrenceToStored(r.repeat),
+    createdAt: toStoredDateTime(r.createdAt),
+    position: position,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+  );
+}
+
+/// Rutin satırı ve (sıralı, silinmemiş) adım satırları → model.
+Routine routineFromRow(
+  RoutineRow row, {
+  List<RoutineItemRow> items = const [],
+}) {
+  return Routine(
+    id: row.id,
+    name: row.name,
+    colorKey: row.colorKey,
+    iconKey: row.iconKey,
+    repeat: recurrenceFromStored(row.repeatRule),
+    createdAt: fromStoredDateTime(row.createdAt),
+    items: RoutineItemList.normalized(items.map(routineItemFromRow)),
+    position: row.position,
+  );
+}
+
+/// Rutin adımı satırı (v7, F3.7); maddeler JSON metni olarak saklanır
+/// (madde listesi adımın kendi içeriğidir, ayrı tablo tutulmaz).
+RoutineItemRow routineItemToRow(
+  RoutineItem item, {
+  required String routineId,
+  required int position,
+  required int updatedAt,
+  int? deletedAt,
+}) {
+  return RoutineItemRow(
+    routineId: routineId,
+    id: item.id,
+    title: item.title,
+    timeOfDay: item.time?.storage,
+    categoryId: item.categoryId,
+    priority: ReminderPriority.normalize(item.priority),
+    subtasks: item.subtasks.isEmpty
+        ? null
+        : jsonEncode([for (final s in item.subtasks) s.toJson()]),
+    position: position,
+    updatedAt: updatedAt,
+    deletedAt: deletedAt,
+  );
+}
+
+RoutineItem routineItemFromRow(RoutineItemRow row) {
+  return RoutineItem(
+    id: row.id,
+    title: row.title,
+    time: RoutineTime.tryParse(row.timeOfDay),
+    categoryId: row.categoryId,
+    priority: ReminderPriority.normalize(row.priority),
+    subtasks: routineItemSubtasksFromStored(row.subtasks),
+    position: row.position,
+  );
+}
+
+/// Adımın maddeleri: JSON dizi metni; `NULL` veya bozuk metin → boş liste
+/// (adım atılmaz, maddesiz yüklenir).
+List<Subtask> routineItemSubtasksFromStored(String? value) {
+  if (value == null) return const [];
+  try {
+    return Subtask.listFromJson(jsonDecode(value));
+  } on FormatException {
+    return const [];
+  }
 }
 
 /// Kategori satırı (v5, F4.3); `position` katalogdaki sıra.

@@ -1,11 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/domain/reminder_completion.dart';
+import 'package:reminder/domain/routine_apply.dart';
 import 'package:reminder/domain/reminder_sorting.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/schedule_sync.dart';
@@ -23,6 +26,11 @@ class ReminderState {
   CategoryCatalog get categories => _categories ?? CategoryCatalog.builtIns;
   final CategoryCatalog? _categories;
 
+  /// Rutinler (F3.7), görüntüleme sırasıyla. Kategoriler gibi yalnızca
+  /// rutinler değişince yeni bir liste nesnesi olur.
+  List<Routine> get routines => _routines ?? const [];
+  final List<Routine>? _routines;
+
   /// Tarihe bağlı getter'ların (ör. [upcomingBirthdays]) kullandığı saat.
   /// Testlerde sabit bir zaman verilebilir; varsayılan `DateTime.now`.
   final DateTime Function() clock;
@@ -32,8 +40,10 @@ class ReminderState {
     required this.birthdays,
     required this.settings,
     CategoryCatalog? categories,
+    List<Routine>? routines,
     this.clock = DateTime.now,
-  }) : _categories = categories;
+  })  : _categories = categories,
+        _routines = routines;
 
   List<Reminder> get active =>
       reminders.where((r) => !r.isDone).toList(growable: false);
@@ -61,12 +71,14 @@ class ReminderState {
     List<Birthday>? birthdays,
     AppSettings? settings,
     CategoryCatalog? categories,
+    List<Routine>? routines,
   }) {
     return ReminderState(
       reminders: reminders ?? this.reminders,
       birthdays: birthdays ?? this.birthdays,
       settings: settings ?? this.settings,
       categories: categories ?? this.categories,
+      routines: routines ?? this.routines,
       clock: clock,
     );
   }
@@ -79,9 +91,11 @@ class ReminderCubit extends Cubit<ReminderState> {
     required GeofenceSync geofence,
     required HomeWidgetSync homeWidget,
     DateTime Function() now = DateTime.now,
+    String Function()? newId,
   })  : _geofence = geofence,
         _homeWidget = homeWidget,
         _now = now,
+        _newId = newId ?? const Uuid().v4,
         _schedules = ScheduleSync(
           notifications: _notifications,
           geofence: geofence,
@@ -96,6 +110,10 @@ class ReminderCubit extends Cubit<ReminderState> {
 
   /// Saat kaynağı (testlerde sabitlenir); yayınlanan her duruma aktarılır.
   final DateTime Function() _now;
+
+  /// Cubit'in kendi oluşturduğu kayıtların kimlik üreteci (rutin uygulama,
+  /// F3.7); testlerde sabitlenir.
+  final String Function() _newId;
 
   final ReminderRepository _repository;
   final NotificationService _notifications;
@@ -116,12 +134,18 @@ class ReminderCubit extends Cubit<ReminderState> {
     final birthdays = await _repository.loadBirthdays();
     final settings = await _repository.loadSettings();
     final loaded = CategoryCatalog(await _repository.loadCategories());
+    final loadedRoutines = RoutineList.normalized(
+      await _repository.loadRoutines(),
+    );
     emit(ReminderState(
       reminders: reminders,
       birthdays: birthdays,
       settings: settings,
       // Aynı içerik → aynı nesne (select ile okuyanlar yeniden çizilmez).
       categories: loaded == state.categories ? state.categories : loaded,
+      routines: _sameRoutines(loadedRoutines, state.routines)
+          ? state.routines
+          : loadedRoutines,
       clock: _now,
     ));
     await _schedules.syncAll(
@@ -305,6 +329,95 @@ class ReminderCubit extends Cubit<ReminderState> {
         categories: state.categories,
       );
 
+  /// Rutini (F3.7) ekler (yeni kimlik → listenin sonuna) veya aynı kimlikli
+  /// rutini yerinde günceller. Oluşturulmuş hatırlatıcılara dokunulmaz: rutini
+  /// düzenlemek geçmiş uygulamaları **geri dönük değiştirmez**.
+  Future<void> saveRoutine(Routine routine) async {
+    await _saveRoutines(state.routines.saved(routine));
+  }
+
+  /// Rutini siler (depoda yumuşak silme). Bu rutinden oluşmuş hatırlatıcılar
+  /// **olduğu gibi kalır** (bağ gevşektir, bkz. `Reminder.routineId`).
+  Future<void> deleteRoutine(String id) async {
+    if (state.routines.byId(id) == null) return;
+    await _saveRoutines(state.routines.removed(id));
+  }
+
+  /// Rutinleri [orderedIds] sırasına dizer; listede olmayanlar mevcut
+  /// sıralarıyla sona eklenir, bilinmeyen kimlikler yok sayılır.
+  Future<void> reorderRoutines(List<String> orderedIds) async {
+    final byId = {for (final r in state.routines) r.id: r};
+    final next = <Routine>[
+      for (final id in orderedIds)
+        if (byId.remove(id) case final r?) r,
+      ...state.routines.where((r) => byId.containsKey(r.id)),
+    ];
+    await _saveRoutines(RoutineList.inOrder(next));
+  }
+
+  /// [from] konumundaki rutini [to] konumuna taşır (0 tabanlı, taşıma sonrası
+  /// dizin — `ReorderableListView.onReorderItem` ile aynı).
+  Future<void> moveRoutine(int from, int to) async {
+    await _saveRoutines(state.routines.reordered(from, to));
+  }
+
+  Future<void> _saveRoutines(List<Routine> routines) async {
+    final next = RoutineList.inOrder(routines);
+    if (_sameRoutines(next, state.routines)) return;
+    emit(state.copyWith(routines: next));
+    await _repository.saveRoutines(next);
+  }
+
+  /// [routine] rutininin [date] gününe uygulanma planı (saf; durumdaki
+  /// hatırlatıcılara bakar). Arayüz aynı planı önizleme için kullanır.
+  RoutineApplyPlan planRoutine(Routine routine, {required DateTime date}) =>
+      RoutineApplyPlan.from(
+        routine: routine,
+        date: date,
+        existing: state.reminders,
+      );
+
+  /// Rutini uygular: adımlarından **gerçek hatırlatıcılar** oluşturur (ve
+  /// [RoutineApplyMode.replaceExisting] ile bu rutine bağlı olanları
+  /// günceller), sonra olağan yoldan kaydeder ve `ScheduleSync.syncAll`
+  /// çalıştırır — bildirimler, widget'lar ve takvim kendiliğinden güncellenir.
+  ///
+  /// Plan uygulama anında yeniden kurulur, yani arayüzün gösterdiği
+  /// önizlemeden sonra durum değişse bile kopya üretilmez. Rutin tekrar
+  /// ediyorsa (`Routine.repeats`) saatli adımların hatırlatıcıları o tekrar
+  /// kuralını taşır; sonraki günleri işletim sistemi getirir (arka plan görevi
+  /// yok).
+  Future<RoutineApplyOutcome> applyRoutine(
+    Routine routine, {
+    required DateTime date,
+    RoutineApplyMode mode = RoutineApplyMode.onlyNew,
+  }) async {
+    final plan = planRoutine(routine, date: date);
+    final outcome = plan.build(
+      now: _now(),
+      newId: _newId,
+      newSubtaskId: _newId,
+      mode: mode,
+    );
+    if (outcome.isEmpty) return outcome;
+    final updatedById = {for (final r in outcome.updated) r.id: r};
+    final next = _sorted([
+      for (final r in state.reminders) updatedById[r.id] ?? r,
+      ...outcome.created,
+    ]);
+    emit(state.copyWith(reminders: next));
+    await _persistAndSync();
+    return outcome;
+  }
+
+  static bool _sameRoutines(List<Routine> a, List<Routine> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     emit(state.copyWith(
       settings: state.settings.copyWith(notificationsEnabled: enabled),
@@ -332,6 +445,7 @@ class ReminderCubit extends Cubit<ReminderState> {
       birthdays: const [],
       settings: const AppSettings(),
       categories: CategoryCatalog.builtIns,
+      routines: const [],
       clock: _now,
     ));
     await _homeWidget.sync(

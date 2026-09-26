@@ -10,6 +10,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 
 /// Hatırlatıcı, doğum günü ve ayarları Drift (SQLite) veritabanında saklar
 /// (F2.1). Genel arayüz ve anlamı SharedPreferences dönemiyle aynıdır.
@@ -151,6 +152,112 @@ class ReminderRepository {
                 t.reminderId.equals(entry.value.reminderId) &
                 t.id.equals(entry.value.id)))
           .write(SubtasksCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+    }
+  }
+
+  /// Rutinler (F3.7), `position` sırasıyla; silinmişler hariç. Adımlar aynı
+  /// transaction'da okunur. Veritabanı açılamadığı oturumda boş liste (eski
+  /// SharedPreferences deposunda rutin yok).
+  Future<List<Routine>> loadRoutines() async {
+    final storage = await _open();
+    if (storage.database case final db?) {
+      return db.transaction(() async {
+        final rows = await (db.select(db.routines)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
+        final itemRows = await (db.select(db.routineItems)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
+        final byRoutine = <String, List<RoutineItemRow>>{};
+        for (final row in itemRows) {
+          (byRoutine[row.routineId] ??= []).add(row);
+        }
+        return [
+          for (final row in rows)
+            routineFromRow(row, items: byRoutine[row.id] ?? const []),
+        ];
+      });
+    }
+    return const [];
+  }
+
+  /// Rutinleri (görüntüleme sırasıyla) diğer listelerle aynı kuralla kaydeder:
+  /// değişen/yeni/geri gelen satır upsert (`updated_at` = now), listede olmayan
+  /// rutin yumuşak silinir. Adımlar **aynı transaction'da** ve aynı kuralla
+  /// yazılır (silinen rutinin adımları da yumuşak silinir; rutin geri gelince
+  /// adımları da gelir). Veritabanı yoksa yazılmaz.
+  Future<void> saveRoutines(List<Routine> routines) async {
+    final storage = await _open();
+    final db = storage.database;
+    if (db == null) return;
+
+    final now = toEpochMicros(_clock());
+    await db.transaction(() async {
+      final existing = {
+        for (final row in await db.select(db.routines).get()) row.id: row,
+      };
+      final kept = <String>{};
+      for (var i = 0; i < routines.length; i++) {
+        final r = routines[i];
+        if (!kept.add(r.id)) continue;
+        final old = existing[r.id];
+        final unchanged = old != null &&
+            routineToRow(r, position: i, updatedAt: old.updatedAt) == old;
+        if (unchanged) continue;
+        await db.into(db.routines).insertOnConflictUpdate(
+            routineToRow(r, position: i, updatedAt: now).toCompanion(false));
+      }
+      await (db.update(db.routines)
+            ..where((t) => t.deletedAt.isNull() & t.id.isNotIn(kept)))
+          .write(RoutinesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ));
+      await _saveRoutineItems(db, routines, now);
+    });
+  }
+
+  Future<void> _saveRoutineItems(
+    AppDatabase db,
+    List<Routine> routines,
+    int now,
+  ) async {
+    final existing = {
+      for (final row in await db.select(db.routineItems).get())
+        (row.routineId, row.id): row,
+    };
+    final kept = <(String, String)>{};
+    for (final r in routines) {
+      for (var i = 0; i < r.items.length; i++) {
+        final item = r.items[i];
+        final k = (r.id, item.id);
+        // Aynı rutinde tekrarlanan kimlik: ilki kazanır.
+        if (!kept.add(k)) continue;
+        final old = existing[k];
+        final unchanged = old != null &&
+            routineItemToRow(item,
+                    routineId: r.id, position: i, updatedAt: old.updatedAt) ==
+                old;
+        if (unchanged) continue;
+        await db.into(db.routineItems).insertOnConflictUpdate(
+              routineItemToRow(item,
+                      routineId: r.id, position: i, updatedAt: now)
+                  .toCompanion(false),
+            );
+      }
+    }
+    for (final entry in existing.entries) {
+      if (entry.value.deletedAt != null || kept.contains(entry.key)) continue;
+      await (db.update(db.routineItems)
+            ..where((t) =>
+                t.routineId.equals(entry.value.routineId) &
+                t.id.equals(entry.value.id)))
+          .write(RoutineItemsCompanion(
         deletedAt: Value(now),
         updatedAt: Value(now),
       ));
@@ -302,6 +409,9 @@ class ReminderRepository {
         await db.delete(db.subtasks).go();
         await db.delete(db.reminders).go();
         await db.delete(db.categories).go();
+        // Adımlar rutinlere yabancı anahtarla bağlı: önce onlar silinir.
+        await db.delete(db.routineItems).go();
+        await db.delete(db.routines).go();
         await db.delete(db.birthdays).go();
         await db.delete(db.settings).go();
       });
