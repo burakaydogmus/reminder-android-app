@@ -1,0 +1,49 @@
+/* iOS widget strings (F5.2 / F6.1).
+   The same keys as Android's res/values-en/strings.xml `widget_*`; update both
+   files together. Format specifiers follow iOS: text `%1$@`, numbers `%1$d`. */
+
+/* Widget gallery (device language) */
+"widget_next_label_name" = "Up next";
+"widget_next_description" = "The next task and its time; + to add.";
+"widget_today_label" = "Today";
+"widget_today_description" = "Today's first three tasks. Tap the circle to complete, + to add.";
+"widget_list_label" = "List";
+"widget_list_description" = "Missed, today and birthdays. Long-press to show today only.";
+"widget_lock_label" = "Lock screen";
+"widget_lock_description" = "The next task and how many are still open today.";
+
+/* Content (the app's language) */
+"widget_next_label" = "UP NEXT";
+"widget_today_header" = "Today · %1$d";
+"widget_more" = "+%1$d more";
+"widget_empty_today" = "Nothing today. Tap + to add";
+"widget_notifications_off" = "Notifications are off — tap to turn on";
+"widget_overdue" = "Overdue";
+"widget_today" = "Today";
+"widget_tomorrow" = "Tomorrow";
+
+/* Date patterns (DateFormatter) */
+"widget_date_short" = "MMM d";
+"widget_date_short_year" = "MMM d, y";
+"widget_date_header" = "EEEE, MMMM d";
+
+/* Section headers */
+"widget_section_overdue" = "Missed";
+"widget_section_today" = "Today";
+"widget_section_birthdays" = "Birthday";
+"widget_section_later" = "Later";
+"widget_birthday_age" = "%1$@ · turns %2$d";
+
+/* VoiceOver */
+"widget_cd_add" = "New reminder";
+"widget_cd_complete" = "Complete: %1$@";
+"widget_cd_subtasks" = "%1$@ items";
+"widget_cd_recurring" = "repeating";
+"widget_cd_today" = "Today, %1$d open tasks. Open the app.";
+"widget_cd_birthday" = "Birthday: %1$@, %2$@";
+
+/* AppIntents (Shortcuts / widget editing) */
+"Tamamla" = "Complete";
+"Liste" = "List";
+"Widget'ta hangi işlerin görüneceğini seç." = "Choose which tasks the widget shows.";
+"Yalnızca bugün" = "Today only";

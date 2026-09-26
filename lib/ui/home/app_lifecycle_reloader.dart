@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/home/widget_change_signal.dart';
+import 'package:reminder/services/ios_widget_completions.dart';
 
 /// Ana isolate'in `SharedPreferences` önbelleğini diskten tazeler.
 ///
@@ -41,6 +42,7 @@ class AppStateReloader extends StatefulWidget {
     this.clock = DateTime.now,
     this.minInterval = const Duration(seconds: 1),
     this.refreshStorage = refreshSharedPreferencesCache,
+    this.applyWidgetCompletions = applyPendingIosWidgetCompletions,
     this.listenToWidgetChanges = true,
   });
 
@@ -54,6 +56,11 @@ class AppStateReloader extends StatefulWidget {
 
   /// `ReminderCubit.load` öncesi depo önbelleğini tazeler.
   final Future<void> Function() refreshStorage;
+
+  /// iOS widget'ından bekleyen "tamamla" isteklerini depoya uygular (F5.2);
+  /// Android'de ve masaüstünde hemen döner. `load`'dan **önce** çalışır, yoksa
+  /// bellekteki eski durum kaydı ezerdi (F1.3 ile aynı gerekçe).
+  final Future<void> Function() applyWidgetCompletions;
 
   /// `false` ise widget sinyal portu kaydedilmez.
   final bool listenToWidgetChanges;
@@ -115,6 +122,8 @@ class _AppStateReloaderState extends State<AppStateReloader> {
         _reloadAgain = false;
         _lastLoad = widget.clock();
         await widget.refreshStorage();
+        if (!mounted) return;
+        await widget.applyWidgetCompletions();
         if (!mounted) return;
         await cubit.load();
       } while (_reloadAgain && mounted);

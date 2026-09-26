@@ -18,6 +18,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **iOS ana ekran ve kilit ekranı widget'ları:** Dört widget geldi — **Sıradaki** (küçük: saat,
+  başlık, tamamla dairesi, "+"), **Bugün** (orta: "Bugün · N" + üç satır + hap "+"), **Liste**
+  (büyük: Kaçanlar / Bugün bölümleri, doğum günü satırı; uzun basıp "Yalnızca bugün"ü
+  kapatabilirsin) ve **Kilit ekranı** (daire: bugünün açık iş sayısı; dikdörtgen ve satır:
+  sıradaki iş). Daireye dokunmak hatırlatıcıyı tamamlar, satır anında kaybolur; "+" hızlı
+  yakalamayı, satır hatırlatıcının kendisini, doğum günü satırı Doğum günleri'ni açar. Metinler
+  uygulamanın dilini (Türkçe / English) izler, tonlu (tinted) ve koyu modlarda monokrom çizilir.
+  Widget'lar iOS 17 ve üstünü gerektirir; uygulama iOS 15'te çalışmaya devam eder.
+  **Sınır:** widget'tan tamamlanan bir hatırlatıcının bildirimi, uygulama bir kez açılana kadar
+  iptal edilmez (Android'de anında olur). (F5.2)
 - **Hızlı yakalamada İngilizce doğal dil:** Uygulama İngilizceyken yakalama alanı artık
   İngilizce yazılanları da anlıyor: "tomorrow at 9", "every monday", "in 2 hours",
   "next friday 18:00", "#groceries bread, milk and eggs", `!` öncelik, `@yer`. Gramer
