@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/recurrence_text.dart';
+import 'package:reminder/ui/common/weekday_toggle.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// Keys for tests.
@@ -342,7 +343,7 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
               runSpacing: KorSpacing.s2,
               children: [
                 for (var d = DateTime.monday; d <= DateTime.sunday; d++)
-                  _WeekdayButton(
+                  WeekdayToggle(
                     key: RecurrenceSheetKeys.weekday(d),
                     weekday: d,
                     selected: _weekdays.contains(d),
@@ -489,55 +490,6 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 48 dp circular weekday toggle.
-class _WeekdayButton extends StatelessWidget {
-  const _WeekdayButton({
-    super.key,
-    required this.weekday,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final int weekday;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: KorFormat.weekdayName(weekday, context.l10n),
-      excludeSemantics: true,
-      child: Material(
-        color: selected ? scheme.primary : scheme.surfaceContainerHigh,
-        shape: CircleBorder(
-          side: BorderSide(
-            color: selected ? scheme.primary : scheme.outlineVariant,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox.square(
-            dimension: KorSizes.minTouch,
-            child: Center(
-              child: Text(
-                KorFormat.weekdayShort(weekday, context.l10n),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: selected ? scheme.onPrimary : scheme.onSurface,
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:reminder/services/schedule_sync.dart';
 import 'package:reminder/services/sync_interfaces.dart';
@@ -27,6 +28,7 @@ void registerModelFallbackValues() {
   registerFallbackValue(<Reminder>[]);
   registerFallbackValue(<Birthday>[]);
   registerFallbackValue(<ReminderCategory>[]);
+  registerFallbackValue(<Routine>[]);
   registerFallbackValue(const AppSettings());
   registerFallbackValue(buildReminder());
   registerFallbackValue(buildBirthday());
@@ -41,6 +43,8 @@ void stubRepositoryWrites(MockReminderRepository repository) {
   // F4.3: no stored categories → built-ins only (override to test others).
   when(() => repository.loadCategories()).thenAnswer((_) async => []);
   when(() => repository.saveCategories(any())).thenAnswer((_) async {});
+  when(() => repository.loadRoutines()).thenAnswer((_) async => []);
+  when(() => repository.saveRoutines(any())).thenAnswer((_) async {});
 }
 
 void stubNotificationService(MockNotificationService notifications) {

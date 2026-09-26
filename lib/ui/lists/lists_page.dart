@@ -12,6 +12,7 @@ import 'package:reminder/ui/lists/reminder_filter_page.dart';
 import 'package:reminder/ui/lists/smart_list_page.dart';
 import 'package:reminder/ui/lists/smart_lists.dart';
 import 'package:reminder/ui/reminders/category_visuals.dart';
+import 'package:reminder/ui/routines/routine_list_section.dart';
 import 'package:reminder/ui/search/search_page.dart';
 import 'package:reminder/ui/theme/tokens/kor_shapes.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
@@ -84,6 +85,11 @@ class ListsPage extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: KorSpacing.s5),
+              // F3.7: routines (reminder templates) — one tap creates their
+              // reminders; the section sits above Kategorilerim because it is
+              // an action, not a filter.
+              const RoutineListSection(),
               const SizedBox(height: KorSpacing.s5),
               // F4.3: user categories, order, Düzenle, "+ Yeni kategori".
               CategoryListSection(

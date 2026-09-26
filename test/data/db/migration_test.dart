@@ -13,6 +13,7 @@ import 'package:reminder/data/db/row_mapping.dart';
 import 'package:reminder/domain/notification_ids.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
 import 'generated/schema.dart';
@@ -22,6 +23,7 @@ import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v5.dart' as v5;
 import 'generated/schema_v6.dart' as v6;
+import 'generated/schema_v7.dart' as v7;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -37,7 +39,7 @@ void main() {
   // data tests below read the migrated rows through the latest generated
   // classes (a database file at vN cannot be reopened with an older
   // version's classes) and the app mapping.
-  const latest = 6;
+  const latest = 7;
 
   test('the app schema version is the latest exported one', () async {
     final db = AppDatabase(NativeDatabase.memory());
@@ -46,7 +48,7 @@ void main() {
     await db.close();
   });
 
-  for (final from in [1, 2, 3, 4, 5]) {
+  for (final from in [1, 2, 3, 4, 5, 6]) {
     test('upgrade from v$from to v$latest yields the v$latest schema',
         () async {
       final connection = await verifier.startAt(from);
@@ -129,7 +131,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -138,13 +140,17 @@ void main() {
             .map((r) => r.toJson()
               ..remove('recurrence')
               ..remove('priority')
-              ..remove('pinned'))
+              ..remove('pinned')
+              ..remove('routineId')
+              ..remove('routineItemId'))
             .toList(),
         [
           reminder.toJson(),
           deleted.toJson(),
         ]);
     expect(rows.map((r) => r.recurrence), [null, null]);
+    expect(rows.map((r) => (r.routineId, r.routineItemId)),
+        [(null, null), (null, null)]);
     expectSameBirthday(
       await migrated.select(migrated.birthdays).getSingle(),
       birthday.toJson(),
@@ -217,11 +223,13 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
     expect(
       (await migrated.select(migrated.reminders).getSingle()).toJson()
         ..remove('priority')
-        ..remove('pinned'),
+        ..remove('pinned')
+        ..remove('routineId')
+        ..remove('routineItemId'),
       reminder.toJson(),
     );
     expectSameBirthday(
@@ -240,7 +248,7 @@ void main() {
 
     // The new table accepts rows for existing reminders.
     await migrated.into(migrated.subtasks).insert(
-          const v6.SubtasksData(
+          const v7.SubtasksData(
             reminderId: 'r1',
             id: 's1',
             title: 'Süt',
@@ -354,7 +362,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
     final rows = await (migrated.select(migrated.reminders)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -362,7 +370,9 @@ void main() {
     expect(
       rows.map((r) => r.toJson()
         ..remove('priority')
-        ..remove('pinned')),
+        ..remove('pinned')
+        ..remove('routineId')
+        ..remove('routineItemId')),
       [reminder.toJson(), deleted.toJson()],
     );
     expect(rows.map((r) => r.priority), [0, 0]);
@@ -391,7 +401,7 @@ void main() {
     await (migrated.update(migrated.reminders)
           ..where((t) => t.id.equals('gone')))
         .write(
-            const v6.RemindersCompanion(priority: Value(3), pinned: Value(1)));
+            const v7.RemindersCompanion(priority: Value(3), pinned: Value(1)));
     await migrated.close();
 
     // The app reads migrated rows with no priority and not pinned.
@@ -491,7 +501,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
     final categories = await (migrated.select(migrated.categories)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -528,7 +538,9 @@ void main() {
         ..remove('updatedAt');
       final after = rows[i].toJson()
         ..remove('categoryId')
-        ..remove('updatedAt');
+        ..remove('updatedAt')
+        ..remove('routineId')
+        ..remove('routineItemId');
       expect(after, before, reason: rows[i].id);
     }
     // Repointed rows get a new updated_at, the others keep theirs.
@@ -624,7 +636,7 @@ void main() {
     await verifier.migrateAndValidate(db, latest);
     await db.close();
 
-    final migrated = v6.DatabaseAtV6(schema.newConnection());
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
     final rows = await (migrated.select(migrated.birthdays)
           ..orderBy([(t) => OrderingTerm.asc(t.position)]))
         .get();
@@ -666,12 +678,163 @@ void main() {
         NotificationIds.birthdayNotificationId('unknown', 0));
     await app.close();
   });
+
+  test('v6 → v7 adds the routine tables and the reminder link', () async {
+    const reminder = v6.RemindersData(
+      id: 'r1',
+      title: 'Spor',
+      isDone: 0,
+      createdAt: '2026-09-01T10:00:00.000',
+      remindAt: '2026-09-26T07:00:00.000',
+      categoryId: 'health',
+      locationTriggerEnabled: 0,
+      locationRadiusMeters: 150.0,
+      position: 0,
+      updatedAt: 1000,
+      recurrence: '{"frequency":"daily","interval":1}',
+      priority: 2,
+      pinned: 1,
+    );
+    const subtask = v6.SubtasksData(
+      reminderId: 'r1',
+      id: 's1',
+      title: 'Havlu',
+      isDone: 0,
+      position: 0,
+      updatedAt: 1000,
+    );
+    const category = v6.CategoriesData(
+      id: 'gym',
+      name: 'Spor salonu',
+      colorKey: 'lacivert',
+      iconKey: 'fitness',
+      position: 6,
+      updatedAt: 1000,
+    );
+    const birthday = v6.BirthdaysData(
+      id: 'b1',
+      name: 'Ayşe',
+      birthMonth: 5,
+      birthDay: 10,
+      birthYear: 1990,
+      notifyHour: 9,
+      notifyMinute: 0,
+      advanceOffsetsMinutes: '[0]',
+      createdAt: '2026-01-01T12:00:00.000',
+      position: 0,
+      updatedAt: 1000,
+    );
+
+    final schema = await verifier.schemaAt(6);
+    final oldDb = v6.DatabaseAtV6(schema.newConnection());
+    await oldDb.batch((batch) {
+      batch
+        ..insert(oldDb.reminders, reminder)
+        ..insert(oldDb.subtasks, subtask)
+        ..insert(oldDb.categories, category)
+        ..insert(oldDb.birthdays, birthday);
+    });
+    await oldDb.close();
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, latest);
+    await db.close();
+
+    final migrated = v7.DatabaseAtV7(schema.newConnection());
+    // Every v6 column survives; the link columns start out null.
+    final row = await migrated.select(migrated.reminders).getSingle();
+    expect(
+      row.toJson()
+        ..remove('routineId')
+        ..remove('routineItemId'),
+      reminder.toJson(),
+    );
+    expect((row.routineId, row.routineItemId), (null, null));
+    expect(
+      (await migrated.select(migrated.subtasks).getSingle()).toJson(),
+      subtask.toJson(),
+    );
+    expect(
+      (await migrated.select(migrated.categories).getSingle()).toJson(),
+      category.toJson(),
+    );
+    expectSameBirthdayFromV6(
+      await migrated.select(migrated.birthdays).getSingle(),
+      birthday,
+    );
+    // The new tables are empty and accept rows; a step needs its routine
+    // (foreign key), the reminder link does not (loose link).
+    expect(await migrated.select(migrated.routines).get(), isEmpty);
+    expect(await migrated.select(migrated.routineItems).get(), isEmpty);
+    await migrated.into(migrated.routines).insert(const v7.RoutinesData(
+          id: 'morning',
+          name: 'Sabah rutini',
+          colorKey: 'gunluk',
+          iconKey: 'sun',
+          repeatRule: '{"frequency":"daily","interval":1}',
+          createdAt: '2026-09-26T08:00:00.000',
+          position: 0,
+          updatedAt: 2000,
+        ));
+    await migrated.into(migrated.routineItems).insert(const v7.RoutineItemsData(
+          routineId: 'morning',
+          id: 'i1',
+          title: 'Spor',
+          timeOfDay: '07:00',
+          categoryId: 'health',
+          priority: 2,
+          position: 0,
+          updatedAt: 2000,
+        ));
+    await expectLater(
+      migrated.into(migrated.routineItems).insert(const v7.RoutineItemsData(
+            routineId: 'ghost',
+            id: 'i2',
+            title: 'Yok',
+            categoryId: 'other',
+            priority: 0,
+            position: 1,
+            updatedAt: 2000,
+          )),
+      throwsA(isA<Exception>()),
+    );
+    await (migrated.update(migrated.reminders)..where((t) => t.id.equals('r1')))
+        .write(const v7.RemindersCompanion(
+      routineId: Value('morning'),
+      routineItemId: Value('i1'),
+    ));
+    await migrated.close();
+
+    // The app reads the routine with its step and the reminder's link.
+    final app = AppDatabase(schema.newConnection());
+    final routines = await app.select(app.routines).get();
+    final items = await app.select(app.routineItems).get();
+    final routine = routineFromRow(routines.single, items: items);
+    expect(routine.name, 'Sabah rutini');
+    expect(routine.repeat, RecurrenceRule.daily());
+    expect(routine.items.single.title, 'Spor');
+    expect(routine.items.single.time, const RoutineTime(7, 0));
+    expect(routine.items.single.priority, ReminderPriority.medium);
+    final loaded = reminderFromRow(await app.select(app.reminders).getSingle());
+    expect(loaded.routineId, 'morning');
+    expect(loaded.routineItemId, 'i1');
+    expect(loaded.isFromRoutine, isTrue);
+    await app.close();
+  });
+}
+
+/// A v6 row read back as v7: only the two nullable link columns are new.
+void expectSameBirthdayFromV6(
+  v7.BirthdaysData row,
+  v6.BirthdaysData before,
+) {
+  expect(row.toJson(), before.toJson());
 }
 
 /// A v6 birthday row holds the v1–v5 `date` text split into `birth_month` /
 /// `birth_day` / `birth_year` (sentinel year 4 → `null`); everything else is
 /// unchanged.
-void expectSameBirthday(v6.BirthdaysData row, Map<String, dynamic> before) {
+void expectSameBirthday(v7.BirthdaysData row, Map<String, dynamic> before) {
   final date = DateTime.tryParse(before['date'] as String);
   expect(row.birthMonth, date?.month ?? 0);
   expect(row.birthDay, date?.day ?? 0);

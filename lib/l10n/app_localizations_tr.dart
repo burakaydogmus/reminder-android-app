@@ -2271,4 +2271,210 @@ class AppLocalizationsTr extends AppLocalizations {
   String calendarEventMultiDay(String start, String end) {
     return '$start – $end';
   }
+
+  @override
+  String get routinesTitle => 'Rutinlerim';
+
+  @override
+  String get routinesEmpty => 'Henüz rutin yok';
+
+  @override
+  String get routinesEmptyHint =>
+      'Sabah rutini gibi hazır paketler kur, tek dokunuşla hatırlatıcıya çevir.';
+
+  @override
+  String get routineNew => 'Yeni rutin';
+
+  @override
+  String get routineEdit => 'Rutini düzenle';
+
+  @override
+  String routineStepCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count adım',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routineRowSpoken(String name, String details) {
+    return '$name, $details';
+  }
+
+  @override
+  String routineMoveSpoken(String name) {
+    return '$name rutinini taşı';
+  }
+
+  @override
+  String routineEditTooltip(String name) {
+    return '$name rutinini düzenle';
+  }
+
+  @override
+  String get routineNameHint => 'Sabah rutini';
+
+  @override
+  String get routineNameEmpty => 'Bir ad yaz';
+
+  @override
+  String get routineNameTaken => 'Bu adda bir rutin var';
+
+  @override
+  String get routineStepsTitle => 'Adımlar';
+
+  @override
+  String get routineStepsEmpty => 'Henüz adım yok. Rutin neyi oluştursun?';
+
+  @override
+  String get routineStepAdd => 'Adım ekle';
+
+  @override
+  String get routineStepNew => 'Yeni adım';
+
+  @override
+  String get routineStepEdit => 'Adımı düzenle';
+
+  @override
+  String get routineStepTitleHint => 'Spor';
+
+  @override
+  String get routineStepTime => 'Saat';
+
+  @override
+  String get routineStepTimeSwitch => 'Saat ver';
+
+  @override
+  String get routineStepTimeHint =>
+      'Saat vermezsen zamansız hatırlatıcı olur (Bugün bir ara).';
+
+  @override
+  String get routineStepTimeNone => 'Saat yok';
+
+  @override
+  String routineStepRowSpoken(String title, String details) {
+    return '$title, $details';
+  }
+
+  @override
+  String routineStepMoveSpoken(String title) {
+    return '$title adımını taşı';
+  }
+
+  @override
+  String get routineStepActions => 'Adım işlemleri';
+
+  @override
+  String routineDeleteTitle(String name) {
+    return '“$name” silinsin mi?';
+  }
+
+  @override
+  String get routineDeleteContent =>
+      'Rutin silinir; bu rutinden oluşturduğun hatırlatıcılar kalır.';
+
+  @override
+  String get routineRepeatTitle => 'Otomatik uygula';
+
+  @override
+  String get routineRepeatHint =>
+      'Tekrar seçersen saatli adımlar tekrarlayan hatırlatıcı olur; sonraki günleri bildirim kendiliğinden getirir.';
+
+  @override
+  String get routineRepeatOff => 'Yok';
+
+  @override
+  String get routineRepeatDaily => 'Her gün';
+
+  @override
+  String get routineRepeatWeekly => 'Seçili günler';
+
+  @override
+  String get routineRepeatNoTimeNote =>
+      'Saatsiz adımlar tekrar etmez: zamansız hatırlatıcı bildirim kurmaz.';
+
+  @override
+  String routineRepeatSpoken(String summary) {
+    return 'Tekrar: $summary';
+  }
+
+  @override
+  String get routineApplyTitle => 'Rutini uygula';
+
+  @override
+  String get routineApplyDay => 'Gün';
+
+  @override
+  String routineApplyDaySpoken(String day) {
+    return 'Gün: $day';
+  }
+
+  @override
+  String get routineApplyAction => 'Ekle';
+
+  @override
+  String get routineApplyOnlyNew => 'Yalnızca yenileri ekle';
+
+  @override
+  String get routineApplyAnyway => 'Yine de hepsini ekle';
+
+  @override
+  String get routineApplyUpdate => 'Hatırlatıcıları güncelle';
+
+  @override
+  String get routineApplyDuplicateToday => 'Bugün bu rutini zaten uyguladın';
+
+  @override
+  String routineApplyDuplicateOnDay(String day) {
+    return 'Bu rutini $day için zaten uyguladın';
+  }
+
+  @override
+  String routineApplyDuplicateBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count adım o gün için zaten var. Yalnızca yenilerini ekleyebilirsin.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineApplySeriesTitle => 'Bu rutinin hatırlatıcıları zaten var';
+
+  @override
+  String get routineApplySeriesBody =>
+      'Tekrarlayan rutin ikinci kez oluşturulmaz. Var olanları seçtiğin güne ve tekrara göre güncelleyebilirsin.';
+
+  @override
+  String get routineApplyStepAlready => 'zaten var';
+
+  @override
+  String get routineApplyEmpty => 'Bu rutinde adım yok. Önce bir adım ekle.';
+
+  @override
+  String routineApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hatırlatıcı eklendi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routineAppliedUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hatırlatıcı güncellendi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineApplyNothing => 'Eklenecek yeni adım yok';
 }

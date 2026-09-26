@@ -2314,4 +2314,218 @@ class AppLocalizationsEn extends AppLocalizations {
   String calendarEventMultiDay(String start, String end) {
     return '$start – $end';
   }
+
+  @override
+  String get routinesTitle => 'My routines';
+
+  @override
+  String get routinesEmpty => 'No routines yet';
+
+  @override
+  String get routinesEmptyHint =>
+      'Set up ready-made packs like a morning routine and turn them into reminders with one tap.';
+
+  @override
+  String get routineNew => 'New routine';
+
+  @override
+  String get routineEdit => 'Edit routine';
+
+  @override
+  String routineStepCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count steps',
+      one: '1 step',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routineRowSpoken(String name, String details) {
+    return '$name, $details';
+  }
+
+  @override
+  String routineMoveSpoken(String name) {
+    return 'Move the $name routine';
+  }
+
+  @override
+  String routineEditTooltip(String name) {
+    return 'Edit the $name routine';
+  }
+
+  @override
+  String get routineNameHint => 'Morning routine';
+
+  @override
+  String get routineNameEmpty => 'Type a name';
+
+  @override
+  String get routineNameTaken => 'A routine with this name exists';
+
+  @override
+  String get routineStepsTitle => 'Steps';
+
+  @override
+  String get routineStepsEmpty =>
+      'No steps yet. What should this routine create?';
+
+  @override
+  String get routineStepAdd => 'Add step';
+
+  @override
+  String get routineStepNew => 'New step';
+
+  @override
+  String get routineStepEdit => 'Edit step';
+
+  @override
+  String get routineStepTitleHint => 'Workout';
+
+  @override
+  String get routineStepTime => 'Time';
+
+  @override
+  String get routineStepTimeSwitch => 'Give it a time';
+
+  @override
+  String get routineStepTimeHint =>
+      'Without a time it becomes a reminder for sometime today.';
+
+  @override
+  String get routineStepTimeNone => 'No time';
+
+  @override
+  String routineStepRowSpoken(String title, String details) {
+    return '$title, $details';
+  }
+
+  @override
+  String routineStepMoveSpoken(String title) {
+    return 'Move the step $title';
+  }
+
+  @override
+  String get routineStepActions => 'Step actions';
+
+  @override
+  String routineDeleteTitle(String name) {
+    return 'Delete “$name”?';
+  }
+
+  @override
+  String get routineDeleteContent =>
+      'The routine is deleted; the reminders it already created stay.';
+
+  @override
+  String get routineRepeatTitle => 'Apply automatically';
+
+  @override
+  String get routineRepeatHint =>
+      'With a repeat, timed steps become recurring reminders, so the next days arrive on their own.';
+
+  @override
+  String get routineRepeatOff => 'Off';
+
+  @override
+  String get routineRepeatDaily => 'Every day';
+
+  @override
+  String get routineRepeatWeekly => 'Chosen days';
+
+  @override
+  String get routineRepeatNoTimeNote =>
+      'Steps without a time don\'t repeat: a reminder without a time has no notification.';
+
+  @override
+  String routineRepeatSpoken(String summary) {
+    return 'Repeat: $summary';
+  }
+
+  @override
+  String get routineApplyTitle => 'Apply routine';
+
+  @override
+  String get routineApplyDay => 'Day';
+
+  @override
+  String routineApplyDaySpoken(String day) {
+    return 'Day: $day';
+  }
+
+  @override
+  String get routineApplyAction => 'Add';
+
+  @override
+  String get routineApplyOnlyNew => 'Add only the new ones';
+
+  @override
+  String get routineApplyAnyway => 'Add them all anyway';
+
+  @override
+  String get routineApplyUpdate => 'Update the reminders';
+
+  @override
+  String get routineApplyDuplicateToday =>
+      'You already applied this routine today';
+
+  @override
+  String routineApplyDuplicateOnDay(String day) {
+    return 'You already applied this routine for $day';
+  }
+
+  @override
+  String routineApplyDuplicateBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count steps already exist for that day. You can add only the new ones.',
+      one: '1 step already exists for that day. You can add only the new ones.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineApplySeriesTitle =>
+      'This routine\'s reminders already exist';
+
+  @override
+  String get routineApplySeriesBody =>
+      'A repeating routine is never created twice. You can update the existing ones to the day and repeat you chose.';
+
+  @override
+  String get routineApplyStepAlready => 'already there';
+
+  @override
+  String get routineApplyEmpty =>
+      'This routine has no steps yet. Add one first.';
+
+  @override
+  String routineApplied(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reminders added',
+      one: '1 reminder added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String routineAppliedUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reminders updated',
+      one: '1 reminder updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineApplyNothing => 'Nothing new to add';
 }

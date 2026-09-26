@@ -105,15 +105,21 @@ class RoutineApplyPlan {
 
   final List<RoutineApplyEntry> entries;
 
-  List<RoutineApplyEntry> get newEntries =>
-      [for (final e in entries) if (!e.isDuplicate) e];
+  List<RoutineApplyEntry> get newEntries => [
+        for (final e in entries)
+          if (!e.isDuplicate) e
+      ];
 
-  List<RoutineApplyEntry> get duplicates =>
-      [for (final e in entries) if (e.isDuplicate) e];
+  List<RoutineApplyEntry> get duplicates => [
+        for (final e in entries)
+          if (e.isDuplicate) e
+      ];
 
   /// Bu rutine bağlı (güncellenebilir) eşler.
-  List<RoutineApplyEntry> get linked =>
-      [for (final e in entries) if (e.isLinked) e];
+  List<RoutineApplyEntry> get linked => [
+        for (final e in entries)
+          if (e.isLinked) e
+      ];
 
   bool get hasDuplicates => duplicates.isNotEmpty;
 
