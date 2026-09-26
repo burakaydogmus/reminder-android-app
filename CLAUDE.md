@@ -103,14 +103,40 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `alignedTo(date)` adapts the rule when the whole series moves to another date (an
   anchor-derived yearly rule needs no change; an explicit one takes the new
   month/day unless the clamp already matches, so a 29 February rule survives a move
-  to 28 February).
+  to 28 February; a completion-anchored rule is returned as is — `anchorMode` never
+  changes with a move).
+  **Two anchor modes (`anchorMode`, `RecurrenceAnchor`, F3.1c)** cut across the
+  frequencies:
+  - `schedule` (default, everything above) — the series is **fixed dates**. Completing
+    late does not move the next one; missed occurrences are skipped.
+  - `completion` — the next occurrence is **the completion day + interval**
+    ("tamamlandıktan 14 gün sonra"), built with `RecurrenceRule.afterCompletion(
+    frequency, {interval, until})` and computed by
+    `nextAfterCompletion(completedAt:, anchor:)`; the time of day still comes from
+    `anchor`, not from the moment of completion (a 10:00 reminder completed at 23:40 on
+    the 3rd with a 14-day interval lands on the 17th at **10:00**), and month/year
+    intervals clamp to the month end. The calendar fields (`weekdays`, `dayOfMonth`,
+    `month`) are meaningless here, so the factory does not take them and `fromJson`
+    drops them; `yearlyTarget` is null. `until` still applies.
+    **`nextOccurrence` (and `firstOnOrAfter` / `upcoming`) returns `null` for such a
+    rule** — there is no calendar-known future date. Everything downstream falls out of
+    that: an overdue one is not rescheduled and waits in Kaçanlar (`reminderFireTime`),
+    native notification repeats are impossible (see **Schedule sync**), and the calendar
+    shows only the current occurrence (see **Takvim**). "Hepsini yarına al" already
+    skips it (`movableOverdue` skips every recurring reminder).
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
   none); `Reminder.isRecurring` also needs a `remindAt`. **`fromJson` is
   deliberately tolerant, so it is also the forward-compatibility contract:** a build
   that does not know a frequency reads the rule as `none` — the reminder survives and
-  only loses its repeat. Adding a frequency therefore needs **no schema bump**
-  (`reminders.recurrence` is a nullable TEXT column holding this JSON) and no backup
-  format bump, but it must be called out in the CHANGELOG.
+  only loses its repeat. The anchor mode is written as an **extra** field
+  (`anchor: 'completion'`, only in that mode), so a calendar rule's JSON is byte for
+  byte what F3.1b wrote and a build without F3.1c simply ignores the field: the repeat
+  keeps working but **stops chasing the completion date**. The exception is a *monthly*
+  completion rule — an older reader needs `dayOfMonth` and none can be written (the rule
+  does not know the anchor), so it reads as `none`. Adding a frequency or an anchor mode
+  therefore needs **no schema bump** (`reminders.recurrence` is a nullable TEXT column
+  holding this JSON) and no backup format bump, but it must be called out in the
+  CHANGELOG.
 - `domain/model/subtask.dart` — `Subtask { id, title, isDone, position }` (F3.3) and
   `Reminder.subtasks` (default empty; JSON key `subtasks`, missing → empty, unreadable
   items skipped). Change lists only through the `SubtaskList` extension (`toggled`,
@@ -135,9 +161,13 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   **Quick capture**.
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
-  action; any new completion path must use it too). Recurring reminders are never marked done: `remindAt` advances to the
+  action; any new completion path must use it too). Recurring reminders are never marked done: on a
+  calendar-anchored rule `remindAt` advances to the
   next occurrence after `max(now, remindAt)` (early completion skips this occurrence,
-  overdue ones skip missed occurrences) and its subtasks are **reset to open**
+  overdue ones skip missed occurrences); on a **completion-anchored** one (F3.1c) it
+  advances from `now` — the day it was really completed — through
+  `nextAfterCompletion`, so completing late pushes the next one out and completing
+  early pulls it in. Either way its subtasks are **reset to open**
   (F3.3); a finished series and one-off reminders get `isDone = true` with subtasks
   untouched.
 - `domain/reminder_sorting.dart` — `compareReminders`: the single reminder ordering
@@ -360,9 +390,20 @@ The sync is **diff-based** (F1.7):
   diff sync sets the following occurrence on the next load/change. A yearly rule that
   takes its month/day from the anchor needs it: pass
   `reminderRepeatComponents(rule, anchor: r.remindAt)`, and without a resolvable
-  target the answer is next-only. The rule (JSON) is part of the fingerprint, so
+  target the answer is next-only. **A completion-anchored rule (F3.1c) can never use a
+  native repeat:** a `DateTimeComponents` is a fixed calendar pattern, and here the next
+  date is unknown until the reminder is completed — so `reminderRepeatComponents` returns
+  `null` and the ordinary "reschedule after completion" path (completion advances
+  `remindAt`, the diff sync sets the new date) does the work. An overdue one is not
+  rescheduled at all (`reminderFireTime` → `null`): it waits in Kaçanlar, like a one-off.
+  The rule (JSON) is part of the fingerprint, so
   adding a frequency does **not** need a `_ScheduleSpec._version` bump: no existing
-  reminder can carry the new rule, so no stored spec changes.
+  reminder can carry the new rule, so no stored spec changes. The same test decided
+  F3.1c: the anchor mode is an extra JSON field written only in the new mode, a calendar
+  rule's `toJson()` is unchanged and `matchDateTimeComponents` is unchanged, and no
+  **stored** rule can carry the new mode — so no stored spec's content can change and the
+  version stayed **7**. Apply that test (can the spec content change for an *already
+  stored* reminder?) to every change here, and record the conclusion either way.
 - **Subtasks (F3.3):** with open subtasks the body is "`<note or place>` · N madde
   kaldı" (`reminderNotificationBody`; just "N madde kaldı" without a note) and
   Android uses `BigTextStyleInformation` listing up to 5 open items + "… ve N madde
@@ -780,6 +821,11 @@ Intents). Owner-side Xcode steps, device test plan and the known limits:
   `yearly budget review`; the noun lists are `_yearlyNouns` and `_repeatNouns`);
   `annually` is only ever an adverb, so it always repeats. Before F3.1b these were
   deliberately unparsed — the corpus rows that asserted that are now positive.
+- **Completion-anchored repeats (F3.1c) are deliberately not parsed.** The parser only
+  ever produces calendar-anchored rules (`RecurrenceAnchor.schedule`). Natural phrasing
+  for the other mode ("yıkadıktan 14 gün sonra" / "14 days after I wash them") is
+  ambiguous against the existing date and interval rules, and both corpora are large —
+  it belongs in its own roadmap item, not smuggled in. Set the mode in the Tekrar sheet.
 - **Category aliases (F4.3):** `category_aliases.dart`
   (`CategoryAliases.of(catalog, locale:)`, `configFor(catalog, base:, locale:)`) builds
   `CaptureParserConfig.categoryAliases` from the current categories: built-ins keep
@@ -1078,7 +1124,12 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (Monday-first weeks, 6×7 month grid from the Monday on or before the 1st, calendar
   field arithmetic) and `domain/recurrence_expansion.dart` (`reminderOccurrences`: the
   stored `remindAt` plus following `RecurrenceRule` occurrences inside `[from, to)`,
-  never before the stored `remindAt`). `buildAgenda(from:, filter:,
+  never before the stored `remindAt`). A **completion-anchored** series (F3.1c) expands
+  to **only the current occurrence**, exactly like a one-off: it has no known future
+  dates (the next one is "completion + interval" and the completion has not happened),
+  so projecting one would be a guess the calendar then shows as fact, and every date
+  after the first would move the moment the user completes the reminder. An overdue one
+  is therefore not picked up in a later range either. `buildAgenda(from:, filter:,
   includeEmptyDays:)` starts at the selected day (default today, 30 days): not-done
   timed reminders incl. overdue ones of the range, recurring ones at every occurrence
   (`ReminderOccurrence.isStored` false → read-only `AgendaOccurrenceRow`, tap opens the
@@ -1136,9 +1187,18 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   `RecurrenceFormat`). Yıllık (F3.1b) repeats on the **anchor's** month and day — the
   sheet writes no explicit month/day — and its note line says which date that is, or
   explains 28 February for a 29 February anchor
-  (`RecurrenceSheetKeys.yearNote`). A rule needs a time: without one, choosing a rule schedules
+  (`RecurrenceSheetKeys.yearNote`). Below the frequency segments every rule (not "Yok")
+  offers **Tekrar ölçütü** (F3.1c, `RecurrenceAnchorMode`,
+  `RecurrenceSheetKeys.anchorSegments`): Takvime göre / Tamamlandıktan sonra, with a
+  one-line explanation of the difference under it (`anchorNote`). In completion mode the
+  weekday circles and the monthly/yearly note lines **go away** (their values are not
+  part of such a rule), the stepper reads "Tamamlandıktan N gün sonra"
+  (`RecurrenceText.afterCompletion`) and the preview line is replaced by "Sonraki tarih,
+  tamamladığında belirlenir." — there is no date series to list. A rule needs a time: without one, choosing a rule schedules
   today + 1 hour (dismissing changes nothing). A weekly rule whose days exclude the
-  date moves the date to the first chosen day (visible in the date chip); changing the
+  date moves the date to the first chosen day (visible in the date chip; a
+  completion-anchored rule has no such day, and `firstOnOrAfter` returns null, so the
+  date is left alone); changing the
   date of a recurring reminder moves the **whole series** (`alignedTo`). "Yalnızca
   bu sefer" (B7) is not built yet. Turning scheduling off clears the rule. The card
   meta line shows a repeat icon + `RecurrenceText.summary`; completing a recurring reminder keeps
