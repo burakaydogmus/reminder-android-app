@@ -3847,6 +3847,312 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'{count, plural, other{{count} doğum günü aktarıldı, {skipped} tanesi zaten ekliydi}}'**
   String contactImportSnackWithSkipped(int count, int skipped);
+
+  /// No description provided for @routinesTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rutinlerim'**
+  String get routinesTitle;
+
+  /// No description provided for @routinesEmpty.
+  ///
+  /// In tr, this message translates to:
+  /// **'Henüz rutin yok'**
+  String get routinesEmpty;
+
+  /// Listeler > Rutinlerim empty state sentence.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sabah rutini gibi hazır paketler kur, tek dokunuşla hatırlatıcıya çevir.'**
+  String get routinesEmptyHint;
+
+  /// No description provided for @routineNew.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yeni rutin'**
+  String get routineNew;
+
+  /// No description provided for @routineEdit.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rutini düzenle'**
+  String get routineEdit;
+
+  /// How many steps a routine has.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} adım}}'**
+  String routineStepCount(int count);
+
+  /// Routine row for screen readers: name plus step count and repeat summary.
+  ///
+  /// In tr, this message translates to:
+  /// **'{name}, {details}'**
+  String routineRowSpoken(String name, String details);
+
+  /// No description provided for @routineMoveSpoken.
+  ///
+  /// In tr, this message translates to:
+  /// **'{name} rutinini taşı'**
+  String routineMoveSpoken(String name);
+
+  /// No description provided for @routineEditTooltip.
+  ///
+  /// In tr, this message translates to:
+  /// **'{name} rutinini düzenle'**
+  String routineEditTooltip(String name);
+
+  /// No description provided for @routineNameHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sabah rutini'**
+  String get routineNameHint;
+
+  /// No description provided for @routineNameEmpty.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bir ad yaz'**
+  String get routineNameEmpty;
+
+  /// No description provided for @routineNameTaken.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bu adda bir rutin var'**
+  String get routineNameTaken;
+
+  /// No description provided for @routineStepsTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Adımlar'**
+  String get routineStepsTitle;
+
+  /// No description provided for @routineStepsEmpty.
+  ///
+  /// In tr, this message translates to:
+  /// **'Henüz adım yok. Rutin neyi oluştursun?'**
+  String get routineStepsEmpty;
+
+  /// No description provided for @routineStepAdd.
+  ///
+  /// In tr, this message translates to:
+  /// **'Adım ekle'**
+  String get routineStepAdd;
+
+  /// No description provided for @routineStepNew.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yeni adım'**
+  String get routineStepNew;
+
+  /// No description provided for @routineStepEdit.
+  ///
+  /// In tr, this message translates to:
+  /// **'Adımı düzenle'**
+  String get routineStepEdit;
+
+  /// No description provided for @routineStepTitleHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'Spor'**
+  String get routineStepTitleHint;
+
+  /// No description provided for @routineStepTime.
+  ///
+  /// In tr, this message translates to:
+  /// **'Saat'**
+  String get routineStepTime;
+
+  /// No description provided for @routineStepTimeSwitch.
+  ///
+  /// In tr, this message translates to:
+  /// **'Saat ver'**
+  String get routineStepTimeSwitch;
+
+  /// No description provided for @routineStepTimeHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'Saat vermezsen zamansız hatırlatıcı olur (Bugün bir ara).'**
+  String get routineStepTimeHint;
+
+  /// No description provided for @routineStepTimeNone.
+  ///
+  /// In tr, this message translates to:
+  /// **'Saat yok'**
+  String get routineStepTimeNone;
+
+  /// Routine step row for screen readers.
+  ///
+  /// In tr, this message translates to:
+  /// **'{title}, {details}'**
+  String routineStepRowSpoken(String title, String details);
+
+  /// No description provided for @routineStepMoveSpoken.
+  ///
+  /// In tr, this message translates to:
+  /// **'{title} adımını taşı'**
+  String routineStepMoveSpoken(String title);
+
+  /// No description provided for @routineStepActions.
+  ///
+  /// In tr, this message translates to:
+  /// **'Adım işlemleri'**
+  String get routineStepActions;
+
+  /// No description provided for @routineDeleteTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'“{name}” silinsin mi?'**
+  String routineDeleteTitle(String name);
+
+  /// No description provided for @routineDeleteContent.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rutin silinir; bu rutinden oluşturduğun hatırlatıcılar kalır.'**
+  String get routineDeleteContent;
+
+  /// No description provided for @routineRepeatTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Otomatik uygula'**
+  String get routineRepeatTitle;
+
+  /// Explains that auto-apply is done with the recurrence engine, not a background task.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tekrar seçersen saatli adımlar tekrarlayan hatırlatıcı olur; sonraki günleri bildirim kendiliğinden getirir.'**
+  String get routineRepeatHint;
+
+  /// No description provided for @routineRepeatOff.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yok'**
+  String get routineRepeatOff;
+
+  /// No description provided for @routineRepeatDaily.
+  ///
+  /// In tr, this message translates to:
+  /// **'Her gün'**
+  String get routineRepeatDaily;
+
+  /// No description provided for @routineRepeatWeekly.
+  ///
+  /// In tr, this message translates to:
+  /// **'Seçili günler'**
+  String get routineRepeatWeekly;
+
+  /// No description provided for @routineRepeatNoTimeNote.
+  ///
+  /// In tr, this message translates to:
+  /// **'Saatsiz adımlar tekrar etmez: zamansız hatırlatıcı bildirim kurmaz.'**
+  String get routineRepeatNoTimeNote;
+
+  /// No description provided for @routineRepeatSpoken.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tekrar: {summary}'**
+  String routineRepeatSpoken(String summary);
+
+  /// No description provided for @routineApplyTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rutini uygula'**
+  String get routineApplyTitle;
+
+  /// No description provided for @routineApplyDay.
+  ///
+  /// In tr, this message translates to:
+  /// **'Gün'**
+  String get routineApplyDay;
+
+  /// No description provided for @routineApplyDaySpoken.
+  ///
+  /// In tr, this message translates to:
+  /// **'Gün: {day}'**
+  String routineApplyDaySpoken(String day);
+
+  /// No description provided for @routineApplyAction.
+  ///
+  /// In tr, this message translates to:
+  /// **'Ekle'**
+  String get routineApplyAction;
+
+  /// No description provided for @routineApplyOnlyNew.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yalnızca yenileri ekle'**
+  String get routineApplyOnlyNew;
+
+  /// No description provided for @routineApplyAnyway.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yine de hepsini ekle'**
+  String get routineApplyAnyway;
+
+  /// No description provided for @routineApplyUpdate.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcıları güncelle'**
+  String get routineApplyUpdate;
+
+  /// No description provided for @routineApplyDuplicateToday.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bugün bu rutini zaten uyguladın'**
+  String get routineApplyDuplicateToday;
+
+  /// No description provided for @routineApplyDuplicateOnDay.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bu rutini {day} için zaten uyguladın'**
+  String routineApplyDuplicateOnDay(String day);
+
+  /// No description provided for @routineApplyDuplicateBody.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} adım o gün için zaten var. Yalnızca yenilerini ekleyebilirsin.}}'**
+  String routineApplyDuplicateBody(int count);
+
+  /// No description provided for @routineApplySeriesTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bu rutinin hatırlatıcıları zaten var'**
+  String get routineApplySeriesTitle;
+
+  /// No description provided for @routineApplySeriesBody.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tekrarlayan rutin ikinci kez oluşturulmaz. Var olanları seçtiğin güne ve tekrara göre güncelleyebilirsin.'**
+  String get routineApplySeriesBody;
+
+  /// No description provided for @routineApplyStepAlready.
+  ///
+  /// In tr, this message translates to:
+  /// **'zaten var'**
+  String get routineApplyStepAlready;
+
+  /// No description provided for @routineApplyEmpty.
+  ///
+  /// In tr, this message translates to:
+  /// **'Bu rutinde adım yok. Önce bir adım ekle.'**
+  String get routineApplyEmpty;
+
+  /// No description provided for @routineApplied.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} hatırlatıcı eklendi}}'**
+  String routineApplied(int count);
+
+  /// No description provided for @routineAppliedUpdated.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} hatırlatıcı güncellendi}}'**
+  String routineAppliedUpdated(int count);
+
+  /// No description provided for @routineApplyNothing.
+  ///
+  /// In tr, this message translates to:
+  /// **'Eklenecek yeni adım yok'**
+  String get routineApplyNothing;
 }
 
 class _AppLocalizationsDelegate

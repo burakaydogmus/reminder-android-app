@@ -4,6 +4,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 
 /// How a backup is applied.
 enum BackupImportMode {
@@ -14,7 +15,8 @@ enum BackupImportMode {
   /// is not added; its reminders move to the local one.
   merge,
 
-  /// Reminders, birthdays and categories become exactly the backup's lists
+  /// Reminders, birthdays, categories and routines become exactly the
+  /// backup's lists
   /// (the others are soft-deleted by the repository; built-in categories
   /// always exist); settings come from the backup when
   /// it has readable settings, otherwise the current ones are kept.
@@ -26,12 +28,14 @@ class BackupApplyResult {
   const BackupApplyResult({
     required this.reminders,
     required this.birthdays,
+    this.routines = 0,
     required this.settingsApplied,
   });
 
-  /// Reminders / birthdays taken from the backup.
+  /// Reminders / birthdays / routines taken from the backup.
   final int reminders;
   final int birthdays;
+  final int routines;
   final bool settingsApplied;
 }
 
@@ -42,7 +46,8 @@ class BackupApplyResult {
 ///
 /// **Atomicity:** [apply] only writes after the whole file was parsed, so a
 /// top-level parse error never applies anything. The writes themselves are
-/// three repository calls (`saveReminders`, `saveBirthdays`, `saveSettings`),
+/// separate repository calls (`saveReminders`, `saveBirthdays`,
+/// `saveRoutines`, `saveSettings`),
 /// each in its own transaction; if a later call fails, the earlier lists stay
 /// applied. Re-importing the same file repairs that (both modes are
 /// idempotent).
@@ -63,10 +68,12 @@ class BackupService {
     final settings = await _repository.loadSettings();
     final categories =
         CategoryCatalog(await _repository.loadCategories()).ordered;
+    final routines = await _repository.loadRoutines();
     return BackupFormat.encode(
       reminders: reminders,
       birthdays: birthdays,
       categories: categories,
+      routines: routines,
       settings: settings,
       exportedAt: _clock(),
       appVersion: appVersion,
@@ -98,12 +105,21 @@ class BackupService {
           backup.birthdays,
           (b) => b.id,
         );
+        // Routines (F3.7) merge by id like the other lists; the reminders they
+        // created keep their loose link, which points at the merged routine.
+        final routines = RoutineList.inOrder(mergeById<Routine>(
+          await _repository.loadRoutines(),
+          backup.routines,
+          (r) => r.id,
+        ));
         await _repository.saveCategories(categories);
         await _repository.saveReminders(reminders);
         await _repository.saveBirthdays(birthdays);
+        await _repository.saveRoutines(routines);
         return BackupApplyResult(
           reminders: backup.reminders.length,
           birthdays: backup.birthdays.length,
+          routines: backup.routines.length,
           settingsApplied: false,
         );
       case BackupImportMode.replace:
@@ -112,10 +128,12 @@ class BackupService {
             .saveCategories(CategoryCatalog(backup.categories).ordered);
         await _repository.saveReminders(backup.reminders);
         await _repository.saveBirthdays(backup.birthdays);
+        await _repository.saveRoutines(RoutineList.inOrder(backup.routines));
         if (settings != null) await _repository.saveSettings(settings);
         return BackupApplyResult(
           reminders: backup.reminders.length,
           birthdays: backup.birthdays.length,
+          routines: backup.routines.length,
           settingsApplied: settings != null,
         );
     }

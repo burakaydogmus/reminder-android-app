@@ -137,6 +137,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   therefore needs **no schema bump** (`reminders.recurrence` is a nullable TEXT column
   holding this JSON) and no backup format bump, but it must be called out in the
   CHANGELOG.
+- `domain/model/routine.dart` — `Routine`, `RoutineItem`, `RoutineTime` (F3.7,
+  reminder templates) and `domain/routine_apply.dart` — `RoutineApplyPlan`, the
+  single "apply a routine to a day" rule. See **Routines (F3.7)**.
 - `domain/model/subtask.dart` — `Subtask { id, title, isDone, position }` (F3.3) and
   `Reminder.subtasks` (default empty; JSON key `subtasks`, missing → empty, unreadable
   items skipped). Change lists only through the `SubtaskList` extension (`toggled`,
@@ -281,6 +284,9 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`,
     `contact_import_sheet.dart` (F7.3 "Rehberden aktar"). `settings/` (with
     `PermissionsGroup`), `maps/`.
+  - `routines/` (F3.7) — `RoutineListSection` (Listeler › Rutinlerim),
+    `routine_editor_sheet.dart`, `routine_step_sheet.dart`,
+    `routine_apply_sheet.dart`, `RoutineVisuals`. See **Routines (F3.7)**.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
   - `onboarding/` — `OnboardingGate` (`app.dart` `home:`), `OnboardingFlow` + `steps/`,
@@ -465,8 +471,8 @@ directory (`drift` ^2.35, `drift_flutter` ^0.3.1, `sqlite3` ^3.6 — SQLite is b
 the sqlite3 build hooks, no `sqlite3_flutter_libs`). The `ReminderRepository` API is
 unchanged; the cubit, callbacks and UI don't know about the database.
 
-- **Schema v6** (`lib/data/db/app_database.dart`, exported to
-  `drift_schemas/drift_schema_v1.json` … `drift_schema_v6.json`): `reminders` and
+- **Schema v7** (`lib/data/db/app_database.dart`, exported to
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v7.json`): `reminders` and
   `birthdays` (every model field as a column + `position`, `updated_at`, `deleted_at`),
   `settings` (single row, `id = 1`), `app_meta` (key/value, e.g. the migration marker).
   v2 (F3.1) adds `reminders.recurrence`: nullable TEXT with `RecurrenceRule.toJson()`
@@ -501,7 +507,11 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   cannot point at a missing reminder and a reminder row with subtasks cannot be
   **hard**-deleted (default `NO ACTION` = restrict) — repository deletes are soft and
   `clearAll` removes subtasks first, so nothing else changed
-  (`test/data/db/foreign_keys_test.dart`). **Model times**
+  (`test/data/db/foreign_keys_test.dart`). v7 (F3.7) adds the `routines` and
+  `routine_items` tables plus the nullable `reminders.routine_id` /
+  `routine_item_id` link (see **Routines (F3.7)**): `routine_items.routine_id`
+  **is** a foreign key (the `subtasks` pattern), the reminder link deliberately is
+  **not**. **Model times**
   (`created_at`, `remind_at`) are TEXT in exactly the old JSON format,
   `DateTime.toIso8601String()`: local values have no offset, so they are **wall-clock**
   ("18:30" stays 18:30 after a time zone change) and `DateTime.parse` returns the same
@@ -549,7 +559,10 @@ unchanged; the cubit, callbacks and UI don't know about the database.
   saves the backup's categories. A birthday's JSON keeps the legacy `date` field (with the sentinel year 4
   when the year is unknown) **and** an explicit `birthYear` (`null` = unknown, wins on
   read), so v6 files still open in older readers and pre-v6 files import with the
-  sentinel converted (F6.4, no version bump). New model fields travel
+  sentinel converted (F6.4, no version bump). `routines` (F3.7) is an additive key
+  in the same way, so a file written with routines still imports in an older build
+  (which drops them) instead of being rejected; see **Routines (F3.7)**. New model
+  fields travel
   automatically (items are `toJson`/`fromJson`); bump `BackupFormat.version` only for
   changes an older reader would misread — a newer file is rejected with "update the
   app". Import is tolerant per item (not an object, `fromJson` fails, empty or repeated
@@ -630,6 +643,90 @@ does not recognise; keep that cleanup if the sync changes again.
   after its first frame): a reminder payload opens `showReminderEditorSheet` once the
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
+## Routines (F3.7)
+
+Ready-made reminder packs ("sabah rutini" = spor + vitamin + su) applied with one
+tap. Nothing here is a parallel domain vocabulary: a routine **step** carries a
+title, an optional time of day, a `ReminderCategory` id, a `ReminderPriority`
+level and `Subtask`s, and a routine's auto-apply setting is a `RecurrenceRule`.
+
+- `domain/model/routine.dart` — `Routine { id, name, colorKey?, iconKey?, items,
+  repeat, createdAt, position }`, `RoutineItem { id, title, time, categoryId,
+  priority, subtasks, position }` and `RoutineTime` (hour/minute, stored and
+  exported as `HH:MM`; a broken value simply means "no time"). Colour and icon
+  keys come from the **category** vocabulary (`KorColorKey.storageKey`,
+  `CategoryIconKeys`), never a hex. A step's template subtasks are always open
+  and renumbered (`SubtaskList.normalized(...).reset` in the constructor). List
+  helpers (`RoutineItemList`, `RoutineList`) follow the `SubtaskList` contract:
+  every helper returns an unmodifiable list with `position` = index.
+- `domain/routine_apply.dart` — `RoutineApplyPlan`, the **only** apply rule.
+  `RoutineApplyPlan.from(routine:, date:, existing:)` is pure and clock-free;
+  `plan.build(now:, newId:, newSubtaskId:, mode:)` produces the reminders, so the
+  UI can show a preview without generating ids. Per step:
+  - **Time:** a timed step gets that time on the chosen day; a **timeless step
+    becomes a timeless reminder** (`remindAt == null`), exactly like the editor
+    with "Zamanla ve bildir" off — no invented default hour. A timeless reminder
+    has no date, so the chosen day only affects timed steps.
+  - **Recurrence (automatic application):** a routine's `repeat` rule is copied
+    onto the reminders of its **timed** steps; a weekly rule whose days exclude
+    the chosen day starts at the first chosen weekday (`firstOnOrAfter`, like the
+    editor). Timeless steps never repeat (a reminder without a time schedules no
+    notification). **There is no background scheduler and there must not be
+    one:** iOS gives no guarantee that a background task runs, so a routine would
+    silently not appear some mornings. Completion advances the created series
+    through the shared `completeReminder`, like any recurring reminder.
+  - **Link:** every created reminder carries `routineId` + `routineItemId`
+    (`Reminder`, schema v7). It is a **loose link, not a foreign key** (like a
+    category id): a backup restores reminders and routines in separate
+    transactions and an old backup may have no routines at all, so a constraint
+    would break imports. An unknown routine id only means the link is lost.
+- **Duplicate rule** (the same function, documented there): a step counts as
+  applied when a reminder **linked** to that routine and step exists — for a
+  repeating routine anywhere (the series already exists), otherwise only for that
+  day (timed: `remindAt`'s day; timeless: `createdAt`'s day). Without a link, a
+  reminder with the same folded title (`TextSearch.fold`) and category on that
+  day counts as *similar* (hand-made or pre-F3.7 rows). Completed reminders count
+  too, and one reminder is consumed by one step only. Modes:
+  `onlyNew` (default, skips), `replaceExisting` (moves the routine's **linked**
+  reminders to the new day/rule and refreshes title, category and priority while
+  keeping id, note, pin and subtask state — repeating routines only) and `addAll`
+  ("Yine de hepsini ekle"). Nothing is ever duplicated silently.
+- `ReminderCubit`: `state.routines` (new list object only when routines change),
+  `saveRoutine` / `deleteRoutine` / `moveRoutine` / `reorderRoutines` (write only
+  `saveRoutines`, never reminders) and `applyRoutine(routine, date:, mode:)`,
+  which rebuilds the plan at apply time and goes through the **normal**
+  `_persistAndSync` (repository + `ScheduleSync.syncAll`), so notifications,
+  widgets and the calendar follow by themselves. Editing a routine never rewrites
+  the reminders it already created; deleting one leaves them alone.
+  `ReminderCubit(newId:)` injects the id factory (tests).
+- **Storage (schema v7):** `routines` (`repeat_rule` = `RecurrenceRule.toJson()`
+  text or NULL, `created_at` ISO wall clock, `position`, `updated_at`,
+  `deleted_at`) and `routine_items` (primary key `(routine_id, id)`,
+  `routine_id` → `routines.id` **with** a foreign key, `time_of_day` `HH:MM`,
+  `subtasks` JSON text, soft delete) — the `subtasks` table's pattern, written in
+  the same transaction as the routine with the same diff rule. `reminders` gains
+  the two nullable link columns. The `from < 7` step creates the tables and adds
+  the columns; `clearAll` deletes `routine_items` before `routines` (FKs are on).
+- **Backup:** `routines` is an **additive** key in format **version 2** (no
+  bump), as are the reminder's link fields. An older build therefore still
+  imports the file and only loses the routines, instead of rejecting the whole
+  file with "update the app" — routines are self-contained, nothing else depends
+  on them. `BackupService` merges routines by id (local order kept) or replaces
+  them, and `BackupApplyResult.routines` counts them.
+- **UI** (`ui/routines/`): Listeler › **Rutinlerim** (`RoutineListSection`, same
+  shape as Kategorilerim, above it because a routine is an action, not a filter):
+  rows open **Rutini uygula** (`routine_apply_sheet.dart`: day chip defaulting to
+  today, step preview, duplicate warning with the two/three choices, snackbar
+  count), "Düzenle" is a `ReorderableListView` (handle only; items carry the
+  localized "Yukarı taşı / Aşağı taşı" actions), "+ Yeni rutin" opens
+  `routine_editor_sheet.dart` (name, 12 swatches, 18 icons, "Otomatik uygula"
+  Yok / Her gün / Seçili günler + weekday circles, ordered steps with a ⋮ menu,
+  [Sil] · [Kaydet]; nothing is written before "Kaydet"). A step is edited in
+  `routine_step_sheet.dart`, which reuses the shared `SubtasksCard`.
+  `RoutineVisuals` is the only routine colour/icon/row-text mapping. The weekday
+  circle is `ui/common/weekday_toggle.dart` (`WeekdayToggle`), extracted from the
+  recurrence sheet so both look and sound the same.
 
 ## Home screen widgets — shared contract
 

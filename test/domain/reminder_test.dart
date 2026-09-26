@@ -67,6 +67,9 @@ void main() {
         'subtasks': <Object?>[],
         'priority': 0,
         'pinned': false,
+        // F3.7: a reminder that no routine created has no link.
+        'routineId': null,
+        'routineItemId': null,
       });
     });
 
@@ -290,6 +293,8 @@ void main() {
         subtasks: const [Subtask(id: 's1', title: 'Süt')],
         priority: 3,
         pinned: true,
+        routineId: () => 'morning',
+        routineItemId: () => 'i1',
       );
 
       expect(copy.toJson(), {
@@ -312,6 +317,8 @@ void main() {
         ],
         'priority': 3,
         'pinned': true,
+        'routineId': 'morning',
+        'routineItemId': 'i1',
       });
     });
 

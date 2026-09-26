@@ -63,7 +63,7 @@ void main() {
         await tester.tap(_navItem('Listeler'));
         await tester.pumpAndSettle();
         expect(_header('Listeler'), findsOneWidget);
-        expect(find.text('Kategorilerim'), findsOneWidget);
+        expect(find.text('Rutinlerim'), findsOneWidget);
         semantics.dispose();
       });
 
@@ -123,7 +123,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(handled, isTrue);
         expect(_header('Bugün'), findsOneWidget);
-        expect(find.text('Kategorilerim'), findsNothing);
+        expect(find.text('Rutinlerim'), findsNothing);
         semantics.dispose();
       });
 

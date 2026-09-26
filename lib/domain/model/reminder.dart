@@ -52,6 +52,20 @@ class Reminder {
   /// anahtarı `pinned` (eksik → `false`).
   final bool pinned;
 
+  /// Bu hatırlatıcıyı oluşturan rutinin kimliği (F3.7); elle oluşturulanlarda
+  /// `null`. **Gevşek bağ:** yabancı anahtar değildir (kategori kimliği gibi),
+  /// silinmiş/bilinmeyen bir rutin kimliği yalnızca bağın kaybı demektir —
+  /// hatırlatıcı olduğu gibi çalışır. JSON anahtarı `routineId`.
+  final String? routineId;
+
+  /// Hatırlatıcıyı oluşturan rutin adımının kimliği (F3.7); [routineId] ile
+  /// birlikte "bu adım bu rutinden zaten oluşturulmuş" denetimini kesinleştirir
+  /// (`RoutineApplyPlan`). JSON anahtarı `routineItemId`.
+  final String? routineItemId;
+
+  /// Bir rutinden oluşturuldu mu (F3.7).
+  bool get isFromRoutine => routineId != null;
+
   const Reminder({
     required this.id,
     required this.title,
@@ -70,6 +84,8 @@ class Reminder {
     this.subtasks = const [],
     this.priority = ReminderPriority.none,
     this.pinned = false,
+    this.routineId,
+    this.routineItemId,
   });
 
   /// Belirtilen alanları değiştirilmiş bir kopya döndürür.
@@ -95,6 +111,8 @@ class Reminder {
     List<Subtask>? subtasks,
     int? priority,
     bool? pinned,
+    String? Function()? routineId,
+    String? Function()? routineItemId,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -122,6 +140,9 @@ class Reminder {
       subtasks: subtasks ?? this.subtasks,
       priority: priority ?? this.priority,
       pinned: pinned ?? this.pinned,
+      routineId: routineId != null ? routineId() : this.routineId,
+      routineItemId:
+          routineItemId != null ? routineItemId() : this.routineItemId,
     );
   }
 
@@ -171,6 +192,8 @@ class Reminder {
         'subtasks': [for (final s in subtasks) s.toJson()],
         'priority': priority,
         'pinned': pinned,
+        'routineId': routineId,
+        'routineItemId': routineItemId,
       };
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -197,6 +220,8 @@ class Reminder {
         json['priority'] is num ? (json['priority'] as num).toInt() : null,
       ),
       pinned: json['pinned'] is bool ? json['pinned'] as bool : false,
+      routineId: json['routineId'] as String?,
+      routineItemId: json['routineItemId'] as String?,
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:reminder/domain/model/app_settings.dart';
 import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/services/calendar_settings_store.dart';
 import 'package:reminder/ui/calendar/device_calendar_scope.dart';
@@ -41,7 +42,9 @@ class UiHarness {
     List<Reminder> reminders = const [],
     List<Birthday> birthdays = const [],
     List<ReminderCategory> categories = const [],
+    List<Routine> routines = const [],
     DateTime Function() now = DateTime.now,
+    String Function()? newId,
   }) async {
     if (!_fallbacksRegistered) {
       registerModelFallbackValues();
@@ -66,6 +69,8 @@ class UiHarness {
         .thenAnswer((_) async => const AppSettings());
     when(() => repository.loadCategories())
         .thenAnswer((_) async => [...categories]);
+    when(() => repository.loadRoutines())
+        .thenAnswer((_) async => [...routines]);
 
     final cubit = ReminderCubit(
       repository,
@@ -73,6 +78,7 @@ class UiHarness {
       geofence: geofence,
       homeWidget: homeWidget,
       now: now,
+      newId: newId,
     );
     await cubit.load();
     return UiHarness._(repository, cubit);

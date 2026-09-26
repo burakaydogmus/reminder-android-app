@@ -2,6 +2,7 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/domain/model/subtask.dart';
 
 /// Test verisi üretmek için kısa fabrikalar. Yalnızca testin önemsediği
@@ -24,8 +25,12 @@ Reminder buildReminder({
   List<Subtask> subtasks = const [],
   int priority = 0,
   bool pinned = false,
+  String? routineId,
+  String? routineItemId,
 }) {
   return Reminder(
+    routineId: routineId,
+    routineItemId: routineItemId,
     recurrence: recurrence,
     subtasks: subtasks,
     priority: priority,
@@ -99,6 +104,51 @@ ReminderCategory buildCategory({
     name: name,
     colorKey: colorKey,
     iconKey: iconKey,
+    position: position,
+  );
+}
+
+/// Rutin (F3.7); adımlar `Routine`'in kendi kuralıyla sıralanır (eşit
+/// `position` değerlerinde verilen sıra korunur).
+Routine buildRoutine({
+  String id = 'morning',
+  String name = 'Sabah rutini',
+  String? colorKey = 'gunluk',
+  String? iconKey = CategoryIconKeys.sun,
+  List<RoutineItem> items = const [],
+  RecurrenceRule repeat = RecurrenceRule.none,
+  DateTime? createdAt,
+  int position = 0,
+}) {
+  return Routine(
+    id: id,
+    name: name,
+    colorKey: colorKey,
+    iconKey: iconKey,
+    items: items,
+    repeat: repeat,
+    createdAt: createdAt ?? DateTime(2026, 9, 1, 8),
+    position: position,
+  );
+}
+
+/// Rutin adımı (F3.7); [time] `HH:MM` metni ya da `null` (saatsiz adım).
+RoutineItem buildRoutineStep({
+  String id = 'i1',
+  String title = 'Spor',
+  String? time,
+  String categoryId = ReminderCategoryIds.other,
+  int priority = 0,
+  List<Subtask> subtasks = const [],
+  int position = 0,
+}) {
+  return RoutineItem(
+    id: id,
+    title: title,
+    time: RoutineTime.tryParse(time),
+    categoryId: categoryId,
+    priority: priority,
+    subtasks: subtasks,
     position: position,
   );
 }

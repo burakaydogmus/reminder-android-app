@@ -1875,5 +1875,162 @@
               "type": "int"
           }
       }
-  }
+  },
+  "routinesTitle": "Rutinlerim",
+  "routinesEmpty": "Henüz rutin yok",
+  "routinesEmptyHint": "Sabah rutini gibi hazır paketler kur, tek dokunuşla hatırlatıcıya çevir.",
+  "@routinesEmptyHint": {
+      "description": "Listeler > Rutinlerim empty state sentence."
+  },
+  "routineNew": "Yeni rutin",
+  "routineEdit": "Rutini düzenle",
+  "routineStepCount": "{count, plural, other{{count} adım}}",
+  "@routineStepCount": {
+      "description": "How many steps a routine has.",
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineRowSpoken": "{name}, {details}",
+  "@routineRowSpoken": {
+      "description": "Routine row for screen readers: name plus step count and repeat summary.",
+      "placeholders": {
+          "name": {
+              "type": "String"
+          },
+          "details": {
+              "type": "String"
+          }
+      }
+  },
+  "routineMoveSpoken": "{name} rutinini taşı",
+  "@routineMoveSpoken": {
+      "placeholders": {
+          "name": {
+              "type": "String"
+          }
+      }
+  },
+  "routineEditTooltip": "{name} rutinini düzenle",
+  "@routineEditTooltip": {
+      "placeholders": {
+          "name": {
+              "type": "String"
+          }
+      }
+  },
+  "routineNameHint": "Sabah rutini",
+  "routineNameEmpty": "Bir ad yaz",
+  "routineNameTaken": "Bu adda bir rutin var",
+  "routineStepsTitle": "Adımlar",
+  "routineStepsEmpty": "Henüz adım yok. Rutin neyi oluştursun?",
+  "routineStepAdd": "Adım ekle",
+  "routineStepNew": "Yeni adım",
+  "routineStepEdit": "Adımı düzenle",
+  "routineStepTitleHint": "Spor",
+  "routineStepTime": "Saat",
+  "routineStepTimeSwitch": "Saat ver",
+  "routineStepTimeHint": "Saat vermezsen zamansız hatırlatıcı olur (Bugün bir ara).",
+  "routineStepTimeNone": "Saat yok",
+  "routineStepRowSpoken": "{title}, {details}",
+  "@routineStepRowSpoken": {
+      "description": "Routine step row for screen readers.",
+      "placeholders": {
+          "title": {
+              "type": "String"
+          },
+          "details": {
+              "type": "String"
+          }
+      }
+  },
+  "routineStepMoveSpoken": "{title} adımını taşı",
+  "@routineStepMoveSpoken": {
+      "placeholders": {
+          "title": {
+              "type": "String"
+          }
+      }
+  },
+  "routineStepActions": "Adım işlemleri",
+  "routineDeleteTitle": "“{name}” silinsin mi?",
+  "@routineDeleteTitle": {
+      "placeholders": {
+          "name": {
+              "type": "String"
+          }
+      }
+  },
+  "routineDeleteContent": "Rutin silinir; bu rutinden oluşturduğun hatırlatıcılar kalır.",
+  "routineRepeatTitle": "Otomatik uygula",
+  "routineRepeatHint": "Tekrar seçersen saatli adımlar tekrarlayan hatırlatıcı olur; sonraki günleri bildirim kendiliğinden getirir.",
+  "@routineRepeatHint": {
+      "description": "Explains that auto-apply is done with the recurrence engine, not a background task."
+  },
+  "routineRepeatOff": "Yok",
+  "routineRepeatDaily": "Her gün",
+  "routineRepeatWeekly": "Seçili günler",
+  "routineRepeatNoTimeNote": "Saatsiz adımlar tekrar etmez: zamansız hatırlatıcı bildirim kurmaz.",
+  "routineRepeatSpoken": "Tekrar: {summary}",
+  "@routineRepeatSpoken": {
+      "placeholders": {
+          "summary": {
+              "type": "String"
+          }
+      }
+  },
+  "routineApplyTitle": "Rutini uygula",
+  "routineApplyDay": "Gün",
+  "routineApplyDaySpoken": "Gün: {day}",
+  "@routineApplyDaySpoken": {
+      "placeholders": {
+          "day": {
+              "type": "String"
+          }
+      }
+  },
+  "routineApplyAction": "Ekle",
+  "routineApplyOnlyNew": "Yalnızca yenileri ekle",
+  "routineApplyAnyway": "Yine de hepsini ekle",
+  "routineApplyUpdate": "Hatırlatıcıları güncelle",
+  "routineApplyDuplicateToday": "Bugün bu rutini zaten uyguladın",
+  "routineApplyDuplicateOnDay": "Bu rutini {day} için zaten uyguladın",
+  "@routineApplyDuplicateOnDay": {
+      "placeholders": {
+          "day": {
+              "type": "String"
+          }
+      }
+  },
+  "routineApplyDuplicateBody": "{count, plural, other{{count} adım o gün için zaten var. Yalnızca yenilerini ekleyebilirsin.}}",
+  "@routineApplyDuplicateBody": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineApplySeriesTitle": "Bu rutinin hatırlatıcıları zaten var",
+  "routineApplySeriesBody": "Tekrarlayan rutin ikinci kez oluşturulmaz. Var olanları seçtiğin güne ve tekrara göre güncelleyebilirsin.",
+  "routineApplyStepAlready": "zaten var",
+  "routineApplyEmpty": "Bu rutinde adım yok. Önce bir adım ekle.",
+  "routineApplied": "{count, plural, other{{count} hatırlatıcı eklendi}}",
+  "@routineApplied": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineAppliedUpdated": "{count, plural, other{{count} hatırlatıcı güncellendi}}",
+  "@routineAppliedUpdated": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineApplyNothing": "Eklenecek yeni adım yok"
 }

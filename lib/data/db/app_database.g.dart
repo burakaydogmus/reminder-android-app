@@ -130,6 +130,18 @@ class $RemindersTable extends Reminders
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("pinned" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _routineIdMeta =
+      const VerificationMeta('routineId');
+  @override
+  late final GeneratedColumn<String> routineId = GeneratedColumn<String>(
+      'routine_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _routineItemIdMeta =
+      const VerificationMeta('routineItemId');
+  @override
+  late final GeneratedColumn<String> routineItemId = GeneratedColumn<String>(
+      'routine_item_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -150,7 +162,9 @@ class $RemindersTable extends Reminders
         deletedAt,
         recurrence,
         priority,
-        pinned
+        pinned,
+        routineId,
+        routineItemId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -271,6 +285,16 @@ class $RemindersTable extends Reminders
       context.handle(_pinnedMeta,
           pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta));
     }
+    if (data.containsKey('routine_id')) {
+      context.handle(_routineIdMeta,
+          routineId.isAcceptableOrUnknown(data['routine_id']!, _routineIdMeta));
+    }
+    if (data.containsKey('routine_item_id')) {
+      context.handle(
+          _routineItemIdMeta,
+          routineItemId.isAcceptableOrUnknown(
+              data['routine_item_id']!, _routineItemIdMeta));
+    }
     return context;
   }
 
@@ -320,6 +344,10 @@ class $RemindersTable extends Reminders
           .read(DriftSqlType.int, data['${effectivePrefix}priority'])!,
       pinned: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}pinned'])!,
+      routineId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}routine_id']),
+      routineItemId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}routine_item_id']),
     );
   }
 
@@ -357,6 +385,19 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
 
   /// Sabitlenmiş (v4, F3.4). Eski satırlar `false` alır.
   final bool pinned;
+
+  /// Bu hatırlatıcıyı oluşturan rutin (v7, F3.7); elle oluşturulanlarda NULL.
+  ///
+  /// **Yabancı anahtar değildir** (kategori kimliği gibi gevşek bağ): yedekten
+  /// geri yükleme hatırlatıcıları rutinlerden ayrı transaction'da yazar ve
+  /// eski bir yedekte rutin hiç olmayabilir; kısıtlama koyulsa böyle bir içe
+  /// aktarma tamamen başarısız olurdu. Bilinmeyen kimlik yalnızca bağın kaybı
+  /// demektir.
+  final String? routineId;
+
+  /// Hatırlatıcıyı oluşturan rutin adımı (v7, F3.7); [routineId] ile birlikte
+  /// "bu adım zaten uygulanmış" denetimini kesinleştirir.
+  final String? routineItemId;
   const ReminderRow(
       {required this.id,
       required this.title,
@@ -376,7 +417,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       this.deletedAt,
       this.recurrence,
       required this.priority,
-      required this.pinned});
+      required this.pinned,
+      this.routineId,
+      this.routineItemId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -415,6 +458,12 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
     }
     map['priority'] = Variable<int>(priority);
     map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || routineId != null) {
+      map['routine_id'] = Variable<String>(routineId);
+    }
+    if (!nullToAbsent || routineItemId != null) {
+      map['routine_item_id'] = Variable<String>(routineItemId);
+    }
     return map;
   }
 
@@ -453,6 +502,12 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           : Value(recurrence),
       priority: Value(priority),
       pinned: Value(pinned),
+      routineId: routineId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routineId),
+      routineItemId: routineItemId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(routineItemId),
     );
   }
 
@@ -484,6 +539,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       recurrence: serializer.fromJson<String?>(json['recurrence']),
       priority: serializer.fromJson<int>(json['priority']),
       pinned: serializer.fromJson<bool>(json['pinned']),
+      routineId: serializer.fromJson<String?>(json['routineId']),
+      routineItemId: serializer.fromJson<String?>(json['routineItemId']),
     );
   }
   @override
@@ -509,6 +566,8 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
       'recurrence': serializer.toJson<String?>(recurrence),
       'priority': serializer.toJson<int>(priority),
       'pinned': serializer.toJson<bool>(pinned),
+      'routineId': serializer.toJson<String?>(routineId),
+      'routineItemId': serializer.toJson<String?>(routineItemId),
     };
   }
 
@@ -531,7 +590,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           Value<int?> deletedAt = const Value.absent(),
           Value<String?> recurrence = const Value.absent(),
           int? priority,
-          bool? pinned}) =>
+          bool? pinned,
+          Value<String?> routineId = const Value.absent(),
+          Value<String?> routineItemId = const Value.absent()}) =>
       ReminderRow(
         id: id ?? this.id,
         title: title ?? this.title,
@@ -561,6 +622,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
         recurrence: recurrence.present ? recurrence.value : this.recurrence,
         priority: priority ?? this.priority,
         pinned: pinned ?? this.pinned,
+        routineId: routineId.present ? routineId.value : this.routineId,
+        routineItemId:
+            routineItemId.present ? routineItemId.value : this.routineItemId,
       );
   ReminderRow copyWithCompanion(RemindersCompanion data) {
     return ReminderRow(
@@ -597,6 +661,10 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           data.recurrence.present ? data.recurrence.value : this.recurrence,
       priority: data.priority.present ? data.priority.value : this.priority,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      routineId: data.routineId.present ? data.routineId.value : this.routineId,
+      routineItemId: data.routineItemId.present
+          ? data.routineItemId.value
+          : this.routineItemId,
     );
   }
 
@@ -621,32 +689,37 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('recurrence: $recurrence, ')
           ..write('priority: $priority, ')
-          ..write('pinned: $pinned')
+          ..write('pinned: $pinned, ')
+          ..write('routineId: $routineId, ')
+          ..write('routineItemId: $routineItemId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      title,
-      note,
-      isDone,
-      createdAt,
-      remindAt,
-      categoryId,
-      customCategoryLabel,
-      locationTriggerEnabled,
-      locationLatitude,
-      locationLongitude,
-      locationRadiusMeters,
-      locationPlaceLabel,
-      position,
-      updatedAt,
-      deletedAt,
-      recurrence,
-      priority,
-      pinned);
+  int get hashCode => Object.hashAll([
+        id,
+        title,
+        note,
+        isDone,
+        createdAt,
+        remindAt,
+        categoryId,
+        customCategoryLabel,
+        locationTriggerEnabled,
+        locationLatitude,
+        locationLongitude,
+        locationRadiusMeters,
+        locationPlaceLabel,
+        position,
+        updatedAt,
+        deletedAt,
+        recurrence,
+        priority,
+        pinned,
+        routineId,
+        routineItemId
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -669,7 +742,9 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
           other.deletedAt == this.deletedAt &&
           other.recurrence == this.recurrence &&
           other.priority == this.priority &&
-          other.pinned == this.pinned);
+          other.pinned == this.pinned &&
+          other.routineId == this.routineId &&
+          other.routineItemId == this.routineItemId);
 }
 
 class RemindersCompanion extends UpdateCompanion<ReminderRow> {
@@ -692,6 +767,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
   final Value<String?> recurrence;
   final Value<int> priority;
   final Value<bool> pinned;
+  final Value<String?> routineId;
+  final Value<String?> routineItemId;
   final Value<int> rowid;
   const RemindersCompanion({
     this.id = const Value.absent(),
@@ -713,6 +790,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     this.recurrence = const Value.absent(),
     this.priority = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.routineId = const Value.absent(),
+    this.routineItemId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RemindersCompanion.insert({
@@ -735,6 +814,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     this.recurrence = const Value.absent(),
     this.priority = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.routineId = const Value.absent(),
+    this.routineItemId = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         title = Value(title),
@@ -765,6 +846,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     Expression<String>? recurrence,
     Expression<int>? priority,
     Expression<bool>? pinned,
+    Expression<String>? routineId,
+    Expression<String>? routineItemId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -791,6 +874,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       if (recurrence != null) 'recurrence': recurrence,
       if (priority != null) 'priority': priority,
       if (pinned != null) 'pinned': pinned,
+      if (routineId != null) 'routine_id': routineId,
+      if (routineItemId != null) 'routine_item_id': routineItemId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -815,6 +900,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       Value<String?>? recurrence,
       Value<int>? priority,
       Value<bool>? pinned,
+      Value<String?>? routineId,
+      Value<String?>? routineItemId,
       Value<int>? rowid}) {
     return RemindersCompanion(
       id: id ?? this.id,
@@ -837,6 +924,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
       recurrence: recurrence ?? this.recurrence,
       priority: priority ?? this.priority,
       pinned: pinned ?? this.pinned,
+      routineId: routineId ?? this.routineId,
+      routineItemId: routineItemId ?? this.routineItemId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -904,6 +993,12 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
     if (pinned.present) {
       map['pinned'] = Variable<bool>(pinned.value);
     }
+    if (routineId.present) {
+      map['routine_id'] = Variable<String>(routineId.value);
+    }
+    if (routineItemId.present) {
+      map['routine_item_id'] = Variable<String>(routineItemId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -932,6 +1027,8 @@ class RemindersCompanion extends UpdateCompanion<ReminderRow> {
           ..write('recurrence: $recurrence, ')
           ..write('priority: $priority, ')
           ..write('pinned: $pinned, ')
+          ..write('routineId: $routineId, ')
+          ..write('routineItemId: $routineItemId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1705,6 +1802,999 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('name: $name, ')
           ..write('colorKey: $colorKey, ')
           ..write('iconKey: $iconKey, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RoutinesTable extends Routines
+    with TableInfo<$RoutinesTable, RoutineRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RoutinesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _colorKeyMeta =
+      const VerificationMeta('colorKey');
+  @override
+  late final GeneratedColumn<String> colorKey = GeneratedColumn<String>(
+      'color_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _iconKeyMeta =
+      const VerificationMeta('iconKey');
+  @override
+  late final GeneratedColumn<String> iconKey = GeneratedColumn<String>(
+      'icon_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _repeatRuleMeta =
+      const VerificationMeta('repeatRule');
+  @override
+  late final GeneratedColumn<String> repeatRule = GeneratedColumn<String>(
+      'repeat_rule', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<String> createdAt = GeneratedColumn<String>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+      'position', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        colorKey,
+        iconKey,
+        repeatRule,
+        createdAt,
+        position,
+        updatedAt,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'routines';
+  @override
+  VerificationContext validateIntegrity(Insertable<RoutineRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color_key')) {
+      context.handle(_colorKeyMeta,
+          colorKey.isAcceptableOrUnknown(data['color_key']!, _colorKeyMeta));
+    }
+    if (data.containsKey('icon_key')) {
+      context.handle(_iconKeyMeta,
+          iconKey.isAcceptableOrUnknown(data['icon_key']!, _iconKeyMeta));
+    }
+    if (data.containsKey('repeat_rule')) {
+      context.handle(
+          _repeatRuleMeta,
+          repeatRule.isAcceptableOrUnknown(
+              data['repeat_rule']!, _repeatRuleMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RoutineRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RoutineRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      colorKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}color_key']),
+      iconKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}icon_key']),
+      repeatRule: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}repeat_rule']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}created_at'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $RoutinesTable createAlias(String alias) {
+    return $RoutinesTable(attachedDatabase, alias);
+  }
+}
+
+class RoutineRow extends DataClass implements Insertable<RoutineRow> {
+  final String id;
+  final String name;
+  final String? colorKey;
+  final String? iconKey;
+
+  /// Otomatik uygulama kuralı (`RecurrenceRule.toJson()`); `NULL` = tekrar yok.
+  final String? repeatRule;
+  final String createdAt;
+  final int position;
+  final int updatedAt;
+  final int? deletedAt;
+  const RoutineRow(
+      {required this.id,
+      required this.name,
+      this.colorKey,
+      this.iconKey,
+      this.repeatRule,
+      required this.createdAt,
+      required this.position,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || colorKey != null) {
+      map['color_key'] = Variable<String>(colorKey);
+    }
+    if (!nullToAbsent || iconKey != null) {
+      map['icon_key'] = Variable<String>(iconKey);
+    }
+    if (!nullToAbsent || repeatRule != null) {
+      map['repeat_rule'] = Variable<String>(repeatRule);
+    }
+    map['created_at'] = Variable<String>(createdAt);
+    map['position'] = Variable<int>(position);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    return map;
+  }
+
+  RoutinesCompanion toCompanion(bool nullToAbsent) {
+    return RoutinesCompanion(
+      id: Value(id),
+      name: Value(name),
+      colorKey: colorKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorKey),
+      iconKey: iconKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(iconKey),
+      repeatRule: repeatRule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(repeatRule),
+      createdAt: Value(createdAt),
+      position: Value(position),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory RoutineRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RoutineRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      colorKey: serializer.fromJson<String?>(json['colorKey']),
+      iconKey: serializer.fromJson<String?>(json['iconKey']),
+      repeatRule: serializer.fromJson<String?>(json['repeatRule']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'colorKey': serializer.toJson<String?>(colorKey),
+      'iconKey': serializer.toJson<String?>(iconKey),
+      'repeatRule': serializer.toJson<String?>(repeatRule),
+      'createdAt': serializer.toJson<String>(createdAt),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+    };
+  }
+
+  RoutineRow copyWith(
+          {String? id,
+          String? name,
+          Value<String?> colorKey = const Value.absent(),
+          Value<String?> iconKey = const Value.absent(),
+          Value<String?> repeatRule = const Value.absent(),
+          String? createdAt,
+          int? position,
+          int? updatedAt,
+          Value<int?> deletedAt = const Value.absent()}) =>
+      RoutineRow(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        colorKey: colorKey.present ? colorKey.value : this.colorKey,
+        iconKey: iconKey.present ? iconKey.value : this.iconKey,
+        repeatRule: repeatRule.present ? repeatRule.value : this.repeatRule,
+        createdAt: createdAt ?? this.createdAt,
+        position: position ?? this.position,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  RoutineRow copyWithCompanion(RoutinesCompanion data) {
+    return RoutineRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      colorKey: data.colorKey.present ? data.colorKey.value : this.colorKey,
+      iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
+      repeatRule:
+          data.repeatRule.present ? data.repeatRule.value : this.repeatRule,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoutineRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorKey: $colorKey, ')
+          ..write('iconKey: $iconKey, ')
+          ..write('repeatRule: $repeatRule, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, colorKey, iconKey, repeatRule,
+      createdAt, position, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RoutineRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.colorKey == this.colorKey &&
+          other.iconKey == this.iconKey &&
+          other.repeatRule == this.repeatRule &&
+          other.createdAt == this.createdAt &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class RoutinesCompanion extends UpdateCompanion<RoutineRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> colorKey;
+  final Value<String?> iconKey;
+  final Value<String?> repeatRule;
+  final Value<String> createdAt;
+  final Value<int> position;
+  final Value<int> updatedAt;
+  final Value<int?> deletedAt;
+  final Value<int> rowid;
+  const RoutinesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.colorKey = const Value.absent(),
+    this.iconKey = const Value.absent(),
+    this.repeatRule = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RoutinesCompanion.insert({
+    required String id,
+    required String name,
+    this.colorKey = const Value.absent(),
+    this.iconKey = const Value.absent(),
+    this.repeatRule = const Value.absent(),
+    required String createdAt,
+    required int position,
+    required int updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        createdAt = Value(createdAt),
+        position = Value(position),
+        updatedAt = Value(updatedAt);
+  static Insertable<RoutineRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? colorKey,
+    Expression<String>? iconKey,
+    Expression<String>? repeatRule,
+    Expression<String>? createdAt,
+    Expression<int>? position,
+    Expression<int>? updatedAt,
+    Expression<int>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (colorKey != null) 'color_key': colorKey,
+      if (iconKey != null) 'icon_key': iconKey,
+      if (repeatRule != null) 'repeat_rule': repeatRule,
+      if (createdAt != null) 'created_at': createdAt,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RoutinesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String?>? colorKey,
+      Value<String?>? iconKey,
+      Value<String?>? repeatRule,
+      Value<String>? createdAt,
+      Value<int>? position,
+      Value<int>? updatedAt,
+      Value<int?>? deletedAt,
+      Value<int>? rowid}) {
+    return RoutinesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      colorKey: colorKey ?? this.colorKey,
+      iconKey: iconKey ?? this.iconKey,
+      repeatRule: repeatRule ?? this.repeatRule,
+      createdAt: createdAt ?? this.createdAt,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (colorKey.present) {
+      map['color_key'] = Variable<String>(colorKey.value);
+    }
+    if (iconKey.present) {
+      map['icon_key'] = Variable<String>(iconKey.value);
+    }
+    if (repeatRule.present) {
+      map['repeat_rule'] = Variable<String>(repeatRule.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoutinesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorKey: $colorKey, ')
+          ..write('iconKey: $iconKey, ')
+          ..write('repeatRule: $repeatRule, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RoutineItemsTable extends RoutineItems
+    with TableInfo<$RoutineItemsTable, RoutineItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RoutineItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _routineIdMeta =
+      const VerificationMeta('routineId');
+  @override
+  late final GeneratedColumn<String> routineId = GeneratedColumn<String>(
+      'routine_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES routines (id)'));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _timeOfDayMeta =
+      const VerificationMeta('timeOfDay');
+  @override
+  late final GeneratedColumn<String> timeOfDay = GeneratedColumn<String>(
+      'time_of_day', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _categoryIdMeta =
+      const VerificationMeta('categoryId');
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+      'category_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _priorityMeta =
+      const VerificationMeta('priority');
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+      'priority', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _subtasksMeta =
+      const VerificationMeta('subtasks');
+  @override
+  late final GeneratedColumn<String> subtasks = GeneratedColumn<String>(
+      'subtasks', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+      'position', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        routineId,
+        id,
+        title,
+        timeOfDay,
+        categoryId,
+        priority,
+        subtasks,
+        position,
+        updatedAt,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'routine_items';
+  @override
+  VerificationContext validateIntegrity(Insertable<RoutineItemRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('routine_id')) {
+      context.handle(_routineIdMeta,
+          routineId.isAcceptableOrUnknown(data['routine_id']!, _routineIdMeta));
+    } else if (isInserting) {
+      context.missing(_routineIdMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('time_of_day')) {
+      context.handle(
+          _timeOfDayMeta,
+          timeOfDay.isAcceptableOrUnknown(
+              data['time_of_day']!, _timeOfDayMeta));
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+          _categoryIdMeta,
+          categoryId.isAcceptableOrUnknown(
+              data['category_id']!, _categoryIdMeta));
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(_priorityMeta,
+          priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta));
+    }
+    if (data.containsKey('subtasks')) {
+      context.handle(_subtasksMeta,
+          subtasks.isAcceptableOrUnknown(data['subtasks']!, _subtasksMeta));
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {routineId, id};
+  @override
+  RoutineItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RoutineItemRow(
+      routineId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}routine_id'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      timeOfDay: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}time_of_day']),
+      categoryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_id'])!,
+      priority: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}priority'])!,
+      subtasks: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}subtasks']),
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $RoutineItemsTable createAlias(String alias) {
+    return $RoutineItemsTable(attachedDatabase, alias);
+  }
+}
+
+class RoutineItemRow extends DataClass implements Insertable<RoutineItemRow> {
+  final String routineId;
+  final String id;
+  final String title;
+
+  /// Günün saati, `HH:MM`; NULL = saatsiz adım.
+  final String? timeOfDay;
+  final String categoryId;
+  final int priority;
+
+  /// Şablon maddeleri, JSON dizi metni; NULL = madde yok.
+  final String? subtasks;
+  final int position;
+  final int updatedAt;
+  final int? deletedAt;
+  const RoutineItemRow(
+      {required this.routineId,
+      required this.id,
+      required this.title,
+      this.timeOfDay,
+      required this.categoryId,
+      required this.priority,
+      this.subtasks,
+      required this.position,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['routine_id'] = Variable<String>(routineId);
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || timeOfDay != null) {
+      map['time_of_day'] = Variable<String>(timeOfDay);
+    }
+    map['category_id'] = Variable<String>(categoryId);
+    map['priority'] = Variable<int>(priority);
+    if (!nullToAbsent || subtasks != null) {
+      map['subtasks'] = Variable<String>(subtasks);
+    }
+    map['position'] = Variable<int>(position);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
+    }
+    return map;
+  }
+
+  RoutineItemsCompanion toCompanion(bool nullToAbsent) {
+    return RoutineItemsCompanion(
+      routineId: Value(routineId),
+      id: Value(id),
+      title: Value(title),
+      timeOfDay: timeOfDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timeOfDay),
+      categoryId: Value(categoryId),
+      priority: Value(priority),
+      subtasks: subtasks == null && nullToAbsent
+          ? const Value.absent()
+          : Value(subtasks),
+      position: Value(position),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory RoutineItemRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RoutineItemRow(
+      routineId: serializer.fromJson<String>(json['routineId']),
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      timeOfDay: serializer.fromJson<String?>(json['timeOfDay']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      priority: serializer.fromJson<int>(json['priority']),
+      subtasks: serializer.fromJson<String?>(json['subtasks']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'routineId': serializer.toJson<String>(routineId),
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'timeOfDay': serializer.toJson<String?>(timeOfDay),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'priority': serializer.toJson<int>(priority),
+      'subtasks': serializer.toJson<String?>(subtasks),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
+    };
+  }
+
+  RoutineItemRow copyWith(
+          {String? routineId,
+          String? id,
+          String? title,
+          Value<String?> timeOfDay = const Value.absent(),
+          String? categoryId,
+          int? priority,
+          Value<String?> subtasks = const Value.absent(),
+          int? position,
+          int? updatedAt,
+          Value<int?> deletedAt = const Value.absent()}) =>
+      RoutineItemRow(
+        routineId: routineId ?? this.routineId,
+        id: id ?? this.id,
+        title: title ?? this.title,
+        timeOfDay: timeOfDay.present ? timeOfDay.value : this.timeOfDay,
+        categoryId: categoryId ?? this.categoryId,
+        priority: priority ?? this.priority,
+        subtasks: subtasks.present ? subtasks.value : this.subtasks,
+        position: position ?? this.position,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  RoutineItemRow copyWithCompanion(RoutineItemsCompanion data) {
+    return RoutineItemRow(
+      routineId: data.routineId.present ? data.routineId.value : this.routineId,
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      timeOfDay: data.timeOfDay.present ? data.timeOfDay.value : this.timeOfDay,
+      categoryId:
+          data.categoryId.present ? data.categoryId.value : this.categoryId,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      subtasks: data.subtasks.present ? data.subtasks.value : this.subtasks,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoutineItemRow(')
+          ..write('routineId: $routineId, ')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('timeOfDay: $timeOfDay, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('priority: $priority, ')
+          ..write('subtasks: $subtasks, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(routineId, id, title, timeOfDay, categoryId,
+      priority, subtasks, position, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RoutineItemRow &&
+          other.routineId == this.routineId &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.timeOfDay == this.timeOfDay &&
+          other.categoryId == this.categoryId &&
+          other.priority == this.priority &&
+          other.subtasks == this.subtasks &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class RoutineItemsCompanion extends UpdateCompanion<RoutineItemRow> {
+  final Value<String> routineId;
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> timeOfDay;
+  final Value<String> categoryId;
+  final Value<int> priority;
+  final Value<String?> subtasks;
+  final Value<int> position;
+  final Value<int> updatedAt;
+  final Value<int?> deletedAt;
+  final Value<int> rowid;
+  const RoutineItemsCompanion({
+    this.routineId = const Value.absent(),
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.timeOfDay = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.subtasks = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RoutineItemsCompanion.insert({
+    required String routineId,
+    required String id,
+    required String title,
+    this.timeOfDay = const Value.absent(),
+    required String categoryId,
+    this.priority = const Value.absent(),
+    this.subtasks = const Value.absent(),
+    required int position,
+    required int updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : routineId = Value(routineId),
+        id = Value(id),
+        title = Value(title),
+        categoryId = Value(categoryId),
+        position = Value(position),
+        updatedAt = Value(updatedAt);
+  static Insertable<RoutineItemRow> custom({
+    Expression<String>? routineId,
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? timeOfDay,
+    Expression<String>? categoryId,
+    Expression<int>? priority,
+    Expression<String>? subtasks,
+    Expression<int>? position,
+    Expression<int>? updatedAt,
+    Expression<int>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (routineId != null) 'routine_id': routineId,
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (timeOfDay != null) 'time_of_day': timeOfDay,
+      if (categoryId != null) 'category_id': categoryId,
+      if (priority != null) 'priority': priority,
+      if (subtasks != null) 'subtasks': subtasks,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RoutineItemsCompanion copyWith(
+      {Value<String>? routineId,
+      Value<String>? id,
+      Value<String>? title,
+      Value<String?>? timeOfDay,
+      Value<String>? categoryId,
+      Value<int>? priority,
+      Value<String?>? subtasks,
+      Value<int>? position,
+      Value<int>? updatedAt,
+      Value<int?>? deletedAt,
+      Value<int>? rowid}) {
+    return RoutineItemsCompanion(
+      routineId: routineId ?? this.routineId,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      timeOfDay: timeOfDay ?? this.timeOfDay,
+      categoryId: categoryId ?? this.categoryId,
+      priority: priority ?? this.priority,
+      subtasks: subtasks ?? this.subtasks,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (routineId.present) {
+      map['routine_id'] = Variable<String>(routineId.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (timeOfDay.present) {
+      map['time_of_day'] = Variable<String>(timeOfDay.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (subtasks.present) {
+      map['subtasks'] = Variable<String>(subtasks.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoutineItemsCompanion(')
+          ..write('routineId: $routineId, ')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('timeOfDay: $timeOfDay, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('priority: $priority, ')
+          ..write('subtasks: $subtasks, ')
           ..write('position: $position, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -2835,6 +3925,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RemindersTable reminders = $RemindersTable(this);
   late final $SubtasksTable subtasks = $SubtasksTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
+  late final $RoutinesTable routines = $RoutinesTable(this);
+  late final $RoutineItemsTable routineItems = $RoutineItemsTable(this);
   late final $BirthdaysTable birthdays = $BirthdaysTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $AppMetaTable appMeta = $AppMetaTable(this);
@@ -2842,8 +3934,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [reminders, subtasks, categories, birthdays, settings, appMeta];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        reminders,
+        subtasks,
+        categories,
+        routines,
+        routineItems,
+        birthdays,
+        settings,
+        appMeta
+      ];
 }
 
 typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
@@ -2866,6 +3966,8 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   Value<String?> recurrence,
   Value<int> priority,
   Value<bool> pinned,
+  Value<String?> routineId,
+  Value<String?> routineItemId,
   Value<int> rowid,
 });
 typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
@@ -2888,6 +3990,8 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<String?> recurrence,
   Value<int> priority,
   Value<bool> pinned,
+  Value<String?> routineId,
+  Value<String?> routineItemId,
   Value<int> rowid,
 });
 
@@ -2982,6 +4086,12 @@ class $$RemindersTableFilterComposer
   ColumnFilters<bool> get pinned => $composableBuilder(
       column: $table.pinned, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get routineId => $composableBuilder(
+      column: $table.routineId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get routineItemId => $composableBuilder(
+      column: $table.routineItemId, builder: (column) => ColumnFilters(column));
+
   Expression<bool> subtasksRefs(
       Expression<bool> Function($$SubtasksTableFilterComposer f) f) {
     final $$SubtasksTableFilterComposer composer = $composerBuilder(
@@ -3075,6 +4185,13 @@ class $$RemindersTableOrderingComposer
 
   ColumnOrderings<bool> get pinned => $composableBuilder(
       column: $table.pinned, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get routineId => $composableBuilder(
+      column: $table.routineId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get routineItemId => $composableBuilder(
+      column: $table.routineItemId,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$RemindersTableAnnotationComposer
@@ -3143,6 +4260,12 @@ class $$RemindersTableAnnotationComposer
   GeneratedColumn<bool> get pinned =>
       $composableBuilder(column: $table.pinned, builder: (column) => column);
 
+  GeneratedColumn<String> get routineId =>
+      $composableBuilder(column: $table.routineId, builder: (column) => column);
+
+  GeneratedColumn<String> get routineItemId => $composableBuilder(
+      column: $table.routineItemId, builder: (column) => column);
+
   Expression<T> subtasksRefs<T extends Object>(
       Expression<T> Function($$SubtasksTableAnnotationComposer a) f) {
     final $$SubtasksTableAnnotationComposer composer = $composerBuilder(
@@ -3207,6 +4330,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             Value<String?> recurrence = const Value.absent(),
             Value<int> priority = const Value.absent(),
             Value<bool> pinned = const Value.absent(),
+            Value<String?> routineId = const Value.absent(),
+            Value<String?> routineItemId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RemindersCompanion(
@@ -3229,6 +4354,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             recurrence: recurrence,
             priority: priority,
             pinned: pinned,
+            routineId: routineId,
+            routineItemId: routineItemId,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -3251,6 +4378,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             Value<String?> recurrence = const Value.absent(),
             Value<int> priority = const Value.absent(),
             Value<bool> pinned = const Value.absent(),
+            Value<String?> routineId = const Value.absent(),
+            Value<String?> routineItemId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RemindersCompanion.insert(
@@ -3273,6 +4402,8 @@ class $$RemindersTableTableManager extends RootTableManager<
             recurrence: recurrence,
             priority: priority,
             pinned: pinned,
+            routineId: routineId,
+            routineItemId: routineItemId,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -3821,6 +4952,667 @@ typedef $$CategoriesTableProcessedTableManager = ProcessedTableManager<
     (CategoryRow, BaseReferences<_$AppDatabase, $CategoriesTable, CategoryRow>),
     CategoryRow,
     PrefetchHooks Function()>;
+typedef $$RoutinesTableCreateCompanionBuilder = RoutinesCompanion Function({
+  required String id,
+  required String name,
+  Value<String?> colorKey,
+  Value<String?> iconKey,
+  Value<String?> repeatRule,
+  required String createdAt,
+  required int position,
+  required int updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$RoutinesTableUpdateCompanionBuilder = RoutinesCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String?> colorKey,
+  Value<String?> iconKey,
+  Value<String?> repeatRule,
+  Value<String> createdAt,
+  Value<int> position,
+  Value<int> updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+
+final class $$RoutinesTableReferences
+    extends BaseReferences<_$AppDatabase, $RoutinesTable, RoutineRow> {
+  $$RoutinesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$RoutineItemsTable, List<RoutineItemRow>>
+      _routineItemsRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.routineItems,
+              aliasName: 'routines__id__routine_items__routine_id');
+
+  $$RoutineItemsTableProcessedTableManager get routineItemsRefs {
+    final manager = $$RoutineItemsTableTableManager($_db, $_db.routineItems)
+        .filter((f) => f.routineId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_routineItemsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$RoutinesTableFilterComposer
+    extends Composer<_$AppDatabase, $RoutinesTable> {
+  $$RoutinesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get colorKey => $composableBuilder(
+      column: $table.colorKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get iconKey => $composableBuilder(
+      column: $table.iconKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get repeatRule => $composableBuilder(
+      column: $table.repeatRule, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> routineItemsRefs(
+      Expression<bool> Function($$RoutineItemsTableFilterComposer f) f) {
+    final $$RoutineItemsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.routineItems,
+        getReferencedColumn: (t) => t.routineId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RoutineItemsTableFilterComposer(
+              $db: $db,
+              $table: $db.routineItems,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$RoutinesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RoutinesTable> {
+  $$RoutinesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get colorKey => $composableBuilder(
+      column: $table.colorKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get iconKey => $composableBuilder(
+      column: $table.iconKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get repeatRule => $composableBuilder(
+      column: $table.repeatRule, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RoutinesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RoutinesTable> {
+  $$RoutinesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get colorKey =>
+      $composableBuilder(column: $table.colorKey, builder: (column) => column);
+
+  GeneratedColumn<String> get iconKey =>
+      $composableBuilder(column: $table.iconKey, builder: (column) => column);
+
+  GeneratedColumn<String> get repeatRule => $composableBuilder(
+      column: $table.repeatRule, builder: (column) => column);
+
+  GeneratedColumn<String> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  Expression<T> routineItemsRefs<T extends Object>(
+      Expression<T> Function($$RoutineItemsTableAnnotationComposer a) f) {
+    final $$RoutineItemsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.routineItems,
+        getReferencedColumn: (t) => t.routineId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RoutineItemsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.routineItems,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$RoutinesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RoutinesTable,
+    RoutineRow,
+    $$RoutinesTableFilterComposer,
+    $$RoutinesTableOrderingComposer,
+    $$RoutinesTableAnnotationComposer,
+    $$RoutinesTableCreateCompanionBuilder,
+    $$RoutinesTableUpdateCompanionBuilder,
+    (RoutineRow, $$RoutinesTableReferences),
+    RoutineRow,
+    PrefetchHooks Function({bool routineItemsRefs})> {
+  $$RoutinesTableTableManager(_$AppDatabase db, $RoutinesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RoutinesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RoutinesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RoutinesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> colorKey = const Value.absent(),
+            Value<String?> iconKey = const Value.absent(),
+            Value<String?> repeatRule = const Value.absent(),
+            Value<String> createdAt = const Value.absent(),
+            Value<int> position = const Value.absent(),
+            Value<int> updatedAt = const Value.absent(),
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RoutinesCompanion(
+            id: id,
+            name: name,
+            colorKey: colorKey,
+            iconKey: iconKey,
+            repeatRule: repeatRule,
+            createdAt: createdAt,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<String?> colorKey = const Value.absent(),
+            Value<String?> iconKey = const Value.absent(),
+            Value<String?> repeatRule = const Value.absent(),
+            required String createdAt,
+            required int position,
+            required int updatedAt,
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RoutinesCompanion.insert(
+            id: id,
+            name: name,
+            colorKey: colorKey,
+            iconKey: iconKey,
+            repeatRule: repeatRule,
+            createdAt: createdAt,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$RoutinesTable, RoutineRow>(table),
+                    $$RoutinesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({routineItemsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (routineItemsRefs) db.routineItems],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (routineItemsRefs)
+                    await $_getPrefetchedData<RoutineRow, $RoutinesTable,
+                            RoutineItemRow>(
+                        currentTable: table,
+                        referencedTable: $$RoutinesTableReferences
+                            ._routineItemsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$RoutinesTableReferences(db, table, p0)
+                                .routineItemsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.routineId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$RoutinesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $RoutinesTable,
+    RoutineRow,
+    $$RoutinesTableFilterComposer,
+    $$RoutinesTableOrderingComposer,
+    $$RoutinesTableAnnotationComposer,
+    $$RoutinesTableCreateCompanionBuilder,
+    $$RoutinesTableUpdateCompanionBuilder,
+    (RoutineRow, $$RoutinesTableReferences),
+    RoutineRow,
+    PrefetchHooks Function({bool routineItemsRefs})>;
+typedef $$RoutineItemsTableCreateCompanionBuilder = RoutineItemsCompanion
+    Function({
+  required String routineId,
+  required String id,
+  required String title,
+  Value<String?> timeOfDay,
+  required String categoryId,
+  Value<int> priority,
+  Value<String?> subtasks,
+  required int position,
+  required int updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$RoutineItemsTableUpdateCompanionBuilder = RoutineItemsCompanion
+    Function({
+  Value<String> routineId,
+  Value<String> id,
+  Value<String> title,
+  Value<String?> timeOfDay,
+  Value<String> categoryId,
+  Value<int> priority,
+  Value<String?> subtasks,
+  Value<int> position,
+  Value<int> updatedAt,
+  Value<int?> deletedAt,
+  Value<int> rowid,
+});
+
+final class $$RoutineItemsTableReferences
+    extends BaseReferences<_$AppDatabase, $RoutineItemsTable, RoutineItemRow> {
+  $$RoutineItemsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RoutinesTable _routineIdTable(_$AppDatabase db) =>
+      db.routines.createAlias('routine_items__routine_id__routines__id');
+
+  $$RoutinesTableProcessedTableManager get routineId {
+    final $_column = $_itemColumn<String>('routine_id')!;
+
+    final manager = $$RoutinesTableTableManager($_db, $_db.routines)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_routineIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$RoutineItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $RoutineItemsTable> {
+  $$RoutineItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get timeOfDay => $composableBuilder(
+      column: $table.timeOfDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priority => $composableBuilder(
+      column: $table.priority, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get subtasks => $composableBuilder(
+      column: $table.subtasks, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  $$RoutinesTableFilterComposer get routineId {
+    final $$RoutinesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.routineId,
+        referencedTable: $db.routines,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RoutinesTableFilterComposer(
+              $db: $db,
+              $table: $db.routines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$RoutineItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RoutineItemsTable> {
+  $$RoutineItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get timeOfDay => $composableBuilder(
+      column: $table.timeOfDay, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+      column: $table.priority, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get subtasks => $composableBuilder(
+      column: $table.subtasks, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  $$RoutinesTableOrderingComposer get routineId {
+    final $$RoutinesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.routineId,
+        referencedTable: $db.routines,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RoutinesTableOrderingComposer(
+              $db: $db,
+              $table: $db.routines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$RoutineItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RoutineItemsTable> {
+  $$RoutineItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get timeOfDay =>
+      $composableBuilder(column: $table.timeOfDay, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+      column: $table.categoryId, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get subtasks =>
+      $composableBuilder(column: $table.subtasks, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$RoutinesTableAnnotationComposer get routineId {
+    final $$RoutinesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.routineId,
+        referencedTable: $db.routines,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RoutinesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.routines,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$RoutineItemsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RoutineItemsTable,
+    RoutineItemRow,
+    $$RoutineItemsTableFilterComposer,
+    $$RoutineItemsTableOrderingComposer,
+    $$RoutineItemsTableAnnotationComposer,
+    $$RoutineItemsTableCreateCompanionBuilder,
+    $$RoutineItemsTableUpdateCompanionBuilder,
+    (RoutineItemRow, $$RoutineItemsTableReferences),
+    RoutineItemRow,
+    PrefetchHooks Function({bool routineId})> {
+  $$RoutineItemsTableTableManager(_$AppDatabase db, $RoutineItemsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RoutineItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RoutineItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RoutineItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> routineId = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String?> timeOfDay = const Value.absent(),
+            Value<String> categoryId = const Value.absent(),
+            Value<int> priority = const Value.absent(),
+            Value<String?> subtasks = const Value.absent(),
+            Value<int> position = const Value.absent(),
+            Value<int> updatedAt = const Value.absent(),
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RoutineItemsCompanion(
+            routineId: routineId,
+            id: id,
+            title: title,
+            timeOfDay: timeOfDay,
+            categoryId: categoryId,
+            priority: priority,
+            subtasks: subtasks,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String routineId,
+            required String id,
+            required String title,
+            Value<String?> timeOfDay = const Value.absent(),
+            required String categoryId,
+            Value<int> priority = const Value.absent(),
+            Value<String?> subtasks = const Value.absent(),
+            required int position,
+            required int updatedAt,
+            Value<int?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RoutineItemsCompanion.insert(
+            routineId: routineId,
+            id: id,
+            title: title,
+            timeOfDay: timeOfDay,
+            categoryId: categoryId,
+            priority: priority,
+            subtasks: subtasks,
+            position: position,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$RoutineItemsTable, RoutineItemRow>(table),
+                    $$RoutineItemsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({routineId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (routineId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.routineId,
+                    referencedTable:
+                        $$RoutineItemsTableReferences._routineIdTable(db),
+                    referencedColumn:
+                        $$RoutineItemsTableReferences._routineIdTable(db).id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$RoutineItemsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $RoutineItemsTable,
+    RoutineItemRow,
+    $$RoutineItemsTableFilterComposer,
+    $$RoutineItemsTableOrderingComposer,
+    $$RoutineItemsTableAnnotationComposer,
+    $$RoutineItemsTableCreateCompanionBuilder,
+    $$RoutineItemsTableUpdateCompanionBuilder,
+    (RoutineItemRow, $$RoutineItemsTableReferences),
+    RoutineItemRow,
+    PrefetchHooks Function({bool routineId})>;
 typedef $$BirthdaysTableCreateCompanionBuilder = BirthdaysCompanion Function({
   required String id,
   required String name,
@@ -4397,6 +6189,10 @@ class $AppDatabaseManager {
       $$SubtasksTableTableManager(_db, _db.subtasks);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
+  $$RoutinesTableTableManager get routines =>
+      $$RoutinesTableTableManager(_db, _db.routines);
+  $$RoutineItemsTableTableManager get routineItems =>
+      $$RoutineItemsTableTableManager(_db, _db.routineItems);
   $$BirthdaysTableTableManager get birthdays =>
       $$BirthdaysTableTableManager(_db, _db.birthdays);
   $$SettingsTableTableManager get settings =>
