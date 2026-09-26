@@ -18,6 +18,14 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Mimari başına APK (CI):** Android iş akışı artık `--split-per-abi` ile derliyor ve iki
+  artifact yüklüyor — `app-release-arm64-apk` (**indirilecek olan**, ~25 MB) ve armeabi-v7a +
+  x86_64 için `app-release-other-abis-apk`. Önceden tek bir 76 MB'lık paket vardı ve içindeki
+  üç mimariden ikisi her telefonda gereksizdi. İmza kontrolü her APK için ayrı yapılıyor.
+  Flutter split'lere mimariye göre `versionCode` kaydırması verdiği için bir cihazda **aynı
+  varyantta kalmak** gerekir (arm64 → tek parça APK'ya dönüş, Android'in engellediği bir sürüm
+  düşürmesidir). Bkz. [`docs/android-signing.md`](docs/android-signing.md).
+
 - **Cihaz takvimi etkinlikleri (salt okuma):** Cihazının takvimindeki etkinlikler artık Bugün
   ("Takvim etkinlikleri" bölümü) ve Takvim gündeminde hatırlatıcılarının yanında görünüyor.
   Etkinlik satırları hatırlatıcılardan ayrışıyor: soldaki renk şeridi, takvim ikonu ve "takvim

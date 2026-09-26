@@ -71,8 +71,16 @@ jobs:
             echo "keyPassword=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
           } > android/key.properties
 
-      - name: Build release APK
-        run: flutter build apk --release
+      # --split-per-abi: one APK per architecture (~25 MB) instead of one fat
+      # 76 MB APK carrying all three. A phone only ever runs one of them, and
+      # these builds are downloaded by hand from the run's artifacts.
+      #
+      # Flutter gives each split a versionCode offset (armeabi-v7a +1000,
+      # arm64-v8a +2000, x86_64 +3000), so switching a device from the fat APK
+      # to a split is an upgrade, but going back is a downgrade Android blocks.
+      # Pick one variant per device and stay on it (docs/android-signing.md).
+      - name: Build release APKs
+        run: flutter build apk --release --split-per-abi
 
       # Which key actually signed it, and that the signature verifies at all.
       # `apksigner`, not `keytool -printcert -jarfile`: minSdk 26 means AGP
@@ -87,21 +95,39 @@ jobs:
       # installed over the previous one.
       - name: Show the APK signer
         run: |
-          apk=build/app/outputs/flutter-apk/app-release.apk
           apksigner=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/*/apksigner | sort -V | tail -1)
-          certs=$("$apksigner" verify --print-certs "$apk")
-          echo "$certs" | grep -E 'certificate DN|SHA-256 digest'
-          if [ -n "$KEYSTORE_BASE64" ] && echo "$certs" | grep -q 'CN=Android Debug'; then
-            echo "::error::signed with the debug key even though ANDROID_KEYSTORE_BASE64 is set"
-            exit 1
-          fi
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            echo "── $(basename "$apk") ($(du -h "$apk" | cut -f1))"
+            certs=$("$apksigner" verify --print-certs "$apk")
+            echo "$certs" | grep -E 'certificate DN|SHA-256 digest'
+            if [ -n "$KEYSTORE_BASE64" ] && echo "$certs" | grep -q 'CN=Android Debug'; then
+              echo "::error::$apk is signed with the debug key even though ANDROID_KEYSTORE_BASE64 is set"
+              exit 1
+            fi
+          done
 
-      - name: Upload APK
+      # arm64-v8a on its own: every phone made since ~2016 runs it, so this is
+      # the one artifact worth downloading. The other two are a separate
+      # artifact so a ~25 MB download does not carry them along.
+      - name: Upload APK (arm64-v8a)
         uses: actions/upload-artifact@v4
         with:
           name: >-
             ${{ env.KEYSTORE_BASE64 != ''
-                && 'app-release-apk'
-                || 'app-release-debugsigned-apk' }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+                && 'app-release-arm64-apk'
+                || 'app-release-arm64-debugsigned-apk' }}
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          retention-days: 7
+
+      # armeabi-v7a (pre-2016 phones) and x86_64 (emulators).
+      - name: Upload APK (other ABIs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: >-
+            ${{ env.KEYSTORE_BASE64 != ''
+                && 'app-release-other-abis-apk'
+                || 'app-release-other-abis-debugsigned-apk' }}
+          path: |
+            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
+            build/app/outputs/flutter-apk/app-x86_64-release.apk
           retention-days: 7

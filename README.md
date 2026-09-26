@@ -65,7 +65,7 @@ CI'da `key.properties` gizli değişkenlerden üretilir; kurulum ve nedenleri
 yoksa CI yine derler, ama APK her koşuda **farklı** bir debug anahtarıyla
 imzalanır ve cihazda üst üste kurulamaz.
 
-Release derlemesinde R8 (`minifyEnabled`) ve kaynak küçültme (`shrinkResources`) açıktır; eklentiler için keep kuralları `android/app/proguard-rules.pro`, çalışma anında adla bulunan kaynaklar `android/app/src/main/res/raw/keep.xml` içindedir. CI her PR'da `flutter build apk --release` çalıştırır.
+Release derlemesinde R8 (`minifyEnabled`) ve kaynak küçültme (`shrinkResources`) açıktır; eklentiler için keep kuralları `android/app/proguard-rules.pro`, çalışma anında adla bulunan kaynaklar `android/app/src/main/res/raw/keep.xml` içindedir. CI, Android yapılandırması veya bağımlılıklar değiştiğinde `flutter build apk --release --split-per-abi` çalıştırır ve mimari başına APK yükler (indirilecek olan `app-release-arm64-apk`).
 
 ### Uygulama simgesi
 
