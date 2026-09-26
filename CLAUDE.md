@@ -1288,7 +1288,10 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   the controller has already applied the per-calendar selection when it read those
   events — never filter by calendar again in the marker code. `CalendarPage` reads the
   events for the agenda **and** the marker range in one `eventsInRange` call so paging
-  does not thrash the controller's cached window. Selecting a day
+  does not thrash the controller's cached window, and
+  `DeviceCalendarController.padBeforeDays` is **14** so that range is covered whichever
+  page asks first (Bugün asks for today, Takvim for the wider marker range; with a
+  shorter pad, opening the app cost one read or two depending on the order). Selecting a day
   (strip, grid, "Bugün") re-bases the agenda on it. The week strip changes week on a
   horizontal fling (chevrons are the button alternative); it is deliberately not a
   `Scrollable`, so the agenda stays the page's only vertical scroll view (the iOS

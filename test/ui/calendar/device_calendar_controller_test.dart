@@ -142,6 +142,23 @@ void main() {
       expect(platform.eventQueries, hasLength(1));
     });
 
+    test('a window primed for today covers the day dots reach (F8.3)',
+        () async {
+      await build(enabled: true).load();
+      // What TodayPage asks for first.
+      controller.eventsOnDay(_now);
+      await pumpEventQueue();
+      expect(platform.eventQueries, hasLength(1));
+
+      // What CalendarPage asks for: the week strip pre-computes the previous
+      // week, so with today on a Sunday the dots reach 13 days back. It must
+      // be covered, otherwise opening the app costs one read or two depending
+      // on which page happens to ask first.
+      controller.eventsInRange(_day(13 - 13), _day(13 + 21));
+      await pumpEventQueue();
+      expect(platform.eventQueries, hasLength(1));
+    });
+
     test('a range outside the window triggers exactly one more read', () async {
       await build(enabled: true).load();
       controller.eventsInRange(_day(13), _day(14));
