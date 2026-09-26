@@ -108,6 +108,91 @@ void main() {
         expect(RecurrenceText.dayOfMonthLabel(day, tr), label);
       });
     });
+
+    // F3.1c: the interval is counted from the completion, so the summary names
+    // that instead of a calendar pattern.
+    test('completion-anchored summaries', () {
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.daily,
+            interval: 14,
+          ),
+          tr,
+        ),
+        'Tamamlandıktan 14 gün sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.daily),
+          tr,
+        ),
+        'Tamamlandıktan 1 gün sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly),
+          tr,
+        ),
+        'Tamamlandıktan 1 hafta sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.weekly,
+            interval: 2,
+          ),
+          tr,
+        ),
+        'Tamamlandıktan 2 hafta sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.monthly,
+            interval: 3,
+          ),
+          tr,
+        ),
+        'Tamamlandıktan 3 ay sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly),
+          tr,
+        ),
+        'Tamamlandıktan 1 ay sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly),
+          tr,
+        ),
+        'Tamamlandıktan 1 yıl sonra',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.yearly,
+            interval: 2,
+          ),
+          tr,
+        ),
+        'Tamamlandıktan 2 yıl sonra',
+      );
+      // An end date is appended the same way as for a calendar rule.
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.daily,
+            interval: 14,
+            until: DateTime(2027, 3, 1),
+          ),
+          tr,
+        ),
+        'Tamamlandıktan 14 gün sonra · bitiş 1 Mar 2027',
+      );
+    });
   });
 
   group('RecurrenceText (English, F6.1)', () {
@@ -186,6 +271,88 @@ void main() {
           en,
         ),
         'Every day · until Dec 31, 2026',
+      );
+    });
+
+    test('completion-anchored summaries', () {
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.daily,
+            interval: 14,
+          ),
+          en,
+        ),
+        '14 days after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.daily),
+          en,
+        ),
+        '1 day after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly),
+          en,
+        ),
+        '1 week after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.weekly,
+            interval: 2,
+          ),
+          en,
+        ),
+        '2 weeks after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly),
+          en,
+        ),
+        '1 month after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.monthly,
+            interval: 3,
+          ),
+          en,
+        ),
+        '3 months after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly),
+          en,
+        ),
+        '1 year after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.yearly,
+            interval: 2,
+          ),
+          en,
+        ),
+        '2 years after completion',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.afterCompletion(
+            RecurrenceFrequency.daily,
+            interval: 14,
+            until: DateTime(2027, 3, 1),
+          ),
+          en,
+        ),
+        '14 days after completion · until Mar 1, 2027',
       );
     });
 

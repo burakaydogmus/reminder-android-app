@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -66,6 +67,17 @@ void main() {
       // No anchor and no explicit month/day: the target is unknown, so the
       // safe answer is "next occurrence only".
       (RecurrenceRule.yearly(), null),
+      // F3.1c: a completion-anchored rule can never use a native repeat — the
+      // next date is unknown until the reminder is completed. Even the shapes
+      // that *would* repeat natively on schedule return null here.
+      (RecurrenceRule.afterCompletion(RecurrenceFrequency.daily), null),
+      (
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14),
+        null
+      ),
+      (RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly), null),
+      (RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly), null),
+      (RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly), null),
     ];
     for (final (rule, expected) in cases) {
       test('${rule.toJson()} → ${expected?.name ?? 'next only'}', () {
@@ -85,6 +97,16 @@ void main() {
         NotificationService.reminderRepeatComponents(
           RecurrenceRule.yearly(),
           anchor: DateTime(2028, 2, 29, 9),
+        ),
+        isNull,
+      );
+    });
+
+    test('an anchor cannot rescue a completion-anchored rule either', () {
+      expect(
+        NotificationService.reminderRepeatComponents(
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.daily),
+          anchor: DateTime(2026, 9, 13, 9),
         ),
         isNull,
       );
@@ -132,6 +154,27 @@ void main() {
       ]) {
         expect(NotificationService.reminderFireTime(r, now), isNull);
       }
+    });
+
+    // F3.1c: a completion-anchored reminder that went overdue has no next
+    // date to schedule — it waits in Kaçanlar until the user completes it.
+    test('an overdue completion-anchored reminder is not rescheduled', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 10, 9),
+        recurrence: RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ),
+      );
+      expect(NotificationService.reminderFireTime(r, now), isNull);
+      // Before it is due it is scheduled like any other reminder.
+      expect(
+        NotificationService.reminderFireTime(
+          r.copyWith(remindAt: () => DateTime(2026, 9, 13, 18)),
+          now,
+        ),
+        DateTime(2026, 9, 13, 18),
+      );
     });
   });
 
@@ -201,6 +244,54 @@ void main() {
       expect(leap.matchDateTimeComponents, isNull);
       expect(
         leap.scheduledDate.isAtSameMomentAs(DateTime(leapYear, 2, 29, 10)),
+        isTrue,
+      );
+    });
+
+    // F3.1c: no native repeat, and the next date only appears once the
+    // reminder is completed — the normal "reschedule after completion" path.
+    test('a completion-anchored reminder is scheduled once, then rescheduled',
+        () async {
+      final r = buildReminder(
+        id: 'sheets',
+        remindAt: saturday,
+        recurrence: RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ),
+      );
+
+      await service.syncSchedules(
+        reminders: [r],
+        birthdays: const [],
+        notificationsEnabled: true,
+      );
+
+      final first = plugin.pending[r.notificationId]!;
+      expect(first.matchDateTimeComponents, isNull);
+      expect(first.scheduledDate.isAtSameMomentAs(saturday), isTrue);
+
+      // Completed two days late: the next notification is 14 days from then.
+      final completedAt = DateTime(
+        saturday.year,
+        saturday.month,
+        saturday.day + 2,
+        21,
+      );
+      final next = completeReminder(r, completedAt);
+      expect(next.isDone, isFalse);
+      await service.syncSchedules(
+        reminders: [next],
+        birthdays: const [],
+        notificationsEnabled: true,
+      );
+
+      final second = plugin.pending[r.notificationId]!;
+      expect(second.matchDateTimeComponents, isNull);
+      expect(
+        second.scheduledDate.isAtSameMomentAs(
+          DateTime(saturday.year, saturday.month, saturday.day + 16, 10),
+        ),
         isTrue,
       );
     });

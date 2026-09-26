@@ -391,6 +391,254 @@ void main() {
     });
   });
 
+  // F3.1c: the interval is counted from the completion, not from a calendar
+  // series. `nextOccurrence` therefore has nothing to answer.
+  group('RecurrenceRule.afterCompletion', () {
+    // A 10:00 reminder completed late in the evening of 3 October.
+    final anchor = DateTime(2026, 10, 3, 10);
+    final lateEvening = DateTime(2026, 10, 3, 23, 40);
+
+    test('the next date is the completion day + interval, at the own time', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+      );
+      expect(
+        rule.nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        DateTime(2026, 10, 17, 10),
+      );
+    });
+
+    test('completing late pushes the next occurrence out', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+      );
+      // Eleven days overdue: the next one is 14 days after *that* day, not
+      // 14 days after the schedule (which would be 17 October).
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2026, 10, 14, 8, 5),
+          anchor: anchor,
+        ),
+        DateTime(2026, 10, 28, 10),
+      );
+    });
+
+    test('completing early pulls the next occurrence in', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+      );
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2026, 10, 1, 7),
+          anchor: anchor,
+        ),
+        DateTime(2026, 10, 15, 10),
+      );
+    });
+
+    test('a single day is the minimum interval', () {
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily)
+            .nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        DateTime(2026, 10, 4, 10),
+      );
+    });
+
+    test('weeks count seven days each', () {
+      expect(
+        RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.weekly,
+          interval: 3,
+        ).nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        DateTime(2026, 10, 24, 10),
+      );
+    });
+
+    test('months roll over the year and clamp to the month end', () {
+      final rule = RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly);
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2026, 12, 20, 22),
+          anchor: anchor,
+        ),
+        DateTime(2027, 1, 20, 10),
+      );
+      // 31 January + 1 month is the last day of February.
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2027, 1, 31, 22),
+          anchor: anchor,
+        ),
+        DateTime(2027, 2, 28, 10),
+      );
+      expect(
+        RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.monthly,
+          interval: 4,
+        ).nextAfterCompletion(
+          completedAt: DateTime(2026, 10, 31, 22),
+          anchor: anchor,
+        ),
+        DateTime(2027, 2, 28, 10),
+      );
+    });
+
+    test('years clamp 29 February to 28 February', () {
+      final rule = RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly);
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2028, 2, 29, 22),
+          anchor: anchor,
+        ),
+        DateTime(2029, 2, 28, 10),
+      );
+      expect(
+        RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.yearly,
+          interval: 2,
+        ).nextAfterCompletion(
+          completedAt: DateTime(2026, 5, 4, 1),
+          anchor: anchor,
+        ),
+        DateTime(2028, 5, 4, 10),
+      );
+    });
+
+    test('a UTC anchor keeps the series in UTC', () {
+      final utcAnchor = DateTime.utc(2026, 10, 3, 10);
+      final next = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+      ).nextAfterCompletion(completedAt: lateEvening, anchor: utcAnchor)!;
+      expect(next.isUtc, isTrue);
+      expect(next, DateTime.utc(2026, 10, 17, 10));
+    });
+
+    test('until ends the series (inclusive)', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+        until: DateTime(2026, 10, 17),
+      );
+      expect(
+        rule.nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        DateTime(2026, 10, 17, 10),
+      );
+      // One day later the next date would be 18 October: past the end.
+      expect(
+        rule.nextAfterCompletion(
+          completedAt: DateTime(2026, 10, 4, 9),
+          anchor: anchor,
+        ),
+        isNull,
+      );
+    });
+
+    test('the calendar fields are simply not part of the rule', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.weekly,
+        interval: 2,
+      );
+      expect(rule.weekdays, isEmpty);
+      expect(rule.dayOfMonth, isNull);
+      expect(rule.month, isNull);
+      expect(rule.isCompletionAnchored, isTrue);
+      expect(rule.anchorMode, RecurrenceAnchor.completion);
+      // A yearly completion rule has no fixed target date either.
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly)
+            .yearlyTarget(anchor),
+        isNull,
+      );
+    });
+
+    test('the interval is clamped and none stays none', () {
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 0)
+            .interval,
+        1,
+      );
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 500)
+            .interval,
+        RecurrenceRule.maxInterval,
+      );
+      final none = RecurrenceRule.afterCompletion(RecurrenceFrequency.none);
+      expect(none, RecurrenceRule.none);
+      expect(none.isCompletionAnchored, isFalse);
+      expect(none.anchorMode, RecurrenceAnchor.schedule);
+    });
+
+    // The whole point: there is no calendar-known future date, so the reminder
+    // stays where it is and goes overdue until the user completes it.
+    test('nextOccurrence, firstOnOrAfter and upcoming find nothing', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.daily,
+        interval: 14,
+      );
+      expect(rule.nextOccurrence(after: anchor, anchor: anchor), isNull);
+      expect(
+        rule.nextOccurrence(after: DateTime(2020), anchor: anchor),
+        isNull,
+      );
+      expect(rule.firstOnOrAfter(from: anchor, anchor: anchor), isNull);
+      expect(rule.upcoming(from: anchor, anchor: anchor), isEmpty);
+    });
+
+    test('a calendar rule never answers nextAfterCompletion', () {
+      expect(
+        RecurrenceRule.daily(interval: 14)
+            .nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        isNull,
+      );
+      expect(
+        RecurrenceRule.none
+            .nextAfterCompletion(completedAt: lateEvening, anchor: anchor),
+        isNull,
+      );
+    });
+
+    test('withUntil keeps the mode', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.monthly,
+        interval: 3,
+      ).withUntil(DateTime(2030, 6, 1, 14));
+      expect(rule.isCompletionAnchored, isTrue);
+      expect(rule.interval, 3);
+      expect(rule.until, DateTime(2030, 6, 1));
+    });
+
+    test('alignedTo leaves a completion rule untouched', () {
+      final rule = RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.weekly,
+        interval: 2,
+      );
+      expect(identical(rule.alignedTo(DateTime(2027, 3, 1)), rule), isTrue);
+      final monthly =
+          RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly);
+      expect(identical(monthly.alignedTo(DateTime(2027, 3, 9)), monthly), true);
+    });
+
+    test('the mode is part of equality', () {
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14),
+        isNot(RecurrenceRule.daily(interval: 14)),
+      );
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14)
+            .hashCode,
+        isNot(RecurrenceRule.daily(interval: 14).hashCode),
+      );
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14),
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14),
+      );
+    });
+  });
+
   group('RecurrenceRule.alignedTo (moving the whole series)', () {
     final sunday = DateTime(2026, 9, 20);
     final monday = DateTime(2026, 9, 21);
@@ -478,6 +726,14 @@ void main() {
       RecurrenceRule.yearly(interval: 2, until: DateTime(2031, 1, 1)),
       RecurrenceRule.yearly(month: 2, dayOfMonth: 29),
       RecurrenceRule.yearly(interval: 5, month: 11, dayOfMonth: 3),
+      RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14),
+      RecurrenceRule.afterCompletion(RecurrenceFrequency.daily),
+      RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly, interval: 2),
+      RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly, interval: 3),
+      RecurrenceRule.afterCompletion(
+        RecurrenceFrequency.yearly,
+        until: DateTime(2032, 5, 6),
+      ),
     ];
 
     for (final rule in rules) {
@@ -556,6 +812,119 @@ void main() {
       );
       expect(
         RecurrenceRule.fromJson({'frequency': 'yearly', 'month': 'x'}),
+        RecurrenceRule.none,
+      );
+    });
+
+    // F3.1c: the mode is an *extra* field, so a calendar rule's JSON is byte
+    // for byte what F3.1b wrote (the notification fingerprint does not move).
+    test('the anchor field appears only in completion mode', () {
+      expect(RecurrenceRule.daily(interval: 14).toJson(), {
+        'frequency': 'daily',
+        'interval': 14,
+      });
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.daily, interval: 14)
+            .toJson(),
+        {'frequency': 'daily', 'interval': 14, 'anchor': 'completion'},
+      );
+      // No empty weekday list, no null day of month.
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly, interval: 2)
+            .toJson(),
+        {'frequency': 'weekly', 'interval': 2, 'anchor': 'completion'},
+      );
+      expect(
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly).toJson(),
+        {'frequency': 'monthly', 'interval': 1, 'anchor': 'completion'},
+      );
+    });
+
+    // Reading back: the calendar fields are meaningless in this mode, so they
+    // are dropped even when a (hand-edited or future) payload carries them.
+    test('completion mode ignores weekdays, dayOfMonth and month', () {
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'weekly',
+          'interval': 2,
+          'anchor': 'completion',
+          'weekdays': [1, 3, 5],
+        }),
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly, interval: 2),
+      );
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'monthly',
+          'interval': 1,
+          'anchor': 'completion',
+          'dayOfMonth': 17,
+        }),
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly),
+      );
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'yearly',
+          'interval': 1,
+          'anchor': 'completion',
+          'month': 2,
+          'dayOfMonth': 29,
+        }).yearlyTarget(DateTime(2026, 7, 8)),
+        isNull,
+      );
+    });
+
+    test('an unknown anchor value reads as a calendar rule', () {
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'daily',
+          'interval': 14,
+          'anchor': 'phase-of-the-moon',
+        }),
+        RecurrenceRule.daily(interval: 14),
+      );
+      // A completion rule whose frequency we do not know is no rule at all.
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'hourly',
+          'interval': 2,
+          'anchor': 'completion',
+        }),
+        RecurrenceRule.none,
+      );
+    });
+
+    // The honest old-reader consequence: the mode field is simply ignored, so
+    // the repeat keeps working but stops chasing the completion date. Monthly
+    // is the exception — an old reader needs `dayOfMonth` and we cannot write
+    // one (the rule does not know the anchor), so it loses the repeat.
+    test('an older reader keeps the repeat but loses the completion anchor',
+        () {
+      Object? older(Map<String, dynamic> json) =>
+          RecurrenceRule.fromJson({...json}..remove('anchor'));
+
+      expect(
+        older(RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ).toJson()!),
+        RecurrenceRule.daily(interval: 14),
+      );
+      expect(
+        older(RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.weekly,
+          interval: 2,
+        ).toJson()!),
+        // No weekdays: the anchor's own weekday, every 2 weeks.
+        RecurrenceRule.weekly(const [], interval: 2),
+      );
+      expect(
+        older(RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly)
+            .toJson()!),
+        RecurrenceRule.yearly(),
+      );
+      expect(
+        older(RecurrenceRule.afterCompletion(RecurrenceFrequency.monthly)
+            .toJson()!),
         RecurrenceRule.none,
       );
     });

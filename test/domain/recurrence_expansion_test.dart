@@ -136,4 +136,62 @@ void main() {
       hasLength(5),
     );
   });
+
+  // F3.1c: the decision is to show the one date that is real. A projection
+  // would be a guess the calendar then presents as fact, and every date after
+  // the first would move the moment the user completes the reminder.
+  group('completion-anchored: only the current occurrence', () {
+    final rule = RecurrenceRule.afterCompletion(
+      RecurrenceFrequency.daily,
+      interval: 2,
+    );
+
+    test('no projected series, however long the range', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 14, 9),
+        recurrence: rule,
+      );
+      expect(reminderOccurrences(r, from: from, to: to), [
+        DateTime(2026, 9, 14, 9),
+      ]);
+      expect(
+        reminderOccurrences(r, from: from, to: DateTime(2030)),
+        [DateTime(2026, 9, 14, 9)],
+      );
+      // A calendar rule with the same interval does project a series.
+      expect(
+        reminderOccurrences(
+          buildReminder(
+            remindAt: DateTime(2026, 9, 14, 9),
+            recurrence: RecurrenceRule.daily(interval: 2),
+          ),
+          from: from,
+          to: to,
+        ),
+        hasLength(3),
+      );
+    });
+
+    test('an overdue one is not picked up in a later range', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 1, 9),
+        recurrence: rule,
+      );
+      expect(reminderOccurrences(r, from: from, to: to), isEmpty);
+    });
+
+    test('a monthly one behaves the same way', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 15, 7),
+        recurrence: RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.monthly,
+          interval: 3,
+        ),
+      );
+      expect(
+        reminderOccurrences(r, from: from, to: DateTime(2028)),
+        [DateTime(2026, 9, 15, 7)],
+      );
+    });
+  });
 }
