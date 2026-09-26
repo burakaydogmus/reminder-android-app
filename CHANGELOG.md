@@ -34,6 +34,39 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
   **Takvimine hiçbir şey yazılmaz:** Android'de yalnızca `READ_CALENDAR` izni isteniyor,
   `WRITE_CALENDAR` hiç tanımlı değil. İzni geri alırsan anahtar kendiliğinden kapanır ve boş bir
   bölüm kalmaz. (F8.1)
+- **"Tamamlandıktan sonra" tekrar:** Tekrar sayfasına **Tekrar ölçütü** seçimi geldi —
+  *Takvime göre* (bugüne kadarki davranış: tarihler sabit, geç tamamlamak sıradakini
+  kaydırmaz) ya da *Tamamlandıktan sonra*. İkincisinde sıradaki tekrar **tamamladığın
+  günden** sayılır: "çarşafları yıkadıktan 14 gün sonra". 10:00'a kurulu 14 günlük bir
+  hatırlatıcıyı ayın 3'ünde 23:40'ta tamamlarsan sıradakisi 17'si **10:00** olur —
+  hatırlatıcının kendi saati korunur. Gün, hafta, ay ve yıl aralıklarıyla (1–99)
+  çalışıyor, bitiş tarihi de verilebilir. Tamamlamadıkça hatırlatıcı **yerinde kalır ve
+  gecikir** (özelliğin amacı bu); "Hepsini yarına al" tekrarlayanları zaten atlıyor.
+  Bu modda haftanın günleri ve ayın günü anlamsız olduğu için gizlenir; Takvim sayfası
+  **yalnızca mevcut tekrarı** gösterir (ileriki tarihler henüz belli değil, tahmin
+  gösterilmez) ve bildirimi işletim sisteminin kendi tekrarı yerine her tamamlamadan
+  sonra yeniden kurulur.
+  **Geriye dönük uyumluluk:** ölçüt, hatırlatıcının JSON'unda **ek bir alan** olarak
+  saklanır, bu yüzden **bu değişikliği bilmeyen eski bir sürüm** (ya da eski bir yedek
+  okuyucusu) alanı yok sayar: tekrar çalışmaya devam eder ama **takvime göre** — artık
+  tamamlama tarihini takip etmez. Tek istisna *aylık* ölçüt: eski okuyucu ayın gününü
+  beklediği ve bu modda böyle bir gün olmadığı için o hatırlatıcı tekrarını kaybeder
+  ("Tekrar yok" olur); hatırlatıcının kendisi, saati ve maddeleri her durumda korunur.
+  Veritabanı şeması değişmedi (`reminders.recurrence` zaten nullable TEXT), yedek biçimi
+  (v2) aynı kaldı ve kurulu bildirimler yeniden kurulmadı. (F3.1c)
+- **Yıllık tekrar ("Her yıl"):** Tekrar sayfasına **Yıllık** seçeneği geldi — "Her yıl",
+  "2 yılda bir" … (99'a kadar) ve istenirse bitiş tarihi. Tekrar, hatırlatıcının kendi
+  ay/gününde çalışır; **29 Şubat'a kurulu bir tekrar, artık yıl olmayan yıllarda 28 Şubat'ta**
+  hatırlatır (doğum günleriyle aynı kural). Hızlı yakalama iki dilde de anlıyor: "her yıl",
+  "her sene", "yıllık", "senelik", "2 yılda bir", "iki senede bir" / "every year", "yearly",
+  "annually", "every 2 years", "every other year". Bir isimden önce gelen "yıllık" / "yearly"
+  metin olarak kalır ("yıllık rapor hazırla", "yearly budget review"); "annually" her zaman
+  tekrar sayılır.
+  **Geriye dönük uyumluluk:** tekrar kuralı hatırlatıcının JSON'unda saklanır ve okuma bilerek
+  toleranslıdır — **yıllık tekrarı tanımayan eski bir sürüm** (ya da eski bir yedek okuyucusu)
+  böyle bir hatırlatıcıyı açar ama **tekrarını kaybeder** ("Tekrar yok" olur); hatırlatıcının
+  kendisi, saati ve maddeleri korunur. Veritabanı şeması değişmedi (`reminders.recurrence`
+  zaten nullable TEXT) ve yedek biçimi (v2) aynı kaldı. (F3.1)
 - **iOS ana ekran ve kilit ekranı widget'ları:** Dört widget geldi — **Sıradaki** (küçük: saat,
   başlık, tamamla dairesi, "+"), **Bugün** (orta: "Bugün · N" + üç satır + hap "+"), **Liste**
   (büyük: Kaçanlar / Bugün bölümleri, doğum günü satırı; uzun basıp "Yalnızca bugün"ü

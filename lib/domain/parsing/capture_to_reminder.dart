@@ -115,7 +115,9 @@ abstract final class CaptureToReminder {
 
   /// `RecurrenceSpec` → `RecurrenceRule` (CLAUDE.md › Quick-capture
   /// parser): daily → `daily()`, everyNDays → `daily(interval: n)`, weekly →
-  /// `weekly(days, interval:)`, monthly → `monthly(dayOfMonth:)`.
+  /// `weekly(days, interval:)`, monthly → `monthly(dayOfMonth:)`, yearly →
+  /// `yearly(interval:)` (month and day stay `null`, so the rule follows the
+  /// reminder's own date).
   static RecurrenceRule ruleOf(RecurrenceSpec spec) => switch (spec.kind) {
         RecurrenceKind.daily => RecurrenceRule.daily(interval: spec.interval),
         RecurrenceKind.everyNDays =>
@@ -128,6 +130,7 @@ abstract final class CaptureToReminder {
                 dayOfMonth: spec.dayOfMonth!,
                 interval: spec.interval,
               ),
+        RecurrenceKind.yearly => RecurrenceRule.yearly(interval: spec.interval),
       };
 
   /// The reminder time for [result]:

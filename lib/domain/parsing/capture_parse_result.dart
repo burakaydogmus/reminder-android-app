@@ -51,7 +51,7 @@ class CaptureToken {
       '$confidence)';
 }
 
-enum RecurrenceKind { daily, weekly, monthly, everyNDays }
+enum RecurrenceKind { daily, weekly, monthly, yearly, everyNDays }
 
 /// A repeat rule in model-neutral form.
 ///
@@ -61,6 +61,9 @@ enum RecurrenceKind { daily, weekly, monthly, everyNDays }
 ///   never empty from the parser).
 /// - `monthly`: every [interval] months on [dayOfMonth] (1–31; months without
 ///   that day are skipped when computing the first occurrence).
+/// - `yearly`: every [interval] years on the first occurrence's month and day
+///   (`her yıl`, `every 2 years`); the parser never sets a month or day of
+///   its own.
 class RecurrenceSpec {
   const RecurrenceSpec({
     required this.kind,

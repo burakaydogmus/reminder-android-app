@@ -370,6 +370,72 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String recurrenceYearly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Every $count years',
+      one: 'Every year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceYearlyOn(int count, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Every $count years on $date',
+      one: 'Every year on $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days after completion',
+      one: '1 day after completion',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weeks after completion',
+      one: '1 week after completion',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months after completion',
+      one: '1 month after completion',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count years after completion',
+      one: '1 year after completion',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String birthdayTurnsAge(String age) {
     return 'turns $age';
   }
@@ -470,6 +536,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recurrenceModeMonthly => 'Monthly';
 
   @override
+  String get recurrenceModeYearly => 'Yearly';
+
+  @override
   String get recurrenceModeCustom => 'Custom';
 
   @override
@@ -501,6 +570,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String recurrenceMonthDayClamped(String day) {
     return 'On the $day; the last day in shorter months.';
   }
+
+  @override
+  String recurrenceYearDay(String date) {
+    return 'Every year on $date.';
+  }
+
+  @override
+  String get recurrenceYearLeapDay =>
+      'Every year on February 29; February 28 in non-leap years.';
+
+  @override
+  String get recurrenceAnchorLabel => 'Repeat basis';
+
+  @override
+  String get recurrenceAnchorSchedule => 'On schedule';
+
+  @override
+  String get recurrenceAnchorCompletion => 'After completion';
+
+  @override
+  String get recurrenceAnchorScheduleNote =>
+      'Fixed dates: completing late does not move the next one.';
+
+  @override
+  String get recurrenceAnchorCompletionNote =>
+      'The next repeat counts from the day you complete it; until then it waits here.';
+
+  @override
+  String get recurrenceCompletionPreview =>
+      'The next date is set when you complete it.';
 
   @override
   String get recurrenceUntilLabel => 'Ends';

@@ -81,6 +81,44 @@ Diğer tüm fazların temeli.
 
 - [x] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
+- [x] **F3.1b Yıllık tekrar** · `feat/yearly-recurrence` · *bağımlı: F3.1, F4.6c*
+  `RecurrenceFrequency.yearly` + `RecurrenceRule.yearly({interval, month, dayOfMonth, until})`:
+  ay/gün verilmezse `anchor`'dan gelir, yani tekrar hatırlatıcının kendi tarihini izler.
+  **29 Şubat kuralı artık yıl olmayan yıllarda 28 Şubat'ta** çalışır (doğum günleriyle aynı
+  kural). Tekrar sayfasında "Yıllık" segmenti + "N yılda bir" stepper'ı, kart/editör/gündem
+  özetleri, iki dilde ayrıştırıcı ("her yıl", "yıllık", "N yılda bir" / "every year",
+  "yearly", "annually", "every N years"). Bildirim: `interval == 1` ve bitişsizse sistem
+  tekrarı `DateTimeComponents.dateAndTime`, 29 Şubat kuralında sonraki-tekrar (sistem tekrarı
+  yalnızca artık yıllarda çalışırdı).
+  *Not:* şema değişmedi (`reminders.recurrence` nullable TEXT) ve yedek biçimi v2 kaldı;
+  `RecurrenceRule.fromJson` toleransı gereği **yıllık tekrarı tanımayan eski bir sürüm** bu
+  hatırlatıcıyı açar ama tekrarını kaybeder (`none`).
+- [x] **F3.1c Tamamlandıktan sonra tekrar** · `feat/completion-recurrence` · *bağımlı: F3.1, F3.1b*
+  Tekrarın **ölçütü** yeni bir sıklık değil, kuralın üstünde bir mod: `RecurrenceAnchor
+  { schedule, completion }`. `RecurrenceRule.afterCompletion(frequency, {interval, until})`
+  gün/hafta/ay/yıl aralıklarıyla geçerli; takvim alanlarını (`weekdays`, `dayOfMonth`,
+  `month`) **hiç almaz** ve `fromJson` bu modda onları düşürür. Sıradaki tekrar
+  `nextAfterCompletion` ile **tamamlama günü + aralık**, saat hatırlatıcının kendi
+  saatinden (10:00'lık bir hatırlatıcı ayın 3'ünde 23:40'ta tamamlanırsa, 14 günlük
+  aralıkla 17'si 10:00 olur); hesap yine takvim alanlarıyla, `Duration` eklenmeden.
+  Tamamlanmadıkça hatırlatıcı yerinde kalıp gecikir — asıl amaç bu; "Hepsini yarına al"
+  onu `movableOverdue`'daki mevcut "tekrarlayanları atla" kuralıyla zaten atlıyor.
+  `nextOccurrence` bu modda `null` döner: takvimde bilinen bir gelecek tarih yok. Bunun
+  iki sonucu bilinçli: **bildirimde sistem tekrarı imkânsız** (`reminderRepeatComponents`
+  → `null`; sıradaki tarih tamamlanınca doğar, olağan "tamamlanınca yeniden kur" yolu
+  halleder) ve **takvim yalnızca mevcut tekrarı gösterir** (`reminderOccurrences`; seriyi
+  ileriye yansıtmak tahmini gerçek gibi sunmak olurdu). Tekrar sayfasında "Tekrar ölçütü"
+  segmenti (Takvime göre / Tamamlandıktan sonra) + tek satırlık açıklama; tamamlama
+  modunda gün/ayın-günü kontrolleri gizli. Özetler iki dilde ("Tamamlandıktan 14 gün
+  sonra" / "14 days after completion").
+  *Not:* şema değişmedi (`reminders.recurrence` nullable TEXT), yedek biçimi v2 kaldı ve
+  bildirim parmak izi (`_ScheduleSpec._version`) 7'de kaldı — ölçüt **ek** bir JSON alanı
+  (`anchor`), takvime bağlı kuralın JSON'u bit bit aynı, saklı hiçbir kural yeni modu
+  taşıyamaz. **Ölçütü tanımayan eski bir sürüm** `anchor` alanını yok sayar: tekrar
+  çalışmaya devam eder ama takvime göre — tamamlama tarihini artık takip etmez (aylık
+  kural istisna: `dayOfMonth` yazılamadığı için eski okuyucuda `none` olur).
+  *Sonraki adım:* hızlı yakalama ayrıştırıcısı bilinçli olarak dokunulmadı — doğal dildeki
+  ifadesi ("yıkadıktan 14 gün sonra") belirsiz ve corpus'lar büyük; ayrı bir madde olmalı.
 - [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [x] **F3.3 Alt görevler / checklist** · `feat/subtasks`
@@ -118,7 +156,7 @@ Diğer tüm fazların temeli.
   *Not:* bilinmeyen `#etiket` "Diğer"e gider; "Yeni kategori: #etiket" chip'i kategoriyi o adla oluşturur (F4.3); `@yer` nota yazılır, geofence kurmaz.
 - [x] **F4.6c İngilizce ayrıştırıcı** · `feat/capture-english` · *bağımlı: F4.6a, F6.1*
   Aynı kural altyapısında İngilizce grameri (`lib/domain/parsing/rules/en/`): tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`, liste bölme. Gramer `CaptureParser.parse(locale:)` ile seçilir; hızlı yakalama **uygulama dilini** (Ayarlar › Görünüm › Dil) kullanır, cihaz dilini değil. Türkçe kurallar `rules/tr/` altına taşındı, davranışı değişmedi.
-  *Not:* sayısal tarihler en_US için ay/gün (`5/3` = 3 Mayıs; ilk sayı ay olamazsa gün/ay, `25/12`), ISO her zaman y-a-g, İngilizcede noktalı biçim tarih değil saattir (`9.30`). `every year` / `yearly` bilinçli olarak ayrıştırılmıyor: `RecurrenceRule`'da yıllık tekrar yok (Türkçede `her yıl` de metin olarak kalıyor). Alan adı olarak kullanılan gün bölümleri metin kalır (`morning run`, `night cream`). Yakalama alanının altındaki not artık her iki dilde örnek cümleler gösteriyor (`captureParserExamples`).
+  *Not:* sayısal tarihler en_US için ay/gün (`5/3` = 3 Mayıs; ilk sayı ay olamazsa gün/ay, `25/12`), ISO her zaman y-a-g, İngilizcede noktalı biçim tarih değil saattir (`9.30`). `every year` / `yearly` / `annually` bu maddede bilinçli olarak ayrıştırılmıyordu (`RecurrenceRule`'da yıllık tekrar yoktu, Türkçede `her yıl` da metin kalıyordu); **F3.1b** ile ikisi de tekrar oldu — negatif corpus satırları pozitife çevrildi. Bir isimden önce gelen `yearly` / `yıllık` hâlâ metin (`yearly budget review`, `yıllık rapor hazırla`), `annually` ise her zaman tekrar. Alan adı olarak kullanılan gün bölümleri metin kalır (`morning run`, `night cream`). Yakalama alanının altındaki not artık her iki dilde örnek cümleler gösteriyor (`captureParserExamples`).
 - [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 

@@ -195,6 +195,39 @@ void main() {
     );
   }, surface: const Size(390, 1600));
 
+  // The yearly option adds a sixth segment and its own note line.
+  a11yAudit('Tekrar (yıllık, 29 Şubat)', (tester, variant) async {
+    await _openSheet(
+      tester,
+      variant,
+      (context) => showRecurrenceSheet(
+        context,
+        initial: RecurrenceRule.yearly(interval: 2),
+        anchor: DateTime(2028, 2, 29, 9),
+        now: auditNow,
+      ),
+    );
+  }, surface: const Size(390, 1600));
+
+  // F3.1c: the "Tekrar ölçütü" control adds a second segmented button and a
+  // long explanation line ("Tamamlandıktan sonra" / "After completion"), both
+  // of which have to hold at text scale 2.0 in either language.
+  a11yAudit('Tekrar (tamamlandıktan sonra)', (tester, variant) async {
+    await _openSheet(
+      tester,
+      variant,
+      (context) => showRecurrenceSheet(
+        context,
+        initial: RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ),
+        anchor: DateTime(2026, 9, 14, 9),
+        now: auditNow,
+      ),
+    );
+  }, surface: const Size(390, 1600));
+
   // Category chips keep working when the list is long.
   a11yAudit('Hatırlatıcı editörü (kategori seçili)', (tester, variant) async {
     await _openSheet(

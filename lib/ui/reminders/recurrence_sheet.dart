@@ -9,10 +9,13 @@ import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 /// Keys for tests.
 abstract final class RecurrenceSheetKeys {
   static const segments = Key('recurrenceSheet.segments');
+  static const anchorSegments = Key('recurrenceSheet.anchor');
+  static const anchorNote = Key('recurrenceSheet.anchor.note');
   static Key weekday(int weekday) => Key('recurrenceSheet.weekday.$weekday');
   static const decrement = Key('recurrenceSheet.interval.decrement');
   static const increment = Key('recurrenceSheet.interval.increment');
   static const intervalLabel = Key('recurrenceSheet.interval.label');
+  static const yearNote = Key('recurrenceSheet.yearNote');
   static const until = Key('recurrenceSheet.until');
   static const clearUntil = Key('recurrenceSheet.until.clear');
   static const preview = Key('recurrenceSheet.preview');
@@ -20,13 +23,41 @@ abstract final class RecurrenceSheetKeys {
   static const cancel = Key('recurrenceSheet.cancel');
 }
 
+/// The "Tekrar ölçütü" choice of the Tekrar sheet (F3.1c): the same frequency
+/// either on fixed calendar dates or counted from the completion.
+enum RecurrenceAnchorMode {
+  schedule,
+  completion;
+
+  String labelIn(AppLocalizations l10n) => switch (this) {
+        schedule => l10n.recurrenceAnchorSchedule,
+        completion => l10n.recurrenceAnchorCompletion,
+      };
+
+  /// The one-line explanation under the control.
+  String noteIn(AppLocalizations l10n) => switch (this) {
+        schedule => l10n.recurrenceAnchorScheduleNote,
+        completion => l10n.recurrenceAnchorCompletionNote,
+      };
+
+  RecurrenceAnchor get value => switch (this) {
+        schedule => RecurrenceAnchor.schedule,
+        completion => RecurrenceAnchor.completion,
+      };
+
+  static RecurrenceAnchorMode of(RecurrenceRule rule) =>
+      rule.isCompletionAnchored ? completion : schedule;
+}
+
 /// Segments of the Tekrar sheet (§3.3.4). "Özel" is every N ≥ 2 days;
-/// Günlük is every day.
+/// Günlük is every day. "Yıllık" repeats on the reminder's own month and day
+/// (29 February → 28 February in non-leap years).
 enum RecurrenceMode {
   none,
   daily,
   weekly,
   monthly,
+  yearly,
   custom;
 
   String labelIn(AppLocalizations l10n) => switch (this) {
@@ -34,7 +65,17 @@ enum RecurrenceMode {
         daily => l10n.recurrenceModeDaily,
         weekly => l10n.recurrenceModeWeekly,
         monthly => l10n.recurrenceModeMonthly,
+        yearly => l10n.recurrenceModeYearly,
         custom => l10n.recurrenceModeCustom,
+      };
+
+  /// The rule frequency behind the segment ("Özel" is a daily interval).
+  RecurrenceFrequency get frequency => switch (this) {
+        none => RecurrenceFrequency.none,
+        daily || custom => RecurrenceFrequency.daily,
+        weekly => RecurrenceFrequency.weekly,
+        monthly => RecurrenceFrequency.monthly,
+        yearly => RecurrenceFrequency.yearly,
       };
 
   static RecurrenceMode of(RecurrenceRule rule) => switch (rule.frequency) {
@@ -42,6 +83,7 @@ enum RecurrenceMode {
         RecurrenceFrequency.daily => rule.interval == 1 ? daily : custom,
         RecurrenceFrequency.weekly => weekly,
         RecurrenceFrequency.monthly => monthly,
+        RecurrenceFrequency.yearly => yearly,
       };
 }
 
@@ -112,9 +154,11 @@ class RecurrenceSheet extends StatefulWidget {
 
 class _RecurrenceSheetState extends State<RecurrenceSheet> {
   late RecurrenceMode _mode;
+  late RecurrenceAnchorMode _anchorMode;
   late Set<int> _weekdays;
   late int _weeks;
   late int _months;
+  late int _years;
   late int _days;
   late int _dayOfMonth;
   DateTime? _until;
@@ -124,18 +168,45 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
     super.initState();
     final r = widget.initial;
     _mode = RecurrenceMode.of(r);
+    _anchorMode = RecurrenceAnchorMode.of(r);
     final weekly = r.frequency == RecurrenceFrequency.weekly;
     _weekdays = weekly && r.weekdays.isNotEmpty
         ? {...r.weekdays}
         : {widget.anchor.weekday};
     _weeks = weekly ? r.interval : 1;
     _months = r.frequency == RecurrenceFrequency.monthly ? r.interval : 1;
+    _years = r.frequency == RecurrenceFrequency.yearly ? r.interval : 1;
     _days = _mode == RecurrenceMode.custom ? r.interval : 2;
     _dayOfMonth = r.dayOfMonth ?? widget.anchor.day;
     _until = r.until;
   }
 
-  RecurrenceRule get _rule => switch (_mode) {
+  /// The interval of the current segment (days for Günlük/Özel).
+  int get _interval => switch (_mode) {
+        RecurrenceMode.weekly => _weeks,
+        RecurrenceMode.monthly => _months,
+        RecurrenceMode.yearly => _years,
+        RecurrenceMode.custom => _days,
+        RecurrenceMode.none || RecurrenceMode.daily => 1,
+      };
+
+  bool get _isCompletion => _anchorMode == RecurrenceAnchorMode.completion;
+
+  RecurrenceRule get _rule {
+    // Completion-anchored (F3.1c): only the frequency and the interval matter —
+    // the weekday set and the day of month are meaningless, and the factory
+    // does not take them.
+    if (_isCompletion && _mode != RecurrenceMode.none) {
+      return RecurrenceRule.afterCompletion(
+        _mode.frequency,
+        interval: _interval,
+        until: _until,
+      );
+    }
+    return _calendarRule;
+  }
+
+  RecurrenceRule get _calendarRule => switch (_mode) {
         RecurrenceMode.none => RecurrenceRule.none,
         RecurrenceMode.daily => RecurrenceRule.daily(until: _until),
         RecurrenceMode.weekly =>
@@ -145,6 +216,11 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             interval: _months,
             until: _until,
           ),
+        // Month and day come from the anchor, so the series always follows
+        // the reminder's own date (a 29 February anchor fires on 28 February
+        // in non-leap years).
+        RecurrenceMode.yearly =>
+          RecurrenceRule.yearly(interval: _years, until: _until),
         RecurrenceMode.custom =>
           RecurrenceRule.daily(interval: _days, until: _until),
       };
@@ -222,7 +298,42 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
               onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
           ),
-          if (_mode == RecurrenceMode.weekly) ...[
+          // Tekrar ölçütü (F3.1c): the same frequency on fixed dates or counted
+          // from the completion. Only "Yok" has nothing to anchor.
+          if (_mode != RecurrenceMode.none) ...[
+            const SizedBox(height: KorSpacing.s5),
+            Text(
+              l10n.recurrenceAnchorLabel,
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: KorSpacing.s3),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<RecurrenceAnchorMode>(
+                key: RecurrenceSheetKeys.anchorSegments,
+                showSelectedIcon: false,
+                segments: [
+                  for (final mode in RecurrenceAnchorMode.values)
+                    ButtonSegment(value: mode, label: Text(mode.labelIn(l10n))),
+                ],
+                selected: {_anchorMode},
+                onSelectionChanged: (s) =>
+                    setState(() => _anchorMode = s.first),
+              ),
+            ),
+            const SizedBox(height: KorSpacing.s2),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _anchorMode.noteIn(l10n),
+                key: RecurrenceSheetKeys.anchorNote,
+                style: muted,
+              ),
+            ),
+          ],
+          // The weekday set is meaningless when the interval counts from the
+          // completion, so it is hidden with the rule that would ignore it.
+          if (_mode == RecurrenceMode.weekly && !_isCompletion) ...[
             const SizedBox(height: KorSpacing.s5),
             Text(l10n.recurrenceDays, style: theme.textTheme.titleSmall),
             const SizedBox(height: KorSpacing.s3),
@@ -242,22 +353,33 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
           ],
           if (_mode == RecurrenceMode.weekly ||
               _mode == RecurrenceMode.monthly ||
+              _mode == RecurrenceMode.yearly ||
               _mode == RecurrenceMode.custom) ...[
             const SizedBox(height: KorSpacing.s4),
             _IntervalStepper(
-              label: switch (_mode) {
-                RecurrenceMode.weekly => l10n.recurrenceWeekly(_weeks),
-                RecurrenceMode.monthly => l10n.recurrenceEveryMonth(_months),
-                _ => l10n.recurrenceDaily(_days),
-              },
+              label: _isCompletion
+                  ? RecurrenceText.afterCompletion(
+                      _mode.frequency,
+                      _interval,
+                      l10n,
+                    )
+                  : switch (_mode) {
+                      RecurrenceMode.weekly => l10n.recurrenceWeekly(_weeks),
+                      RecurrenceMode.monthly =>
+                        l10n.recurrenceEveryMonth(_months),
+                      RecurrenceMode.yearly => l10n.recurrenceYearly(_years),
+                      _ => l10n.recurrenceDaily(_days),
+                    },
               canDecrement: switch (_mode) {
                 RecurrenceMode.weekly => _weeks > 1,
                 RecurrenceMode.monthly => _months > 1,
+                RecurrenceMode.yearly => _years > 1,
                 _ => _days > 2,
               },
               canIncrement: switch (_mode) {
                 RecurrenceMode.weekly => _weeks < RecurrenceRule.maxInterval,
                 RecurrenceMode.monthly => _months < RecurrenceRule.maxInterval,
+                RecurrenceMode.yearly => _years < RecurrenceRule.maxInterval,
                 _ => _days < RecurrenceRule.maxInterval,
               },
               onChanged: (delta) => setState(() {
@@ -266,13 +388,17 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
                     _weeks += delta;
                   case RecurrenceMode.monthly:
                     _months += delta;
+                  case RecurrenceMode.yearly:
+                    _years += delta;
                   default:
                     _days += delta;
                 }
               }),
             ),
           ],
-          if (_mode == RecurrenceMode.monthly)
+          // The day of month and the yearly date come from the calendar, so
+          // both notes go away with them in completion mode.
+          if (_mode == RecurrenceMode.monthly && !_isCompletion)
             Text(
               _dayOfMonth > 28
                   ? l10n.recurrenceMonthDayClamped(
@@ -281,6 +407,16 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
                   : l10n.recurrenceMonthDay(
                       RecurrenceText.dayOfMonthLabel(_dayOfMonth, l10n),
                     ),
+              style: muted,
+            ),
+          if (_mode == RecurrenceMode.yearly && !_isCompletion)
+            Text(
+              anchor.month == DateTime.february && anchor.day == 29
+                  ? l10n.recurrenceYearLeapDay
+                  : l10n.recurrenceYearDay(
+                      KorFormat.pattern(l10n.dateFormatDayMonth, anchor, l10n),
+                    ),
+              key: RecurrenceSheetKeys.yearNote,
               style: muted,
             ),
           if (_mode != RecurrenceMode.none) ...[
@@ -326,7 +462,11 @@ class _RecurrenceSheetState extends State<RecurrenceSheet> {
             Semantics(
               liveRegion: true,
               child: Text(
-                RecurrenceFormat.preview(upcoming, widget.now, l10n),
+                // A completion-anchored rule has no dates to preview: the next
+                // one is born when the reminder is completed.
+                _isCompletion
+                    ? l10n.recurrenceCompletionPreview
+                    : RecurrenceFormat.preview(upcoming, widget.now, l10n),
                 key: RecurrenceSheetKeys.preview,
                 style: theme.textTheme.bodyMedium,
               ),

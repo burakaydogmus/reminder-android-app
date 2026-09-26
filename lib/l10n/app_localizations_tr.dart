@@ -369,6 +369,72 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String recurrenceYearly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yılda bir',
+      one: 'Her yıl',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceYearlyOn(int count, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yılda bir $date',
+      one: 'Her yıl $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionDays(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tamamlandıktan $count gün sonra',
+      one: 'Tamamlandıktan 1 gün sonra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionWeeks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tamamlandıktan $count hafta sonra',
+      one: 'Tamamlandıktan 1 hafta sonra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tamamlandıktan $count ay sonra',
+      one: 'Tamamlandıktan 1 ay sonra',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceAfterCompletionYears(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tamamlandıktan $count yıl sonra',
+      one: 'Tamamlandıktan 1 yıl sonra',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String birthdayTurnsAge(String age) {
     return '$age yaşına giriyor';
   }
@@ -469,6 +535,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get recurrenceModeMonthly => 'Aylık';
 
   @override
+  String get recurrenceModeYearly => 'Yıllık';
+
+  @override
   String get recurrenceModeCustom => 'Özel';
 
   @override
@@ -499,6 +568,36 @@ class AppLocalizationsTr extends AppLocalizations {
   String recurrenceMonthDayClamped(String day) {
     return 'Ayın $day; kısa aylarda ayın son günü.';
   }
+
+  @override
+  String recurrenceYearDay(String date) {
+    return 'Her yıl $date.';
+  }
+
+  @override
+  String get recurrenceYearLeapDay =>
+      'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.';
+
+  @override
+  String get recurrenceAnchorLabel => 'Tekrar ölçütü';
+
+  @override
+  String get recurrenceAnchorSchedule => 'Takvime göre';
+
+  @override
+  String get recurrenceAnchorCompletion => 'Tamamlandıktan sonra';
+
+  @override
+  String get recurrenceAnchorScheduleNote =>
+      'Tarihler sabit: geç tamamlasan da sıradaki tekrar kaymaz.';
+
+  @override
+  String get recurrenceAnchorCompletionNote =>
+      'Sıradaki tekrar, tamamladığın günden sayılır; tamamlamadıkça burada bekler.';
+
+  @override
+  String get recurrenceCompletionPreview =>
+      'Sonraki tarih, tamamladığında belirlenir.';
 
   @override
   String get recurrenceUntilLabel => 'Bitiş';

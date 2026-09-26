@@ -437,6 +437,11 @@ class NotificationService implements NotificationSync {
   /// `remindAt` gelecekteyse o; geçmişte kalmış (tamamlanmamış) tekrarlayan
   /// hatırlatıcıda kuralın [now]'dan sonraki ilk tekrarı, böylece bildirimler
   /// sürer. Tekrarsız geçmiş hatırlatıcı zamanlanmaz.
+  ///
+  /// **Tamamlamaya bağlı kural (F3.1c)** geçmişte kalınca da zamanlanmaz:
+  /// sıradaki tarih ancak tamamlanınca doğar (kuralın `nextOccurrence`'ı `null`
+  /// döner), hatırlatıcı Kaçanlar'da bekler. Tamamlanınca `remindAt` ilerler ve
+  /// F1.7 fark senkronu yeni tarihi kurar.
   @visibleForTesting
   static DateTime? reminderFireTime(Reminder r, DateTime now) {
     final at = r.remindAt;
@@ -453,15 +458,30 @@ class NotificationService implements NotificationSync {
   /// - Her hafta tek gün → [DateTimeComponents.dayOfWeekAndTime]
   /// - Her ayın 1–28'i → [DateTimeComponents.dayOfMonthAndTime] (29–31 kısa
   ///   aylarda ay sonuna kırpılır; sistem o ayı atlardı)
+  /// - Her yıl → [DateTimeComponents.dateAndTime] (doğum günlerinin kullandığı
+  ///   mod). **29 Şubat kuralı hariç:** sistem tekrarı yalnızca artık yıllarda
+  ///   çalışırdı, kural ise ara yıllarda 28 Şubat'ta çalışıyor — bu yüzden
+  ///   `null` döner ve sonraki tekrarı uygulamanın kendi yeniden kurulumu
+  ///   halleder. Ay/gününü `anchor`'dan alan yıllık kuralda [anchor]
+  ///   verilmezse hedef bilinemez; güvenli tarafta kalınıp `null` döner.
   /// - Aralıklı (`interval > 1`), haftada birden çok gün, bitiş tarihli → `null`:
   ///   sistem tekrarı aralığı/bitişi bilmez; sonraki tekrar uygulama açıldığında
   ///   veya hatırlatıcı değiştiğinde kurulur.
+  /// - **Tamamlamaya bağlı kural (F3.1c) → her zaman `null`.** Sistem tekrarı
+  ///   sabit bir takvim deseni demek; burada sıradaki tarih tamamlanana kadar
+  ///   *bilinmiyor*, bu yüzden hiçbir `DateTimeComponents` bu kuralı anlatamaz.
+  ///   Tamamlandıktan sonra `remindAt` ilerler ve olağan "tamamlanınca yeniden
+  ///   kur" yolu (F1.7 fark senkronu) yeni tarihi kurar.
   ///
   /// Bildirim her zaman kuralın bir sonraki gerçek tekrarına kurulduğu için
   /// (erken tamamlama dahil) sistem tekrarı yalnızca uygulama açılmadığında
   /// devreye girer.
   @visibleForTesting
-  static DateTimeComponents? reminderRepeatComponents(RecurrenceRule rule) {
+  static DateTimeComponents? reminderRepeatComponents(
+    RecurrenceRule rule, {
+    DateTime? anchor,
+  }) {
+    if (rule.isCompletionAnchored) return null;
     if (rule.interval != 1 || rule.until != null) return null;
     return switch (rule.frequency) {
       RecurrenceFrequency.none => null,
@@ -471,7 +491,18 @@ class NotificationService implements NotificationSync {
       RecurrenceFrequency.monthly => (rule.dayOfMonth ?? 31) <= 28
           ? DateTimeComponents.dayOfMonthAndTime
           : null,
+      RecurrenceFrequency.yearly =>
+        _yearlyRepeats(rule, anchor) ? DateTimeComponents.dateAndTime : null,
     };
+  }
+
+  /// Yıllık kural sistem tekrarıyla kurulabilir mi: hedef ay/gün bilinmeli
+  /// ve 29 Şubat olmamalı.
+  static bool _yearlyRepeats(RecurrenceRule rule, DateTime? anchor) {
+    final month = rule.month ?? anchor?.month;
+    final day = rule.dayOfMonth ?? anchor?.day;
+    if (month == null || day == null) return false;
+    return !(month == DateTime.february && day == 29);
   }
 
   /// Android BigText görünümünde listelenen en fazla açık madde sayısı.
@@ -581,7 +612,8 @@ class NotificationService implements NotificationSync {
       body: body,
       scheduledDate: scheduled,
       details: details,
-      matchDateTimeComponents: reminderRepeatComponents(r.recurrence),
+      matchDateTimeComponents:
+          reminderRepeatComponents(r.recurrence, anchor: r.remindAt),
       payload: ReminderPayload(r.id).encode(),
       recurrence: jsonEncode(r.recurrence.toJson()),
       subtasks: bigText,
@@ -623,6 +655,14 @@ class _ScheduleSpec {
   /// - v7 (F6.4): iOS bildirimi açık maddeleri `subtitle` ile gösterir;
   ///   alt başlık parmak izine girdi, kurulu bildirimler bir kez yeniden
   ///   kurulur.
+  ///
+  /// **F3.1c (tamamlamaya bağlı tekrar) artırmadı.** Ölçüt ne parmak izine
+  /// giren alanların anlamını ne de kurulum biçimini değiştirir: JSON'a yalnızca
+  /// yeni modda `anchor` alanı eklenir, takvime bağlı bir kuralın `toJson()`'ı
+  /// bit bit aynı kalır ve `matchDateTimeComponents` de değişmez. **Kurulu**
+  /// (saklı) hiçbir kural yeni modu taşıyamaz — bu sürümden önce yazılmış bir
+  /// kayıtta `anchor` yoktur — yani mevcut bir hatırlatıcının parmak izi
+  /// içeriği değişemez; artırmak tüm bildirimleri boşuna yeniden kurardı.
   static const _version = 7;
 
   final int id;

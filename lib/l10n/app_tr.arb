@@ -307,6 +307,63 @@
       }
     }
   },
+  "recurrenceYearly": "{count, plural, =1{Her yıl} other{{count} yılda bir}}",
+  "@recurrenceYearly": {
+    "description": "Yıllık tekrar özeti; aralık 1 ise 'Her yıl'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceYearlyOn": "{count, plural, =1{Her yıl {date}} other{{count} yılda bir {date}}}",
+  "@recurrenceYearlyOn": {
+    "description": "Ay/günü açıkça belirtilmiş yıllık tekrar: 'Her yıl 14 Şubat'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceAfterCompletionDays": "{count, plural, =1{Tamamlandıktan 1 gün sonra} other{Tamamlandıktan {count} gün sonra}}",
+  "@recurrenceAfterCompletionDays": {
+    "description": "Tamamlamaya bağlı günlük tekrarın özeti (F3.1c).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceAfterCompletionWeeks": "{count, plural, =1{Tamamlandıktan 1 hafta sonra} other{Tamamlandıktan {count} hafta sonra}}",
+  "@recurrenceAfterCompletionWeeks": {
+    "description": "Tamamlamaya bağlı haftalık tekrarın özeti (F3.1c).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceAfterCompletionMonths": "{count, plural, =1{Tamamlandıktan 1 ay sonra} other{Tamamlandıktan {count} ay sonra}}",
+  "@recurrenceAfterCompletionMonths": {
+    "description": "Tamamlamaya bağlı aylık tekrarın özeti (F3.1c).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceAfterCompletionYears": "{count, plural, =1{Tamamlandıktan 1 yıl sonra} other{Tamamlandıktan {count} yıl sonra}}",
+  "@recurrenceAfterCompletionYears": {
+    "description": "Tamamlamaya bağlı yıllık tekrarın özeti (F3.1c).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "birthdayTurnsAge": "{age} yaşına giriyor",
   "@birthdayTurnsAge": {
     "placeholders": {
@@ -438,6 +495,7 @@
   "recurrenceModeDaily": "Günlük",
   "recurrenceModeWeekly": "Haftalık",
   "recurrenceModeMonthly": "Aylık",
+  "recurrenceModeYearly": "Yıllık",
   "recurrenceModeCustom": "Özel",
   "recurrenceNextDay": "{day} {time}",
   "@recurrenceNextDay": {
@@ -477,6 +535,43 @@
         "type": "String"
       }
     }
+  },
+  "recurrenceYearDay": "Her yıl {date}.",
+  "@recurrenceYearDay": {
+    "description": "Yıllık tekrar seçildiğinde sheet'teki not: 'Her yıl 17 Mart.'",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceYearLeapDay": "Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.",
+  "@recurrenceYearLeapDay": {
+    "description": "29 Şubat'a kurulu yıllık tekrarın sheet'teki notu."
+  },
+  "recurrenceAnchorLabel": "Tekrar ölçütü",
+  "@recurrenceAnchorLabel": {
+    "description": "Tekrar sayfasındaki ölçüt seçiminin başlığı (F3.1c)."
+  },
+  "recurrenceAnchorSchedule": "Takvime göre",
+  "@recurrenceAnchorSchedule": {
+    "description": "Ölçüt seçeneği: seri sabit tarihlerden oluşur."
+  },
+  "recurrenceAnchorCompletion": "Tamamlandıktan sonra",
+  "@recurrenceAnchorCompletion": {
+    "description": "Ölçüt seçeneği: sıradaki tekrar tamamlama gününden sayılır."
+  },
+  "recurrenceAnchorScheduleNote": "Tarihler sabit: geç tamamlasan da sıradaki tekrar kaymaz.",
+  "@recurrenceAnchorScheduleNote": {
+    "description": "Takvime göre ölçütünün tek satırlık açıklaması."
+  },
+  "recurrenceAnchorCompletionNote": "Sıradaki tekrar, tamamladığın günden sayılır; tamamlamadıkça burada bekler.",
+  "@recurrenceAnchorCompletionNote": {
+    "description": "Tamamlandıktan sonra ölçütünün tek satırlık açıklaması."
+  },
+  "recurrenceCompletionPreview": "Sonraki tarih, tamamladığında belirlenir.",
+  "@recurrenceCompletionPreview": {
+    "description": "Tamamlamaya bağlı kuralda 'Sonraki 3: …' yerine geçen satır."
   },
   "recurrenceUntilLabel": "Bitiş",
   "recurrenceUntilNever": "Hiçbir zaman",

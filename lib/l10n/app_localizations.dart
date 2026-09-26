@@ -686,6 +686,42 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Her ayın {day}} other{{count} ayda bir, ayın {day}}}'**
   String recurrenceMonthly(int count, String day);
 
+  /// Yıllık tekrar özeti; aralık 1 ise 'Her yıl'.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Her yıl} other{{count} yılda bir}}'**
+  String recurrenceYearly(int count);
+
+  /// Ay/günü açıkça belirtilmiş yıllık tekrar: 'Her yıl 14 Şubat'.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Her yıl {date}} other{{count} yılda bir {date}}}'**
+  String recurrenceYearlyOn(int count, String date);
+
+  /// Tamamlamaya bağlı günlük tekrarın özeti (F3.1c).
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Tamamlandıktan 1 gün sonra} other{Tamamlandıktan {count} gün sonra}}'**
+  String recurrenceAfterCompletionDays(int count);
+
+  /// Tamamlamaya bağlı haftalık tekrarın özeti (F3.1c).
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Tamamlandıktan 1 hafta sonra} other{Tamamlandıktan {count} hafta sonra}}'**
+  String recurrenceAfterCompletionWeeks(int count);
+
+  /// Tamamlamaya bağlı aylık tekrarın özeti (F3.1c).
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Tamamlandıktan 1 ay sonra} other{Tamamlandıktan {count} ay sonra}}'**
+  String recurrenceAfterCompletionMonths(int count);
+
+  /// Tamamlamaya bağlı yıllık tekrarın özeti (F3.1c).
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Tamamlandıktan 1 yıl sonra} other{Tamamlandıktan {count} yıl sonra}}'**
+  String recurrenceAfterCompletionYears(int count);
+
   /// No description provided for @birthdayTurnsAge.
   ///
   /// In tr, this message translates to:
@@ -842,6 +878,12 @@ abstract class AppLocalizations {
   /// **'Aylık'**
   String get recurrenceModeMonthly;
 
+  /// No description provided for @recurrenceModeYearly.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yıllık'**
+  String get recurrenceModeYearly;
+
   /// No description provided for @recurrenceModeCustom.
   ///
   /// In tr, this message translates to:
@@ -889,6 +931,54 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Ayın {day}; kısa aylarda ayın son günü.'**
   String recurrenceMonthDayClamped(String day);
+
+  /// Yıllık tekrar seçildiğinde sheet'teki not: 'Her yıl 17 Mart.'
+  ///
+  /// In tr, this message translates to:
+  /// **'Her yıl {date}.'**
+  String recurrenceYearDay(String date);
+
+  /// 29 Şubat'a kurulu yıllık tekrarın sheet'teki notu.
+  ///
+  /// In tr, this message translates to:
+  /// **'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.'**
+  String get recurrenceYearLeapDay;
+
+  /// Tekrar sayfasındaki ölçüt seçiminin başlığı (F3.1c).
+  ///
+  /// In tr, this message translates to:
+  /// **'Tekrar ölçütü'**
+  String get recurrenceAnchorLabel;
+
+  /// Ölçüt seçeneği: seri sabit tarihlerden oluşur.
+  ///
+  /// In tr, this message translates to:
+  /// **'Takvime göre'**
+  String get recurrenceAnchorSchedule;
+
+  /// Ölçüt seçeneği: sıradaki tekrar tamamlama gününden sayılır.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tamamlandıktan sonra'**
+  String get recurrenceAnchorCompletion;
+
+  /// Takvime göre ölçütünün tek satırlık açıklaması.
+  ///
+  /// In tr, this message translates to:
+  /// **'Tarihler sabit: geç tamamlasan da sıradaki tekrar kaymaz.'**
+  String get recurrenceAnchorScheduleNote;
+
+  /// Tamamlandıktan sonra ölçütünün tek satırlık açıklaması.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sıradaki tekrar, tamamladığın günden sayılır; tamamlamadıkça burada bekler.'**
+  String get recurrenceAnchorCompletionNote;
+
+  /// Tamamlamaya bağlı kuralda 'Sonraki 3: …' yerine geçen satır.
+  ///
+  /// In tr, this message translates to:
+  /// **'Sonraki tarih, tamamladığında belirlenir.'**
+  String get recurrenceCompletionPreview;
 
   /// No description provided for @recurrenceUntilLabel.
   ///

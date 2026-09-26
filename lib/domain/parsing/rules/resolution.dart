@@ -138,6 +138,15 @@ extension _Resolution on _Scanner {
           }
         }
         return (spec: rec.copyWith(dayOfMonth: dom), at: at(start));
+      case RecurrenceKind.yearly:
+        // Month and day stay implicit: the rule takes them from this first
+        // occurrence (`CaptureToReminder.ruleOf`). A 29 February start that
+        // no longer fits lands on 28 February next year, like the rule.
+        if (fits(start)) return (spec: rec, at: at(start));
+        final year = start.year + 1;
+        final next = validDate(year, start.month, start.day) ??
+            DateTime(year, start.month + 1, 0);
+        return (spec: rec, at: at(next));
     }
   }
 }

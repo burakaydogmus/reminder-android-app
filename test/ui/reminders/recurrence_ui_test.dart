@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_completion.dart';
+import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
@@ -30,13 +31,26 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-Finder _segment(RecurrenceMode mode) => find.descendant(
+Finder _segment(RecurrenceMode mode, [AppLocalizations? l10n]) =>
+    find.descendant(
       of: find.byKey(RecurrenceSheetKeys.segments),
-      matching: find.text(mode.labelIn(AppL10n.turkish)),
+      matching: find.text(mode.labelIn(l10n ?? AppL10n.turkish)),
+    );
+
+Finder _anchorSegment(RecurrenceAnchorMode mode, [AppLocalizations? l10n]) =>
+    find.descendant(
+      of: find.byKey(RecurrenceSheetKeys.anchorSegments),
+      matching: find.text(mode.labelIn(l10n ?? AppL10n.turkish)),
     );
 
 String _previewText(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(RecurrenceSheetKeys.preview)).data!;
+
+String _anchorNoteText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(RecurrenceSheetKeys.anchorNote)).data!;
+
+String _yearNoteText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(RecurrenceSheetKeys.yearNote)).data!;
 
 String _intervalText(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(RecurrenceSheetKeys.intervalLabel)).data!;
@@ -76,6 +90,7 @@ void main() {
       RecurrenceRule initial = RecurrenceRule.none,
       DateTime? anchor,
       ThemeData Function() theme = KorTheme.light,
+      AppLanguage language = AppLanguage.turkish,
     }) async {
       result = null;
       closed = false;
@@ -83,6 +98,7 @@ void main() {
       await tester.pumpWidget(
         h.app(
           theme: theme,
+          language: language,
           home: Scaffold(
             body: Builder(
               builder: (context) => Center(
@@ -198,6 +214,75 @@ void main() {
       expect(result, RecurrenceRule.monthly(dayOfMonth: 31));
     });
 
+    testWidgets('Yıllık repeats on the anchor date; the stepper counts years',
+        (tester) async {
+      await openSheet(tester);
+      await _tap(tester, _segment(RecurrenceMode.yearly));
+
+      expect(_intervalText(tester), 'Her yıl');
+      expect(_yearNoteText(tester), 'Her yıl 19 Eylül.');
+      expect(
+        _previewText(tester),
+        'Sonraki 3: Cmt 19 Eyl · Paz 19 Eyl 2027 · Sal 19 Eyl 2028',
+      );
+      // Every year is the minimum.
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(RecurrenceSheetKeys.decrement))
+            .onPressed,
+        isNull,
+      );
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.increment));
+      expect(_intervalText(tester), '2 yılda bir');
+      expect(
+        _previewText(tester),
+        'Sonraki 3: Cmt 19 Eyl · Sal 19 Eyl 2028 · Per 19 Eyl 2030',
+      );
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 2));
+    });
+
+    testWidgets('Yıllık on 29 February explains non-leap years',
+        (tester) async {
+      await openSheet(tester, anchor: DateTime(2028, 2, 29, 9));
+      await _tap(tester, _segment(RecurrenceMode.yearly));
+
+      expect(
+        _yearNoteText(tester),
+        'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.',
+      );
+      final preview = _previewText(tester);
+      expect(preview, contains('29 Şub 2028'));
+      expect(preview, contains('28 Şub 2029'));
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly());
+    });
+
+    testWidgets('Yıllık is "Yearly" in English', (tester) async {
+      await openSheet(tester, language: AppLanguage.english);
+      await _tap(tester, _segment(RecurrenceMode.yearly, AppL10n.english));
+
+      expect(_intervalText(tester), 'Every year');
+      expect(_yearNoteText(tester), 'Every year on September 19.');
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.increment));
+      expect(_intervalText(tester), 'Every 2 years');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 2));
+    });
+
+    testWidgets('an existing yearly rule opens on the Yıllık segment',
+        (tester) async {
+      await openSheet(tester, initial: RecurrenceRule.yearly(interval: 3));
+      expect(_intervalText(tester), '3 yılda bir');
+      expect(_yearNoteText(tester), 'Her yıl 19 Eylül.');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 3));
+    });
+
     testWidgets('an existing rule opens on its segment; Bitiş can be cleared',
         (tester) async {
       await openSheet(
@@ -214,6 +299,168 @@ void main() {
       expect(find.text('Hiçbir zaman'), findsOneWidget);
       await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
       expect(result, RecurrenceRule.daily());
+    });
+
+    // F3.1c: "Tekrar ölçütü" — the same frequency either on fixed dates or
+    // counted from the completion.
+    testWidgets('Tekrar ölçütü is hidden for Yok and shown for every rule',
+        (tester) async {
+      await openSheet(tester);
+      expect(find.byKey(RecurrenceSheetKeys.anchorSegments), findsNothing);
+      expect(find.byKey(RecurrenceSheetKeys.anchorNote), findsNothing);
+
+      for (final mode in [
+        RecurrenceMode.daily,
+        RecurrenceMode.weekly,
+        RecurrenceMode.monthly,
+        RecurrenceMode.yearly,
+        RecurrenceMode.custom,
+      ]) {
+        await _tap(tester, _segment(mode));
+        expect(
+          find.byKey(RecurrenceSheetKeys.anchorSegments),
+          findsOneWidget,
+          reason: '$mode should offer the anchor choice',
+        );
+        expect(
+          _anchorNoteText(tester),
+          'Tarihler sabit: geç tamamlasan da sıradaki tekrar kaymaz.',
+        );
+      }
+
+      await _tap(tester, _segment(RecurrenceMode.none));
+      expect(find.byKey(RecurrenceSheetKeys.anchorSegments), findsNothing);
+    });
+
+    testWidgets('"Tamamlandıktan sonra" builds a completion-anchored rule',
+        (tester) async {
+      await openSheet(tester);
+      await _tap(tester, _segment(RecurrenceMode.custom));
+      expect(_anchorNoteText(tester),
+          'Tarihler sabit: geç tamamlasan da sıradaki tekrar kaymaz.');
+      expect(_intervalText(tester), '2 günde bir');
+
+      await _tap(tester, _anchorSegment(RecurrenceAnchorMode.completion));
+      expect(
+        _anchorNoteText(tester),
+        'Sıradaki tekrar, tamamladığın günden sayılır; '
+        'tamamlamadıkça burada bekler.',
+      );
+      // The stepper now reads as a completion interval, and there is no date
+      // series to preview.
+      expect(_intervalText(tester), 'Tamamlandıktan 2 gün sonra');
+      expect(
+        _previewText(tester),
+        'Sonraki tarih, tamamladığında belirlenir.',
+      );
+
+      for (var i = 0; i < 12; i++) {
+        await _tap(tester, find.byKey(RecurrenceSheetKeys.increment));
+      }
+      expect(_intervalText(tester), 'Tamamlandıktan 14 gün sonra');
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(
+        result,
+        RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ),
+      );
+    });
+
+    testWidgets('completion mode hides the weekday and day-of-month controls',
+        (tester) async {
+      await openSheet(tester);
+      await _tap(tester, _segment(RecurrenceMode.weekly));
+      expect(find.byKey(RecurrenceSheetKeys.weekday(DateTime.saturday)),
+          findsOneWidget);
+      expect(find.text('Günler'), findsOneWidget);
+
+      await _tap(tester, _anchorSegment(RecurrenceAnchorMode.completion));
+      for (var d = DateTime.monday; d <= DateTime.sunday; d++) {
+        expect(find.byKey(RecurrenceSheetKeys.weekday(d)), findsNothing);
+      }
+      expect(find.text('Günler'), findsNothing);
+      expect(_intervalText(tester), 'Tamamlandıktan 1 hafta sonra');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(
+        result,
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.weekly),
+      );
+    });
+
+    testWidgets('completion mode hides the monthly and yearly notes',
+        (tester) async {
+      await openSheet(tester);
+      await _tap(tester, _segment(RecurrenceMode.monthly));
+      expect(find.text("Ayın 19'u."), findsOneWidget);
+      await _tap(tester, _anchorSegment(RecurrenceAnchorMode.completion));
+      expect(find.text("Ayın 19'u."), findsNothing);
+      expect(_intervalText(tester), 'Tamamlandıktan 1 ay sonra');
+
+      await _tap(tester, _segment(RecurrenceMode.yearly));
+      expect(find.byKey(RecurrenceSheetKeys.yearNote), findsNothing);
+      expect(_intervalText(tester), 'Tamamlandıktan 1 yıl sonra');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(
+        result,
+        RecurrenceRule.afterCompletion(RecurrenceFrequency.yearly),
+      );
+    });
+
+    testWidgets('an existing completion rule opens on its ölçüt',
+        (tester) async {
+      await openSheet(
+        tester,
+        initial: RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 14,
+        ),
+      );
+      expect(_intervalText(tester), 'Tamamlandıktan 14 gün sonra');
+      expect(find.byKey(RecurrenceSheetKeys.weekday(DateTime.saturday)),
+          findsNothing);
+
+      // Switching back to Takvime göre restores the calendar rule and its
+      // preview; the weekday set falls back to the anchor's own day.
+      await _tap(tester, _anchorSegment(RecurrenceAnchorMode.schedule));
+      expect(_intervalText(tester), '14 günde bir');
+      expect(_previewText(tester), startsWith('Sonraki 3: Cmt 19 Eyl'));
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.daily(interval: 14));
+    });
+
+    testWidgets('the ölçüt reads in English too', (tester) async {
+      await openSheet(tester, language: AppLanguage.english);
+      await _tap(tester, _segment(RecurrenceMode.custom, AppL10n.english));
+      expect(
+        _anchorNoteText(tester),
+        'Fixed dates: completing late does not move the next one.',
+      );
+
+      await _tap(
+        tester,
+        _anchorSegment(RecurrenceAnchorMode.completion, AppL10n.english),
+      );
+      expect(
+        _anchorNoteText(tester),
+        'The next repeat counts from the day you complete it; '
+        'until then it waits here.',
+      );
+      expect(_intervalText(tester), '2 days after completion');
+      expect(
+        _previewText(tester),
+        'The next date is set when you complete it.',
+      );
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(
+        result,
+        RecurrenceRule.afterCompletion(
+          RecurrenceFrequency.daily,
+          interval: 2,
+        ),
+      );
     });
 
     testWidgets('Yok returns none, Vazgeç returns null', (tester) async {

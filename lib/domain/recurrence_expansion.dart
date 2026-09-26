@@ -4,12 +4,19 @@ import 'package:reminder/domain/model/reminder.dart';
 ///
 /// - No `remindAt` → none.
 /// - One-off → its `remindAt` when inside the range.
-/// - Recurring (F3.1) → the stored `remindAt` (the current occurrence) when
-///   inside the range, then every following occurrence from
-///   `RecurrenceRule.nextOccurrence` with the stored `remindAt` as anchor
-///   (time of day from the anchor, month-end clamp, `until` inclusive). When
-///   the stored `remindAt` is before [from], the series is picked up at its
-///   first occurrence on or after [from].
+/// - Recurring **on schedule** (F3.1, `RecurrenceAnchor.schedule`) → the stored
+///   `remindAt` (the current occurrence) when inside the range, then every
+///   following occurrence from `RecurrenceRule.nextOccurrence` with the stored
+///   `remindAt` as anchor (time of day from the anchor, month-end clamp,
+///   `until` inclusive). When the stored `remindAt` is before [from], the
+///   series is picked up at its first occurrence on or after [from].
+/// - Recurring **after completion** (F3.1c, `RecurrenceAnchor.completion`) →
+///   **only the current occurrence**, exactly like a one-off. Such a series has
+///   no known future dates: the next one is "completion + interval" and the
+///   completion has not happened yet. Projecting one from the current date
+///   would be a guess the calendar then shows as fact — and every later date
+///   would move the moment the user completes it. So the calendar shows the one
+///   date that is real, and the rest appears as the reminder is completed.
 ///
 /// Occurrences never come before the stored `remindAt`: completing a
 /// recurring reminder moves the anchor forward, so earlier dates are done.
@@ -24,11 +31,14 @@ List<DateTime> reminderOccurrences(
   if (anchor == null || !to.isAfter(from)) return const [];
   bool inRange(DateTime t) => !t.isBefore(from) && t.isBefore(to);
 
-  if (!reminder.isRecurring) {
+  final rule = reminder.recurrence;
+  // A completion-anchored series (F3.1c) has no projectable future: show the
+  // current occurrence alone. (`nextOccurrence` returns null for such a rule,
+  // so the loop below would do the same — this says why.)
+  if (!reminder.isRecurring || rule.isCompletionAnchored) {
     return inRange(anchor) ? [anchor] : const [];
   }
 
-  final rule = reminder.recurrence;
   final result = <DateTime>[];
   DateTime? next = anchor.isBefore(from)
       ? rule.firstOnOrAfter(from: from, anchor: anchor)
