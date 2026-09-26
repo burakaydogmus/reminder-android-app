@@ -63,20 +63,33 @@ gizli olarak sorar).
 göreli yolu `android/app` altında arar). Gerisi mevcut Gradle yapılandırması:
 `signingConfigs.release`.
 
-- Artifact adı imzaya göre değişir: `app-release-apk` (kişisel anahtar) veya
-  `app-release-debugsigned-apk` (anahtar yok).
-- "Show the APK signer" adımı APK'yı imzalayan sertifikayı yazdırır. Kişisel
-  anahtarla imzalanmışsa `Owner` senin `-dname` değerin olur; SHA-256 parmak izi
-  `keytool -list -v -keystore reminder-personal.jks` çıktısıyla eşleşmelidir.
-  Debug anahtarıyla imzalanmışsa `CN=Android Debug` görünür.
+- Derleme `--split-per-abi` ile yapılır: her mimari için ayrı APK (~25 MB),
+  tek bir 76 MB'lık paket yerine. Telefon yalnızca birini çalıştırır.
+- İki artifact yüklenir; adları imzaya göre değişir:
+  - `app-release-arm64-apk` — **indirilecek olan bu** (arm64-v8a; 2016 sonrası
+    her telefon). Anahtar yoksa `app-release-arm64-debugsigned-apk`.
+  - `app-release-other-abis-apk` — armeabi-v7a (eski telefonlar) ve x86_64
+    (emülatör). Anahtar yoksa `…-other-abis-debugsigned-apk`.
+- "Show the APK signer" adımı her APK için boyutu ve imzalayan sertifikayı
+  yazdırır (`apksigner`, `keytool` değil: minSdk 26 olduğu için imza yalnızca
+  v2/v3 şemasındadır ve `keytool -printcert -jarfile` hiçbir şey basmaz).
+  Kişisel anahtarla imzalanmışsa `certificate DN` senin `-dname` değerin olur ve
+  SHA-256 parmak izi yerel keystore'la eşleşir; debug anahtarında
+  `CN=Android Debug` görünür ve gizli değişken tanımlıysa iş akışı **hata
+  verir**.
 - Gizli değişkenler yoksa iş akışı yine çalışır (fork'lar ve yeni klonlar
   bozulmaz), sadece APK'lar üst üste kurulamaz.
 
 ## Cihaza kurma
 
-Actions → Android build → son koşu → Artifacts → APK'yı indir, telefona kopyala
-ve kur (bilinmeyen kaynaklara izin vermen gerekebilir). Artifact'lar 7 gün
-sonra silinir.
+Actions → Android build → son koşu → Artifacts → `app-release-arm64-apk` indir,
+telefona kopyala ve kur (bilinmeyen kaynaklara izin vermen gerekebilir).
+Artifact'lar 7 gün sonra silinir.
+
+**Bir varyantta kal.** Flutter split APK'lara mimariye göre `versionCode` kaydırması
+verir (armeabi-v7a +1000, arm64-v8a +2000, x86_64 +3000). Bu yüzden eski tek
+parça APK'dan arm64 split'e geçmek yükseltmedir, ama tersi Android'in engellediği
+bir sürüm düşürmedir: cihazda hep aynı varyantı kur.
 
 İlk kez kalıcı anahtara geçerken, cihazda **debug anahtarıyla imzalanmış** bir
 sürüm kuruluysa o silinmek zorunda: önce uygulama içinden yedek al
