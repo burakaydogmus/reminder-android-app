@@ -18,6 +18,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **İmzalı GitHub Release ve telefonda otomatik güncelleme:** Elle tetiklenen `Release APK` iş
+  akışı, mimari başına sabit adlı APK'ları (`reminder-arm64-v8a.apk` …) imzalayıp doğruluyor ve
+  `v<sürüm>+<numara>` etiketiyle release açıyor. `versionCode` artık tarihten üretiliyor
+  (`date -u +%y%m%d%H`); önceden `pubspec.yaml`'daki sabit `+8` yüzünden her derleme aynı
+  numarayı taşıyor ve hiçbir güncelleyici iki derlemeyi ayırt edemiyordu. Telefonda
+  [Obtainium](https://github.com/ImranR98/Obtainium) release'leri izleyip güncellemeyi kuruyor
+  (veriler korunur, imza aynı); kurulum [`docs/updates.md`](docs/updates.md). Release derlemesi,
+  debug anahtarına **düşmek yerine hata veriyor** — kurulamayan bir release yayınlamaktansa
+  hiç yayınlamamak iyidir. Artifact'lar 7 günde silindiği için eski sürümler de artık kalıcı.
+
 - **Rutinler (hatırlatıcı şablonları):** Listeler sekmesindeki "Rutinlerim" bölümünde hazır
   paketler kurabiliyorsun: "Sabah rutini" = spor 07:00 + vitamin 07:30 + su (saatsiz). Rutine
   dokunmak onu seçtiğin güne uygular, yani adımlarından **gerçek hatırlatıcılar** oluşturur;
