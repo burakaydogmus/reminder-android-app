@@ -350,7 +350,7 @@
   "captureBarLabel": "Quick add",
   "captureBarHint": "What should I remind you of? Long-press for a detailed reminder or a birthday",
   "captureFieldHint": "What should I remind you of?",
-  "captureParserHint": "Natural language: Turkish only (e.g. “yarın 9'da”)",
+  "captureParserExamples": "Example: tomorrow at 9, every monday, #market",
   "captureCategory": "Category",
   "capturePriority": "Priority",
   "captureAllDetails": "All details",

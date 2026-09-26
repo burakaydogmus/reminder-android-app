@@ -5,7 +5,8 @@
 /// (priority).
 library;
 
-import '../model/reminder_category.dart';
+import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/domain/parsing/capture_locale.dart';
 
 /// What a recognized piece of the input means.
 enum CaptureTokenKind { date, time, recurrence, category, priority, place }
@@ -114,7 +115,7 @@ class CaptureParserConfig {
     this.afternoonHour = 15,
     this.eveningHour = 20,
     this.nightHour = 22,
-    this.categoryAliases = defaultCategoryAliases,
+    this.categoryAliases,
     this.listCategoryIds = const {ReminderCategoryIds.market},
   });
 
@@ -124,10 +125,15 @@ class CaptureParserConfig {
   final int eveningHour;
   final int nightHour;
 
-  /// Category id → names a `#tag` may use. Compared folded (case and Turkish
+  /// Category id → names a `#tag` may use. Compared folded (case and
   /// diacritics ignored, spaces removed). F4.3 custom categories can pass
-  /// their own map.
-  final Map<String, List<String>> categoryAliases;
+  /// their own map; `null` uses the built-in aliases of the parse locale
+  /// ([builtInAliasesOf]).
+  final Map<String, List<String>>? categoryAliases;
+
+  /// The aliases this config uses when parsing with [locale].
+  Map<String, List<String>> aliasesFor(CaptureLocale locale) =>
+      categoryAliases ?? builtInAliasesOf(locale);
 
   /// Category ids whose `#tag` turns a comma/`ve` list into a
   /// "Maddelere böl?" suggestion.
@@ -142,6 +148,30 @@ class CaptureParserConfig {
     ReminderCategoryIds.errands: ['günlük', 'errands'],
     ReminderCategoryIds.other: ['diğer', 'other'],
   };
+
+  /// [defaultCategoryAliases] plus the English labels of the built-ins
+  /// (F4.6c). The Turkish aliases stay: a user may type `#market` with the
+  /// app in English, and the **stored** built-in names are Turkish.
+  static const Map<String, List<String>> englishCategoryAliases = {
+    ReminderCategoryIds.market: [
+      'market',
+      'alışveriş',
+      'groceries',
+      'grocery',
+      'shopping',
+    ],
+    ReminderCategoryIds.home: ['ev', 'ev işleri', 'home', 'house', 'chores'],
+    ReminderCategoryIds.work: ['iş', 'work', 'office'],
+    ReminderCategoryIds.health: ['sağlık', 'health'],
+    ReminderCategoryIds.errands: ['günlük', 'errands', 'errand'],
+    ReminderCategoryIds.other: ['diğer', 'other', 'misc'],
+  };
+
+  /// The built-in aliases of [locale].
+  static Map<String, List<String>> builtInAliasesOf(CaptureLocale locale) =>
+      locale == CaptureLocale.turkish
+          ? defaultCategoryAliases
+          : englishCategoryAliases;
 }
 
 class CaptureParseResult {

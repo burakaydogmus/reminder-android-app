@@ -18,6 +18,15 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Hızlı yakalamada İngilizce doğal dil:** Uygulama İngilizceyken yakalama alanı artık
+  İngilizce yazılanları da anlıyor: "tomorrow at 9", "every monday", "in 2 hours",
+  "next friday 18:00", "#groceries bread, milk and eggs", `!` öncelik, `@yer`. Gramer
+  **uygulama diline** göre seçilir (Ayarlar › Görünüm › Dil), cihaz diline göre değil;
+  Türkçe davranışı aynen korundu. Alanın altındaki not artık "yalnızca Türkçe" uyarısı
+  yerine o dildeki örnek cümleleri gösteriyor. Sayısal tarihler İngilizcede ay/gün
+  okunur (`5/3` = 3 Mayıs), noktalı biçim saattir (`9.30`). "every year" / "yearly"
+  henüz desteklenmiyor (uygulamada yıllık tekrar türü yok, Türkçede "her yıl" da metin
+  olarak kalıyor). (F4.6c)
 - **Maddede "Geri al":** Hatırlatıcı düzenleyicisindeki "Maddeler" kartında bir maddeyi silince
   artık "“Süt” silindi · Geri al" çubuğu çıkıyor; geri alınca madde eski sırasına dönüyor,
   bu arada yaptığın düzenlemeler korunuyor. (F6.4)
@@ -33,8 +42,7 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
   bildirim düğmeleri, konum bildirimleri, doğum günü bildirimleri, Android widget'ları ve
   uygulama simgesi kısayolları da aynı dildedir; dil değişince bekleyen bildirimler yeni dilde
   yeniden kurulur. Android 13+ uygulama dili ayarı ve iOS'ta konum izin metinleri (tr/en) de
-  desteklenir. Hızlı yakalamanın doğal dil anlama özelliği şimdilik yalnızca Türkçe; uygulama
-  İngilizceyken yakalama alanının altında "Natural language: Turkish only" notu görünür. (F6.1)
+  desteklenir. (F6.1)
 - **Uygulama simgesi kısayolları:** Uygulama simgesine uzun basınca (Android kısayolları, iOS
   hızlı işlemleri) dört seçenek çıkar: **Yeni hatırlatıcı** hızlı yakalamayı açar, **Market
   listesi** hızlı yakalamayı `#market ` yazılı açar (yalnızca maddeleri yaz), **Bugün** Bugün

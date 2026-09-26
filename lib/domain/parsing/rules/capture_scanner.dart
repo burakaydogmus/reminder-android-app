@@ -1,4 +1,4 @@
-part of '../turkish_capture_parser.dart';
+part of '../capture_parser.dart';
 
 /// One whitespace-separated word with surrounding punctuation trimmed.
 class _Word {
@@ -15,10 +15,10 @@ class _Word {
   final int end;
   final String text;
 
-  /// `TurkishText.fold` of [text] (case and diacritics removed).
+  /// `CaptureLocale.fold` of [text] (case and diacritics removed).
   final String fold;
 
-  /// `TurkishText.toLower` of [text] (diacritics kept; used by guards such
+  /// `CaptureLocale.toLower` of [text] (diacritics kept; used by guards such
   /// as `şalı` ≠ `salı`).
   final String lower;
 
@@ -41,7 +41,8 @@ sealed class _DateSpec {
   const _DateSpec();
 }
 
-/// A fixed calendar day (`bugün`, `17 eylül`, `ayın 17'si`, `3 gün sonra`).
+/// A fixed calendar day (`bugün`, `17 eylül`, `ayın 17'si`, `3 gün sonra`,
+/// `today`, `May 17`, `in 3 days`).
 class _FixedDate extends _DateSpec {
   const _FixedDate(this.day);
   final DateTime day;
@@ -67,7 +68,7 @@ class _Unit {
   _DateSpec? date;
   _Clock? time;
 
-  /// `2 saat sonra`: date and time at once.
+  /// `2 saat sonra` / `in 2 hours`: date and time at once.
   DateTime? instant;
   RecurrenceSpec? recurrence;
   String? categoryKey;
@@ -76,15 +77,21 @@ class _Unit {
   String? placeKey;
 }
 
-class _Scanner {
-  _Scanner(this.input, this.now, this.config)
+/// The language-independent half of the parser: word splitting, the scan
+/// loop, slot bookkeeping ("first wins"), title tidying and the result.
+///
+/// A grammar subclasses it (`_TrScanner`, `_EnScanner`) and supplies the
+/// rules through [ruleAt] plus the few language-specific tables below.
+abstract class _Scanner {
+  _Scanner(this.input, this.now, this.config, this.locale)
       : today = DateTime(now.year, now.month, now.day),
-        words = _splitWords(input);
+        words = _splitWords(input, locale);
 
   final String input;
   final DateTime now;
   final DateTime today;
   final CaptureParserConfig config;
+  final CaptureLocale locale;
   final List<_Word> words;
 
   final List<CaptureToken> _tokens = [];
@@ -98,19 +105,40 @@ class _Scanner {
   bool _hasPriority = false;
   String? _placeKey;
 
-  /// Last accepted unit, for context (`cuma akşamı`: possessive day part only
-  /// right after a date).
+  /// Last accepted unit, for context (`cuma akşamı` / `tomorrow morning`:
+  /// a bare day part right after a date).
   _Unit? _lastUnit;
   int _lastUnitEnd = -1;
+
+  // ------------------------------------------------------- grammar hooks
+
+  /// The rule groups of this grammar at word [i], in priority order.
+  _Unit? ruleAt(int i);
+
+  /// A conjunction left at the start of the title after a token was removed
+  /// (`ve`/`ile`, `and`/`&`).
+  RegExp get leadingConnector;
+
+  /// The same conjunction left at the end of the title.
+  RegExp get trailingConnector;
+
+  /// Separators that split a title into "Maddelere böl?" items.
+  RegExp get listSeparators;
+
+  /// Drops a shopping verb from the split items (Turkish closes the list
+  /// with it, English opens it).
+  List<String> tidyListItems(List<String> items);
+
+  // ------------------------------------------------------------ splitting
 
   static final RegExp _run = RegExp(r'\S+');
   static final RegExp _leadingPunct = RegExp('^[("\'“‘«\\[]+');
   static final RegExp _trailingPunct = RegExp('[,.;:!?)"”’»\\]…]+\$');
   static final RegExp _bangs = RegExp(r'^!+$');
 
-  static List<_Word> _splitWords(String input) {
-    final lower = TurkishText.toLower(input);
-    final fold = TurkishText.fold(input);
+  static List<_Word> _splitWords(String input, CaptureLocale locale) {
+    final lower = locale.toLower(input);
+    final fold = locale.fold(input);
     final result = <_Word>[];
     for (final m in _run.allMatches(input)) {
       var s = m.start;
@@ -199,7 +227,7 @@ class _Scanner {
   }
 
   /// Whether the previously accepted unit ends right before [index] and set
-  /// a date or a repeat (context for `cuma akşamı`, `her cuma akşamı`).
+  /// a date or a repeat (context for `cuma akşamı`, `tomorrow morning`).
   bool afterDateLike(int index) {
     final last = _lastUnit;
     if (last == null || _lastUnitEnd != index || index == 0) return false;
@@ -215,11 +243,7 @@ class _Scanner {
   void run() {
     var i = 0;
     while (i < words.length) {
-      final unit = tagRule(i) ??
-          recurrenceRule(i) ??
-          relativeRule(i) ??
-          dateRule(i) ??
-          timeRule(i);
+      final unit = ruleAt(i);
       if (unit == null) {
         i++;
         continue;
@@ -274,7 +298,7 @@ class _Scanner {
     final shown = title.isEmpty ? input.trim().replaceAll(_spaces, ' ') : title;
     return CaptureParseResult(
       input: input,
-      title: TurkishText.capitalizeFirst(shown),
+      title: locale.capitalizeFirst(shown),
       splitSuggestion: title.isEmpty ? const [] : splitSuggestion(title),
       tokens: List.unmodifiable(_tokens),
       dateTime: when.dateTime,
@@ -307,10 +331,6 @@ class _Scanner {
   /// → `Dişçi.`).
   static final RegExp _separatorBeforeEnd =
       RegExp(r'\s*[,;:\-–—·|/]+\s*([.?!…]+)$');
-  static final RegExp _leadingConnector =
-      RegExp(r'^(?:ve|ile)\s+', caseSensitive: false);
-  static final RegExp _trailingConnector =
-      RegExp(r'\s+(?:ve|ile)$', caseSensitive: false);
 
   /// Input with token ranges removed, whitespace and punctuation tidied
   /// (not capitalized).
@@ -327,7 +347,7 @@ class _Scanner {
     return tidyTitle(buffer.toString());
   }
 
-  static String tidyTitle(String text) {
+  String tidyTitle(String text) {
     var s = text.replaceAll(_spaces, ' ');
     s = s.replaceAll(_emptyParens, ' ').replaceAll(_spaces, ' ');
     s = s.replaceAllMapped(_spaceBeforePunct, (m) => m.group(1)!);
@@ -339,8 +359,8 @@ class _Scanner {
           .replaceFirst(_leadingMarks, '')
           .replaceFirst(_trailingJunk, '')
           .replaceFirstMapped(_separatorBeforeEnd, (m) => m.group(1)!)
-          .replaceFirst(_leadingConnector, '')
-          .replaceFirst(_trailingConnector, '');
+          .replaceFirst(leadingConnector, '')
+          .replaceFirst(trailingConnector, '');
       if (s == before) break;
     }
     return s.trim();

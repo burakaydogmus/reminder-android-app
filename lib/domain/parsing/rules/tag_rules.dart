@@ -1,6 +1,7 @@
-part of '../turkish_capture_parser.dart';
+part of '../capture_parser.dart';
 
-/// `#kategori`, `@yer`, `!`/`!!`/`!!!`.
+/// `#kategori`, `@yer`, `!`/`!!`/`!!!` — the same syntax in every
+/// language (F4.6c).
 ///
 /// - A tag is a whole word starting with `#`/`@` followed by letters, digits,
 ///   `_` or `-` (`e@posta.com` and `C#` are not tags).
@@ -40,12 +41,12 @@ extension _TagRules on _Scanner {
   }
 
   String? _matchCategory(String key) {
-    final folded = TurkishText.fold(key).replaceAll(_tagSeparators, '');
+    final folded = locale.fold(key).replaceAll(_tagSeparators, '');
     if (folded.isEmpty) return null;
     String? near;
-    for (final entry in config.categoryAliases.entries) {
+    for (final entry in config.aliasesFor(locale).entries) {
       for (final alias in entry.value) {
-        final a = TurkishText.fold(alias).replaceAll(_tagSeparators, '');
+        final a = locale.fold(alias).replaceAll(_tagSeparators, '');
         if (a == folded) return entry.key;
         if (near == null &&
             folded.length >= 5 &&

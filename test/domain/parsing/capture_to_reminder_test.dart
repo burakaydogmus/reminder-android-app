@@ -7,17 +7,27 @@ import 'package:reminder/domain/parsing/turkish_capture_parser.dart';
 // Pazar 13 Eylül 2026, 14:32 (same clock as the parser tables).
 final _now = DateTime(2026, 9, 13, 14, 32);
 
-CaptureDraft _map(String input, {bool acceptSplit = false, DateTime? now}) {
+CaptureDraft _map(
+  String input, {
+  bool acceptSplit = false,
+  DateTime? now,
+  CaptureLocale locale = CaptureLocale.turkish,
+}) {
   final clock = now ?? _now;
   var n = 0;
   return CaptureToReminder.map(
-    CaptureParser.parse(input, now: clock),
+    CaptureParser.parse(input, now: clock, locale: locale),
     now: clock,
     id: 'r1',
     newSubtaskId: () => 's${n++}',
     acceptSplit: acceptSplit,
   );
 }
+
+/// The same mapping on an English parse (F4.6c): `CaptureToReminder` is
+/// locale-agnostic, it only ever sees a `CaptureParseResult`.
+CaptureDraft _mapEn(String input, {bool acceptSplit = false}) =>
+    _map(input, acceptSplit: acceptSplit, locale: CaptureLocale.english);
 
 void main() {
   group('CaptureToReminder dates and times', () {
@@ -208,6 +218,53 @@ void main() {
         CaptureToReminder.listTitle(ReminderCategoryIds.home),
         'Ev İşleri listesi',
       );
+    });
+  });
+
+  group('CaptureToReminder on an English parse (F4.6c)', () {
+    test('explicit date and time', () {
+      final d = _mapEn('tomorrow at 18:00 buy milk');
+      expect(d.reminder.title, 'Buy milk');
+      expect(d.reminder.remindAt, DateTime(2026, 9, 14, 18));
+      expect(d.isPast, isFalse);
+    });
+
+    test('a later day without a time gets the morning hour', () {
+      expect(_mapEn('tomorrow dentist').reminder.remindAt,
+          DateTime(2026, 9, 14, 9));
+    });
+
+    test('today without a time stays untimed', () {
+      expect(_mapEn('today buy milk').reminder.remindAt, isNull);
+    });
+
+    test('recurrence, category and priority', () {
+      final d = _mapEn('every monday at 9 #work standup !!');
+      expect(d.reminder.title, 'Standup');
+      expect(d.reminder.recurrence, RecurrenceRule.weekly(const {1}));
+      expect(d.reminder.remindAt, DateTime(2026, 9, 14, 9));
+      expect(d.reminder.categoryId, ReminderCategoryIds.work);
+      expect(d.reminder.priority, 2);
+    });
+
+    test('an English list becomes subtasks', () {
+      final d =
+          _mapEn('#groceries buy bread, milk and eggs', acceptSplit: true);
+      expect(d.reminder.categoryId, ReminderCategoryIds.market);
+      expect(
+        [for (final s in d.reminder.subtasks) s.title],
+        ['Bread', 'Milk', 'Eggs'],
+      );
+    });
+
+    test('a past one-off is flagged, never shifted', () {
+      final d = _mapEn('today at 9 take the pills');
+      expect(d.isPast, isTrue);
+      expect(d.reminder.remindAt, DateTime(2026, 9, 13, 9));
+
+      final past = _mapEn('September 17 2025 old invoice');
+      expect(past.isPast, isTrue);
+      expect(past.reminder.remindAt, DateTime(2025, 9, 17, 9));
     });
   });
 }
