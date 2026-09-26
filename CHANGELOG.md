@@ -18,6 +18,19 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Yıllık tekrar ("Her yıl"):** Tekrar sayfasına **Yıllık** seçeneği geldi — "Her yıl",
+  "2 yılda bir" … (99'a kadar) ve istenirse bitiş tarihi. Tekrar, hatırlatıcının kendi
+  ay/gününde çalışır; **29 Şubat'a kurulu bir tekrar, artık yıl olmayan yıllarda 28 Şubat'ta**
+  hatırlatır (doğum günleriyle aynı kural). Hızlı yakalama iki dilde de anlıyor: "her yıl",
+  "her sene", "yıllık", "senelik", "2 yılda bir", "iki senede bir" / "every year", "yearly",
+  "annually", "every 2 years", "every other year". Bir isimden önce gelen "yıllık" / "yearly"
+  metin olarak kalır ("yıllık rapor hazırla", "yearly budget review"); "annually" her zaman
+  tekrar sayılır.
+  **Geriye dönük uyumluluk:** tekrar kuralı hatırlatıcının JSON'unda saklanır ve okuma bilerek
+  toleranslıdır — **yıllık tekrarı tanımayan eski bir sürüm** (ya da eski bir yedek okuyucusu)
+  böyle bir hatırlatıcıyı açar ama **tekrarını kaybeder** ("Tekrar yok" olur); hatırlatıcının
+  kendisi, saati ve maddeleri korunur. Veritabanı şeması değişmedi (`reminders.recurrence`
+  zaten nullable TEXT) ve yedek biçimi (v2) aynı kaldı. (F3.1)
 - **iOS ana ekran ve kilit ekranı widget'ları:** Dört widget geldi — **Sıradaki** (küçük: saat,
   başlık, tamamla dairesi, "+"), **Bugün** (orta: "Bugün · N" + üç satır + hap "+"), **Liste**
   (büyük: Kaçanlar / Bugün bölümleri, doğum günü satırı; uzun basıp "Yalnızca bugün"ü

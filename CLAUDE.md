@@ -82,19 +82,35 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   (F4.4, F6.4). Before F6.4 the year was the sentinel `4`
   (`Birthday.legacyUnknownYear`); it survives only in the JSON `date` field (see
   **Backup**) and in the v5 → v6 migration.
-- `domain/model/recurrence.dart` — `RecurrenceRule` (F3.1): none / daily / weekly
-  (sorted Mon-first weekdays) / monthly (day of month, clamped to the month end:
-  31 → 30/28/29), `interval` (every N days/weeks/months; "Özel" = daily N ≥ 2),
+- `domain/model/recurrence.dart` — `RecurrenceRule` (F3.1, yearly F3.1b): none /
+  daily / weekly (sorted Mon-first weekdays) / monthly (day of month, clamped to the
+  month end: 31 → 30/28/29) / **yearly** (`yearly({interval, month, dayOfMonth,
+  until})`: `month` and `dayOfMonth` are optional and **fall back to the anchor's**,
+  so the series follows the reminder's own date; the day is clamped the same way, so
+  a **29 February rule fires on 28 February in non-leap years** — the same rule
+  birthdays use, `Birthday.occurrenceInYear`. `yearlyTarget(anchor)` resolves the
+  month/day pair), `interval` (every N days/weeks/months/years; "Özel" = daily
+  N ≥ 2),
   optional `until` (inclusive date). `nextOccurrence(after:, anchor:)` returns the
   first occurrence strictly after `after`; the **time comes from `anchor`** (the
   reminder's `remindAt`) and dates are built from calendar fields
   (`DateTime(y, m, d + n, h, min)`), never `Duration` adds, so the wall-clock time
-  survives DST. Interval grids start at the anchor's day/week/month. The display
+  survives DST. Interval grids start at the anchor's day/week/month/year. The display
   text lives in the UI: `RecurrenceText.summary(rule, l10n)` ("Her gün", "2 haftada bir
-  Pzt, Çar", "Her ayın 17'si" / "Every 2 weeks on Mon, Wed", F6.1);
-  `alignedTo(date)` adapts the rule when the whole series moves to another date.
+  Pzt, Çar", "Her ayın 17'si", "Her yıl", "2 yılda bir", "Her yıl 14 Şubat" (only
+  when month **and** day are explicit) / "Every 2 weeks on Mon, Wed", "Every year",
+  F6.1);
+  `alignedTo(date)` adapts the rule when the whole series moves to another date (an
+  anchor-derived yearly rule needs no change; an explicit one takes the new
+  month/day unless the clamp already matches, so a 29 February rule survives a move
+  to 28 February).
   `Reminder.recurrence` defaults to none (JSON key `recurrence`, missing/corrupt →
-  none); `Reminder.isRecurring` also needs a `remindAt`.
+  none); `Reminder.isRecurring` also needs a `remindAt`. **`fromJson` is
+  deliberately tolerant, so it is also the forward-compatibility contract:** a build
+  that does not know a frequency reads the rule as `none` — the reminder survives and
+  only loses its repeat. Adding a frequency therefore needs **no schema bump**
+  (`reminders.recurrence` is a nullable TEXT column holding this JSON) and no backup
+  format bump, but it must be called out in the CHANGELOG.
 - `domain/model/subtask.dart` — `Subtask { id, title, isDone, position }` (F3.3) and
   `Reminder.subtasks` (default empty; JSON key `subtasks`, missing → empty, unreadable
   items skipped). Change lists only through the `SubtaskList` extension (`toggled`,
@@ -337,10 +353,16 @@ The sync is **diff-based** (F1.7):
   notifying). Simple rules also repeat without the app through
   `matchDateTimeComponents` (`reminderRepeatComponents`): every day → `time`, every
   week on one day → `dayOfWeekAndTime`, every month on day 1–28 →
-  `dayOfMonthAndTime`. Intervals > 1, several weekdays, days 29–31 (month-end clamp)
-  and rules with an end date are next-only: the OS cannot express them, the diff sync
-  sets the following occurrence on the next load/change. The rule (JSON) is part of
-  the fingerprint.
+  `dayOfMonthAndTime`, every year → `dateAndTime` (what birthdays use). Intervals > 1,
+  several weekdays, days 29–31 (month-end clamp), **a yearly rule on 29 February**
+  (the native repeat would only fire in leap years, ours fires on 28 February in
+  between) and rules with an end date are next-only: the OS cannot express them, the
+  diff sync sets the following occurrence on the next load/change. A yearly rule that
+  takes its month/day from the anchor needs it: pass
+  `reminderRepeatComponents(rule, anchor: r.remindAt)`, and without a resolvable
+  target the answer is next-only. The rule (JSON) is part of the fingerprint, so
+  adding a frequency does **not** need a `_ScheduleSpec._version` bump: no existing
+  reminder can carry the new rule, so no stored spec changes.
 - **Subtasks (F3.3):** with open subtasks the body is "`<note or place>` · N madde
   kaldı" (`reminderNotificationBody`; just "N madde kaldı" without a note) and
   Android uses `BigTextStyleInformation` listing up to 5 open items + "… ve N madde
@@ -734,7 +756,7 @@ Intents). Owner-side Xcode steps, device test plan and the known limits:
   read the language from anywhere but the `locale` it was given.
 - Result types (`capture_parse_result.dart`) are **neutral**: `CaptureToken` (kind,
   exact `start`/`end` in the original input, `confidence`), `RecurrenceSpec`
-  (daily / weekly / monthly / everyNDays), `CaptureParseResult` (title, tokens,
+  (daily / weekly / monthly / yearly / everyNDays), `CaptureParseResult` (title, tokens,
   `dateTime` + `hasExplicitTime`, `isPast`, recurrence, `categoryKey`/`categoryId`,
   priority 0–3, `placeKey`, `splitSuggestion`), `CaptureParserConfig` (day-part hours
   for "Ayarlar › sabah saati", category aliases, list categories).
@@ -748,9 +770,16 @@ Intents). Owner-side Xcode steps, device test plan and the known limits:
   English (`9.30` is a time). Weekday abbreviations (`mon`, `sat`) only count after
   `on`/`by`/`next`/`this`/`every`. A bare day part before a compound noun is text
   (`morning run`, `night cream`, `evening class`) — the guard applies **only** to a
-  bare day part, so `this morning stretch` is a time. `every year` / `yearly` /
-  `annually` are deliberately **not** parsed: `RecurrenceRule` has no yearly kind
-  (Turkish leaves `her yıl` as text for the same reason).
+  bare day part, so `this morning stretch` is a time.
+- **Yearly (F3.1b):** Turkish `her yıl`, `her sene`, `yıllık`, `senelik`,
+  `N yılda bir`, `N senede bir`; English `every year`, `yearly`, `annually`,
+  `every N years`, `every other year` — all `RecurrenceKind.yearly`, and the parser
+  never sets a month or day of its own (the rule takes them from the first
+  occurrence). Like `weekly`/`monthly`, the **adjective** forms `yıllık`/`senelik`
+  and `yearly` stay text in front of a noun (`yıllık rapor hazırla`,
+  `yearly budget review`; the noun lists are `_yearlyNouns` and `_repeatNouns`);
+  `annually` is only ever an adverb, so it always repeats. Before F3.1b these were
+  deliberately unparsed — the corpus rows that asserted that are now positive.
 - **Category aliases (F4.3):** `category_aliases.dart`
   (`CategoryAliases.of(catalog, locale:)`, `configFor(catalog, base:, locale:)`) builds
   `CaptureParserConfig.categoryAliases` from the current categories: built-ins keep
@@ -782,7 +811,8 @@ Intents). Owner-side Xcode steps, device test plan and the known limits:
   `CaptureDraft { reminder, isPast, newCategoryTag, placeLabel }`):
   `RecurrenceSpec` → `RecurrenceRule` (`ruleOf`: daily → `daily()`, everyNDays →
   `daily(interval: n)`, weekly → `weekly(days, interval:)`, monthly →
-  `monthly(dayOfMonth:)`). Time (`remindAtOf`): none → untimed; explicit time → as
+  `monthly(dayOfMonth:)`, yearly → `yearly(interval:)` with no month/day, so the rule
+  follows the reminder's date). Time (`remindAtOf`): none → untimed; explicit time → as
   parsed; a day without a time → that day at `defaultHour` (09:00), but **today
   without a time stays untimed**; a repeat → the rule's first occurrence at or after
   now (untimed repeats at 09:00; the month-end clamp wins over the parser's skipped
@@ -1100,9 +1130,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   reminder's unchanged overdue time saves (original `remindAt` kept).
   `showReminderEditorSheet(now: ...)` takes the clock (default: `NowScope`).
 - **Recurrence UI (F3.1):** the "Ne zaman" card has a Tekrar row that opens
-  `reminders/recurrence_sheet.dart` (segments Yok / Günlük / Haftalık / Aylık / Özel,
+  `reminders/recurrence_sheet.dart` (segments Yok / Günlük / Haftalık / Aylık /
+  Yıllık / Özel,
   48 dp weekday circles, "Her [N] …" stepper, Bitiş, "Sonraki 3: …" preview via
-  `RecurrenceFormat`). A rule needs a time: without one, choosing a rule schedules
+  `RecurrenceFormat`). Yıllık (F3.1b) repeats on the **anchor's** month and day — the
+  sheet writes no explicit month/day — and its note line says which date that is, or
+  explains 28 February for a 29 February anchor
+  (`RecurrenceSheetKeys.yearNote`). A rule needs a time: without one, choosing a rule schedules
   today + 1 hour (dismissing changes nothing). A weekly rule whose days exclude the
   date moves the date to the first chosen day (visible in the date chip); changing the
   date of a recurring reminder moves the **whole series** (`alignedTo`). "Yalnızca

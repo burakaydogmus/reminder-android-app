@@ -81,6 +81,18 @@ Diğer tüm fazların temeli.
 
 - [x] **F3.1 Tekrarlayan hatırlatmalar** · `feat/recurring-reminders`
   Günlük / haftalık (gün seçimi) / aylık / özel aralık; tamamlanınca bir sonraki tekrar.
+- [x] **F3.1b Yıllık tekrar** · `feat/yearly-recurrence` · *bağımlı: F3.1, F4.6c*
+  `RecurrenceFrequency.yearly` + `RecurrenceRule.yearly({interval, month, dayOfMonth, until})`:
+  ay/gün verilmezse `anchor`'dan gelir, yani tekrar hatırlatıcının kendi tarihini izler.
+  **29 Şubat kuralı artık yıl olmayan yıllarda 28 Şubat'ta** çalışır (doğum günleriyle aynı
+  kural). Tekrar sayfasında "Yıllık" segmenti + "N yılda bir" stepper'ı, kart/editör/gündem
+  özetleri, iki dilde ayrıştırıcı ("her yıl", "yıllık", "N yılda bir" / "every year",
+  "yearly", "annually", "every N years"). Bildirim: `interval == 1` ve bitişsizse sistem
+  tekrarı `DateTimeComponents.dateAndTime`, 29 Şubat kuralında sonraki-tekrar (sistem tekrarı
+  yalnızca artık yıllarda çalışırdı).
+  *Not:* şema değişmedi (`reminders.recurrence` nullable TEXT) ve yedek biçimi v2 kaldı;
+  `RecurrenceRule.fromJson` toleransı gereği **yıllık tekrarı tanımayan eski bir sürüm** bu
+  hatırlatıcıyı açar ama tekrarını kaybeder (`none`).
 - [x] **F3.2 Bildirim aksiyonları** · `feat/notification-actions`
   Bildirimde "Tamamla" ve "Ertele" (10 dk, 1 saat, yarın); bildirime dokununca ilgili hatırlatıcıyı açma.
 - [x] **F3.3 Alt görevler / checklist** · `feat/subtasks`
@@ -118,7 +130,7 @@ Diğer tüm fazların temeli.
   *Not:* bilinmeyen `#etiket` "Diğer"e gider; "Yeni kategori: #etiket" chip'i kategoriyi o adla oluşturur (F4.3); `@yer` nota yazılır, geofence kurmaz.
 - [x] **F4.6c İngilizce ayrıştırıcı** · `feat/capture-english` · *bağımlı: F4.6a, F6.1*
   Aynı kural altyapısında İngilizce grameri (`lib/domain/parsing/rules/en/`): tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`, liste bölme. Gramer `CaptureParser.parse(locale:)` ile seçilir; hızlı yakalama **uygulama dilini** (Ayarlar › Görünüm › Dil) kullanır, cihaz dilini değil. Türkçe kurallar `rules/tr/` altına taşındı, davranışı değişmedi.
-  *Not:* sayısal tarihler en_US için ay/gün (`5/3` = 3 Mayıs; ilk sayı ay olamazsa gün/ay, `25/12`), ISO her zaman y-a-g, İngilizcede noktalı biçim tarih değil saattir (`9.30`). `every year` / `yearly` bilinçli olarak ayrıştırılmıyor: `RecurrenceRule`'da yıllık tekrar yok (Türkçede `her yıl` de metin olarak kalıyor). Alan adı olarak kullanılan gün bölümleri metin kalır (`morning run`, `night cream`). Yakalama alanının altındaki not artık her iki dilde örnek cümleler gösteriyor (`captureParserExamples`).
+  *Not:* sayısal tarihler en_US için ay/gün (`5/3` = 3 Mayıs; ilk sayı ay olamazsa gün/ay, `25/12`), ISO her zaman y-a-g, İngilizcede noktalı biçim tarih değil saattir (`9.30`). `every year` / `yearly` / `annually` bu maddede bilinçli olarak ayrıştırılmıyordu (`RecurrenceRule`'da yıllık tekrar yoktu, Türkçede `her yıl` da metin kalıyordu); **F3.1b** ile ikisi de tekrar oldu — negatif corpus satırları pozitife çevrildi. Bir isimden önce gelen `yearly` / `yıllık` hâlâ metin (`yearly budget review`, `yıllık rapor hazırla`), `annually` ise her zaman tekrar. Alan adı olarak kullanılan gün bölümleri metin kalır (`morning run`, `night cream`). Yakalama alanının altındaki not artık her iki dilde örnek cümleler gösteriyor (`captureParserExamples`).
 - [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
