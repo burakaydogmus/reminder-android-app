@@ -1643,6 +1643,14 @@ read-only pass**. There is no background sync and nothing is ever written to con
   `--split-per-abi` and uploads `app-release-arm64-apk` (the one to install) plus an
   `…-other-abis-apk` for armeabi-v7a and x86_64. Splits carry Flutter's per-ABI
   `versionCode` offsets, so a device must stay on one variant.
+- Releases for the owner's own device (F6.3b): `release.yml`, run manually. It **requires** the
+  signing secrets (a debug-signed release could not install as an update, so it fails instead),
+  derives `versionCode` from `date -u +%y%m%d%H` — `pubspec.yaml` pins `+8`, so every build
+  would otherwise carry the same code and no updater could tell two builds apart — and publishes
+  fixed-name APKs (`reminder-arm64-v8a.apk` …) under a `v<name>+<number>` tag. The phone tracks
+  those releases with Obtainium; see [`docs/updates.md`](docs/updates.md). **Do not rename the
+  assets** (the updater matches by name) and do not add an in-app updater without discussing
+  `REQUEST_INSTALL_PACKAGES` first.
 - Widget and geofence behaviour differs per platform, but both platforms now have home screen
   widgets over one payload (see **Home screen widgets — shared contract**): Android
   RemoteViews (F5.1), iOS WidgetKit (F5.2, `docs/ios-widget-setup.md`).

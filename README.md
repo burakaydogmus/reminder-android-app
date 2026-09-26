@@ -65,6 +65,10 @@ CI'da `key.properties` gizli değişkenlerden üretilir; kurulum ve nedenleri
 yoksa CI yine derler, ama APK her koşuda **farklı** bir debug anahtarıyla
 imzalanır ve cihazda üst üste kurulamaz.
 
+Cihaza kurulacak sürüm için `Release APK` iş akışı (Actions → *Run workflow*)
+imzalı APK'ları GitHub Release olarak yayınlar; telefonda Obtainium ile otomatik
+güncelleme kurulumu [`docs/updates.md`](docs/updates.md) içinde.
+
 Release derlemesinde R8 (`minifyEnabled`) ve kaynak küçültme (`shrinkResources`) açıktır; eklentiler için keep kuralları `android/app/proguard-rules.pro`, çalışma anında adla bulunan kaynaklar `android/app/src/main/res/raw/keep.xml` içindedir. CI, Android yapılandırması veya bağımlılıklar değiştiğinde `flutter build apk --release --split-per-abi` çalıştırır ve mimari başına APK yükler (indirilecek olan `app-release-arm64-apk`).
 
 ### Uygulama simgesi

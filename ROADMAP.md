@@ -216,7 +216,15 @@ Diğer tüm fazların temeli.
   koşu kaydına yazılır. Amaç mağaza değil, **cihazda güncelleyebilmek**: debug anahtarı her CI
   koşucusunda yeniden üretildiği için APK'lar üst üste kurulamıyordu. Kurulum
   [`docs/android-signing.md`](docs/android-signing.md).
-- [ ] **F6.3 Release pipeline** · `chore/release-workflow` · *bağımlı: F6.3a*
+- [x] **F6.3b GitHub Release + otomatik güncelleme** · `chore/release-apk` · *bağımlı: F6.3a*
+  Elle tetiklenen `release.yml`: imzalama anahtarını zorunlu tutar, `versionCode`'u tarihten
+  üretir (`date -u +%y%m%d%H` — `pubspec.yaml`'ın sabit `+8`'i yüzünden her derleme aynı
+  numarayı taşıyordu ve hiçbir güncelleyici iki derlemeyi ayırt edemiyordu), mimari başına
+  **sabit adlı** APK'ları (`reminder-arm64-v8a.apk` …) doğrulayıp `v<sürüm>+<numara>` etiketiyle
+  release açar. Telefonda Obtainium release'leri izleyip güncellemeyi kurar; kurulum
+  [`docs/updates.md`](docs/updates.md). Uygulama içi güncelleme kontrolü (`REQUEST_INSTALL_PACKAGES`)
+  bilinçli olarak yapılmadı — mağaza incelemesinde açıklama gerektirir.
+- [ ] **F6.3 Release pipeline (mağaza)** · `chore/release-workflow` · *bağımlı: F6.3a*
   Tag ile imzalı Android AAB (Play App Signing) ve iOS build; opsiyonel crash raporlama.
 
 ## Faz 8 — Entegrasyonlar
