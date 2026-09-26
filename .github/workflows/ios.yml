@@ -1,15 +1,17 @@
 name: iOS build
 
-# macOS runners bill 10x on private repos (~35 billed minutes per run).
-# Runs only when iOS config or dependencies change; start it manually from the
-# Actions tab when a Dart-only change needs an iOS check.
+# **Manual only.** macOS runners bill **10x**, so a 4-minute iOS build costs
+# ~40 minutes of the monthly quota. The repository is private, where minutes
+# are metered (they are free only while a repository is public), and iOS is
+# not verified beyond compilation anyway — nobody can run the app on a device
+# from this dev machine. So: run it from Actions → iOS build → Run workflow
+# after touching `ios/**`, a dependency, or anything platform-channel shaped,
+# and before publishing anything iOS.
+#
+# Restoring the automatic `pull_request` trigger (paths `ios/**`,
+# `pubspec.yaml`, `pubspec.lock`) is a two-line change if the repository goes
+# public again or an iOS release starts to matter.
 on:
-  pull_request:
-    branches: [master]
-    paths:
-      - 'ios/**'
-      - 'pubspec.yaml'
-      - 'pubspec.lock'
   workflow_dispatch:
 
 concurrency:
