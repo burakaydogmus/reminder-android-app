@@ -301,7 +301,8 @@ class RoutineApplyPlan {
 
   /// Var olan (bu rutine bağlı) hatırlatıcıyı adımın güncel alanlarına ve bu
   /// plandaki güne taşır; kimliği, notu, konumu, sabitlemesi ve **maddelerinin
-  /// durumu** korunur (kullanıcının işaretledikleri kaybolmaz).
+  /// durumu** korunur (kullanıcının işaretledikleri kaybolmaz). Seri yeni güne
+  /// taşındığı için hatırlatıcı yeniden açılır (`isDone: false`).
   Reminder _updated(Reminder existing, RoutineItem item) {
     final time = item.time;
     var remindAt = time?.onDate(date);
@@ -311,11 +312,10 @@ class RoutineApplyPlan {
       final first = recurrence.firstOnOrAfter(from: remindAt, anchor: remindAt);
       if (first != null) remindAt = first;
     }
-    return existing.copyWith(
-      title: item.title,
-      remindAt: () => remindAt,
-      categoryId: item.categoryId,
-      priority: item.priority,
+    return reminderWithRoutineItem(
+      existing,
+      item,
+      remindAt: remindAt,
       recurrence: recurrence,
       isDone: false,
     );
@@ -335,4 +335,113 @@ class RoutineApplyPlan {
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+/// Adımın alanlarını var olan bir hatırlatıcıya yazar — rutinin "sahip olduğu"
+/// alanların **tek** listesi: başlık, kategori, öncelik ve çağıranın verdiği
+/// `remindAt` / `recurrence` / `isDone`.
+///
+/// Kullanıcının alanlarına dokunulmaz: kimlik, not, konum, sabitleme,
+/// **maddelerin durumu** (ilerleme) ve rutin bağı olduğu gibi kalır.
+///
+/// Son üç alan bilinçli olarak çağırandan gelir, çünkü iki kullanımı farklıdır:
+/// [RoutineApplyMode.replaceExisting] seriyi **yeni bir güne** taşır, rutinin
+/// tekrar kuralını yazar ve hatırlatıcıyı yeniden açar; [routineReminderRefresh]
+/// ("Hatırlatıcıları güncelle") günü, tekrarı ve tamamlanma durumunu olduğu gibi
+/// bırakır. Alan listesi tek yerde durur, iki yola da buradan gider.
+Reminder reminderWithRoutineItem(
+  Reminder existing,
+  RoutineItem item, {
+  required DateTime? remindAt,
+  required RecurrenceRule recurrence,
+  required bool isDone,
+}) {
+  return existing.copyWith(
+    title: item.title,
+    remindAt: () => remindAt,
+    categoryId: item.categoryId,
+    priority: item.priority,
+    recurrence: recurrence,
+    isDone: isDone,
+  );
+}
+
+/// "Bu rutinin hatırlatıcılarını güncelle" planı ([routineReminderRefresh]).
+class RoutineReminderRefresh {
+  const RoutineReminderRefresh({required this.linked, required this.changed});
+
+  /// Bu rutinden oluşmuş hatırlatıcı sayısı — adımı silinmiş olanlar dahil, yani
+  /// "bu rutinin hatırlatıcısı var mı" sorusunun yanıtı.
+  final int linked;
+
+  /// Gerçekten değişecek hatırlatıcıların güncellenmiş hali; zaten adımla aynı
+  /// olanlar listede yer almaz, böylece "kaç hatırlatıcı değişecek" sorusu
+  /// [count] ile doğru yanıtlanır.
+  final List<Reminder> changed;
+
+  bool get hasLinked => linked > 0;
+
+  int get count => changed.length;
+
+  bool get isEmpty => changed.isEmpty;
+}
+
+/// Rutinden oluşmuş hatırlatıcıları adımların **güncel** alanlarına göre yenileme
+/// planı (F3.7 devamı, "Hatırlatıcıları güncelle").
+///
+/// Bağ `reminders.routine_id` + `routine_item_id`, [RoutineApplyPlan] ile aynı.
+/// **Günden bağımsızdır:** uygulama sayfasındaki
+/// [RoutineApplyMode.replaceExisting] seriyi seçilen yeni güne taşır; bu ise
+/// günü olduğu gibi bırakıp yalnızca başlık, saat, kategori ve önceliği taşır.
+///
+/// Dokunulmayanlar: **tamamlanma durumu**, not, sabitleme, konum, maddelerin
+/// ilerlemesi ve tekrar kuralı. Adımı silinmiş bir hatırlatıcı olduğu gibi kalır
+/// (bağ gevşektir, bkz. `Reminder.routineId`) — [RoutineReminderRefresh.linked]
+/// onu da sayar ama [RoutineReminderRefresh.changed] içine almaz.
+///
+/// Saat: adımın saati varsa hatırlatıcının **kendi günü** korunarak o saate
+/// çekilir (zamansız bir hatırlatıcı için oluşturulma günü, `RoutineApplyPlan`'ın
+/// zamansız eş kuralıyla aynı gün); adımın saati kalktıysa hatırlatıcı zamansız
+/// olur.
+RoutineReminderRefresh routineReminderRefresh({
+  required Routine routine,
+  required Iterable<Reminder> existing,
+}) {
+  final items = {for (final i in routine.items) i.id: i};
+  var linked = 0;
+  final changed = <Reminder>[];
+  for (final r in existing) {
+    if (r.routineId != routine.id) continue;
+    linked++;
+    final item = items[r.routineItemId];
+    if (item == null) continue;
+    final remindAt = _refreshedRemindAt(r, item);
+    // `Reminder` değer eşitliği taşımadığı için değişen alanlar tek tek
+    // karşılaştırılır; değişmeyen hatırlatıcı hem sayımdan hem yazmadan düşer.
+    if (r.title == item.title &&
+        r.categoryId == item.categoryId &&
+        r.priority == item.priority &&
+        r.remindAt == remindAt) {
+      continue;
+    }
+    changed.add(
+      reminderWithRoutineItem(
+        r,
+        item,
+        remindAt: remindAt,
+        recurrence: r.recurrence,
+        isDone: r.isDone,
+      ),
+    );
+  }
+  return RoutineReminderRefresh(
+    linked: linked,
+    changed: List.unmodifiable(changed),
+  );
+}
+
+DateTime? _refreshedRemindAt(Reminder existing, RoutineItem item) {
+  final time = item.time;
+  if (time == null) return null;
+  return time.onDate(existing.remindAt ?? existing.createdAt);
 }

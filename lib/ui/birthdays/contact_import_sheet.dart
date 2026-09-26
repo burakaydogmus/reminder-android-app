@@ -183,9 +183,9 @@ class _ContactImportBodyState extends State<_ContactImportBody> {
     if (birthdays.isNotEmpty && cubit.state.settings.notificationsEnabled) {
       await PermissionFlows.beforeScheduling(context);
     }
-    for (final birthday in birthdays) {
-      await cubit.addBirthday(birthday);
-    }
+    // Tek transaction + tek zamanlama eşitlemesi: 200 kişilik bir aktarma
+    // artık 200 kalıcılaştırma yapmıyor.
+    await cubit.addBirthdays(birthdays);
     if (!mounted) return;
     setState(() {
       _importing = false;

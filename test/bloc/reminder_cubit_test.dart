@@ -617,6 +617,52 @@ void main() {
       },
     );
 
+    final z = buildBirthday(id: 'z', name: 'Z');
+
+    blocTest<ReminderCubit, ReminderState>(
+      'addBirthdays appends every birthday in one state change, '
+      'one save and one sync',
+      build: buildCubit,
+      seed: () => _state(birthdays: [x]),
+      act: (cubit) => cubit.addBirthdays([y, z]),
+      expect: () => [
+        isA<ReminderState>().having((s) => s.birthdays, 'birthdays', [x, y, z]),
+      ],
+      verify: (_) {
+        // N doğum günü → tek kalıcılaştırma, tek fark tabanlı eşitleme.
+        verify(() => repository.saveBirthdays([x, y, z])).called(1);
+        verify(
+          () => notifications.syncSchedules(
+            reminders: [],
+            birthdays: [x, y, z],
+            notificationsEnabled: true,
+          ),
+        ).called(1);
+        verifyServicesSynced([], notificationsEnabled: true);
+        // Yalnızca doğum günleri değişti: diğer listeler yeniden yazılmaz.
+        verifyNever(() => repository.saveReminders(any()));
+        verifyNever(() => repository.saveSettings(any()));
+      },
+    );
+
+    blocTest<ReminderCubit, ReminderState>(
+      'addBirthdays with an empty list changes nothing and does not sync',
+      build: buildCubit,
+      seed: () => _state(birthdays: [x]),
+      act: (cubit) => cubit.addBirthdays(const []),
+      expect: () => const <ReminderState>[],
+      verify: (_) {
+        verifyNever(() => repository.saveBirthdays(any()));
+        verifyNever(
+          () => notifications.syncSchedules(
+            reminders: any(named: 'reminders'),
+            birthdays: any(named: 'birthdays'),
+            notificationsEnabled: any(named: 'notificationsEnabled'),
+          ),
+        );
+      },
+    );
+
     blocTest<ReminderCubit, ReminderState>(
       'updateBirthday replaces the matching birthday',
       build: buildCubit,

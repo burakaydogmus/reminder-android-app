@@ -237,7 +237,10 @@ void main() {
     ];
     final birthdays = [buildBirthday(date: DateTime(1996, 9, 14))];
 
-    Map<DateTime, List<KorColorKey>> markers(CalendarFilter f) =>
+    Map<DateTime, List<CalendarDayMarker>> markers(
+      CalendarFilter f, {
+      Set<DateTime> deviceEventDays = const {},
+    }) =>
         calendarDayMarkers(
           reminders: reminders,
           birthdays: birthdays,
@@ -245,14 +248,18 @@ void main() {
           from: DateTime(2026, 9, 7),
           to: DateTime(2026, 9, 21),
           filter: f,
+          deviceEventDays: deviceEventDays,
         );
+
+    CalendarDayMarker cat(KorColorKey key) => CalendarDayMarker.category(key);
+    const device = CalendarDayMarker.deviceEvent();
 
     test('at most 3 distinct keys, birthday first, then by time', () {
       final m = markers(CalendarFilter.all);
       expect(m[DateTime(2026, 9, 14)], [
-        KorColorKey.dogumGunu,
-        KorColorKey.market,
-        KorColorKey.is_,
+        cat(KorColorKey.dogumGunu),
+        cat(KorColorKey.market),
+        cat(KorColorKey.is_),
       ]);
       expect(m.containsKey(DateTime(2026, 9, 13)), isFalse);
     });
@@ -260,19 +267,86 @@ void main() {
     test('recurring occurrences get dots on every day', () {
       final m = markers(CalendarFilter.all);
       for (var d = 16; d <= 20; d++) {
-        expect(m[DateTime(2026, 9, d)], [KorColorKey.ev], reason: '$d');
+        expect(m[DateTime(2026, 9, d)], [cat(KorColorKey.ev)], reason: '$d');
       }
     });
 
     test('filters apply to dots', () {
       expect(markers(CalendarFilter.birthdays)[DateTime(2026, 9, 14)],
-          [KorColorKey.dogumGunu]);
+          [cat(KorColorKey.dogumGunu)]);
       expect(markers(CalendarFilter.reminders)[DateTime(2026, 9, 14)], [
-        KorColorKey.market,
-        KorColorKey.is_,
-        KorColorKey.saglik,
+        cat(KorColorKey.market),
+        cat(KorColorKey.is_),
+        cat(KorColorKey.saglik),
       ]);
       expect(markers(CalendarFilter.located), isEmpty);
+    });
+
+    group('device calendar events (F8.3)', () {
+      test('no device event days → exactly the markers as before', () {
+        expect(markers(CalendarFilter.all), markers(CalendarFilter.all));
+        expect(
+          markers(CalendarFilter.all)
+              .values
+              .expand((l) => l)
+              .where((m) => m.isDeviceEvent),
+          isEmpty,
+        );
+      });
+
+      test('a day with only a device event gets the neutral marker', () {
+        final m = markers(
+          CalendarFilter.all,
+          deviceEventDays: {DateTime(2026, 9, 13)},
+        );
+        expect(m[DateTime(2026, 9, 13)], [device]);
+        expect(m[DateTime(2026, 9, 13)]!.single.isDeviceEvent, isTrue);
+        expect(m[DateTime(2026, 9, 13)]!.single.colorKey, isNull);
+      });
+
+      test('the device marker comes last and never repeats', () {
+        final m = markers(
+          CalendarFilter.all,
+          // 16-20 Sep have one recurring "ev" reminder each.
+          deviceEventDays: {DateTime(2026, 9, 16), DateTime(2026, 9, 17)},
+        );
+        expect(m[DateTime(2026, 9, 16)], [cat(KorColorKey.ev), device]);
+        expect(m[DateTime(2026, 9, 17)], [cat(KorColorKey.ev), device]);
+        expect(m[DateTime(2026, 9, 18)], [cat(KorColorKey.ev)]);
+      });
+
+      test('a full day keeps the reminders: the device dot is dropped', () {
+        // 14 Sep already has 3 markers (birthday + market + iş).
+        final m = markers(
+          CalendarFilter.all,
+          deviceEventDays: {DateTime(2026, 9, 14)},
+        );
+        expect(m[DateTime(2026, 9, 14)], [
+          cat(KorColorKey.dogumGunu),
+          cat(KorColorKey.market),
+          cat(KorColorKey.is_),
+        ]);
+      });
+
+      test('device event days outside [from, to) are ignored', () {
+        final m = markers(
+          CalendarFilter.all,
+          deviceEventDays: {DateTime(2026, 9, 6), DateTime(2026, 9, 21)},
+        );
+        expect(m.containsKey(DateTime(2026, 9, 6)), isFalse);
+        expect(m.containsKey(DateTime(2026, 9, 21)), isFalse);
+      });
+
+      test('device markers survive every filter, like the agenda rows', () {
+        for (final f in CalendarFilter.values) {
+          expect(
+            markers(f, deviceEventDays: {DateTime(2026, 9, 13)})[
+                DateTime(2026, 9, 13)],
+            [device],
+            reason: f.name,
+          );
+        }
+      });
     });
   });
 

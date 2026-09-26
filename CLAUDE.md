@@ -698,7 +698,11 @@ level and `Subtask`s, and a routine's auto-apply setting is a `RecurrenceRule`.
   which rebuilds the plan at apply time and goes through the **normal**
   `_persistAndSync` (repository + `ScheduleSync.syncAll`), so notifications,
   widgets and the calendar follow by themselves. Editing a routine never rewrites
-  the reminders it already created; deleting one leaves them alone.
+  the reminders it already created; deleting one leaves them alone. The **one**
+  exception is the explicit bulk action `refreshRoutineReminders(routine)` (see
+  **UI** below), with `planRoutineReminderRefresh(routine)` for the preview count;
+  it also emits once and goes through `_persistAndSync`, so notifications are
+  rescheduled exactly once at the end and the routines themselves are not written.
   `ReminderCubit(newId:)` injects the id factory (tests).
 - **Storage (schema v7):** `routines` (`repeat_rule` = `RecurrenceRule.toJson()`
   text or NULL, `created_at` ISO wall clock, `position`, `updated_at`,
@@ -724,6 +728,20 @@ level and `Subtask`s, and a routine's auto-apply setting is a `RecurrenceRule`.
   Yok / Her gün / Seçili günler + weekday circles, ordered steps with a ⋮ menu,
   [Sil] · [Kaydet]; nothing is written before "Kaydet"). A step is edited in
   `routine_step_sheet.dart`, which reuses the shared `SubtasksCard`.
+  The editor also carries **Hatırlatıcıları güncelle** → [Hatırlatıcılara uygula]
+  (`RoutineEditorKeys.refreshReminders`), shown only for a stored routine that
+  actually has linked reminders: it saves the edit on screen, then pushes the
+  steps' **title, time, category and priority** onto the reminders this routine
+  created. It asks for confirmation naming how many will change (and says
+  "zaten rutinle aynı" instead of asking when none would), and it never touches
+  completion state, notes, pins, subtask progress, location or the recurrence
+  rule. The day stays the reminder's own — moving a repeating routine's series
+  to another day is the apply sheet's job (`RoutineApplyMode.replaceExisting`).
+  Both paths share `reminderWithRoutineItem` in `domain/routine_apply.dart`, the
+  single list of "fields a routine owns"; the matching/counting rule for this one
+  is the pure `routineReminderRefresh` (link = `routineId` + `routineItemId`,
+  day-independent, unchanged reminders excluded so the count is honest, a
+  reminder whose step was deleted counted but left alone).
   `RoutineVisuals` is the only routine colour/icon/row-text mapping. The weekday
   circle is `ui/common/weekday_toggle.dart` (`WeekdayToggle`), extracted from the
   recurrence sheet so both look and sound the same.
@@ -1135,6 +1153,13 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   places with literal values). Categories store a `KorColorKey`, never a hex.
 - New colour tokens must pass `test/ui/theme/contrast_test.dart` (text ≥ 4.5, UI ≥ 3.0);
   a failing design value is skipped with its measured ratio, not silently changed.
+- A new **non-category** token (the F8.3 `deviceEvent` day dot is the latest) goes in
+  `kor_palette.dart` as a documented `static const` in **both** `KorPaletteLight` and
+  `KorPaletteDark` under the same name, then through `KorColors` as a plain field
+  (constructor, `light`, `dark`, `==`, `hashCode`, `copyWith`, `lerp`) — copy `nowLine`
+  end to end. Do **not** add a `KorColorKey` value for it: that enum is the persisted
+  *user category* palette and its `storageKey` list is a pinned contract, so a 13th
+  value would show up in the category colour picker and break the round-trip test.
 
 ## UI structure
 
@@ -1252,7 +1277,21 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   (`ReminderOccurrence.isStored` false → read-only `AgendaOccurrenceRow`, tap opens the
   series), birthdays as all-day rows (29 Şubat → 28 Şubat in non-leap years, like the
   notifications); filters Tümü / Hatırlatıcılar / Doğum günleri / Konumlu also apply
-  to the ≤3 category dots (`calendarDayMarkers`, birthdays first). Selecting a day
+  to the ≤3 day dots (`calendarDayMarkers`, birthdays first). A dot is a
+  `CalendarDayMarker` (`agenda.dart`): either a category colour (`colorKey`) or the
+  **neutral** device calendar marker (F8.3, `colorKey == null`) — a device event has no
+  category, so it cannot be a `KorColorKey` and uses the `KorColors.deviceEvent` token
+  instead; `CategoryDots.colorOf` is the only marker → colour mapping. Device markers
+  come **last**, so on a day already at the 3-dot cap the user's own reminders keep
+  their dots; they are passed in as `deviceEventDays` (day midnights) only while the
+  calendar feature is on, they follow the agenda rows in ignoring the filter chips, and
+  the controller has already applied the per-calendar selection when it read those
+  events — never filter by calendar again in the marker code. `CalendarPage` reads the
+  events for the agenda **and** the marker range in one `eventsInRange` call so paging
+  does not thrash the controller's cached window, and
+  `DeviceCalendarController.padBeforeDays` is **14** so that range is covered whichever
+  page asks first (Bugün asks for today, Takvim for the wider marker range; with a
+  shorter pad, opening the app cost one read or two depending on the order). Selecting a day
   (strip, grid, "Bugün") re-bases the agenda on it. The week strip changes week on a
   horizontal fling (chevrons are the button alternative); it is deliberately not a
   `Scrollable`, so the agenda stays the page's only vertical scroll view (the iOS
@@ -1546,9 +1585,10 @@ Device calendar events are shown **read-only** next to reminders, opt-in and off
   `calendarEventDraft` (pure) then `showReminderEditorSheet(draft:)`. An all-day event
   drafts 09:00 on its day; a start already in the past drafts an **untimed** reminder,
   because the editor rightly refuses a past time (F1.8b).
-- **Not done on purpose:** writing to the device calendar (F8.2) and day dots for device
-  events in the week strip / month grid (F8.3 — they would need a neutral marker token
-  beside the category `KorColorKey`s).
+- **Day dots (F8.3):** days with device events get a neutral dot in the week strip and
+  month grid, through `CalendarDayMarker` and the `KorColors.deviceEvent` token — see
+  **Takvim** for the ordering, the cap and the single widened `eventsInRange` call.
+- **Not done on purpose:** writing to the device calendar (F8.2).
 
 ## Contacts import (F7.3)
 
@@ -1604,10 +1644,12 @@ read-only pass**. There is no background sync and nothing is ever written to con
   pre-v6 sentinel. A date the provider cannot mean (month 0/13, 30 February, a future year) is
   dropped at the seam (`PluginContactsPlatform.validBirthday`) rather than imported; an
   implausible **year** only clears the year, the date still imports.
-- **The cubit is not touched:** the sheet calls `ReminderCubit.addBirthday` once per imported
-  birthday (there is no bulk add). That is N persists + N schedule syncs; the diff sync makes
-  each one cheap, and the parallel F9 routines work owns `lib/bloc/**`. A bulk
-  `addBirthdays` would be the obvious follow-up once that branch lands.
+- **Bulk add:** the sheet calls `ReminderCubit.addBirthdays(birthdays)` **once**, not
+  `addBirthday` per row. The bulk path emits one state change, writes the whole list with a
+  single `saveBirthdays` transaction and runs `ScheduleSync.syncAll` **once** at the end
+  (importing 200 contacts used to mean 200 persists + 200 diff syncs). It does not rewrite
+  reminders or settings, since only birthdays changed, and an empty list is a no-op. The
+  single-add API is unchanged — use `addBirthday` for one, `addBirthdays` for a batch.
 - **Nothing is preselected.** A first run on a large address book would otherwise flood the
   birthday list on one tap; "Tümünü seç (N)" makes the bulk case one tap anyway, and the
   import button stays disabled at zero selected.
@@ -1642,7 +1684,14 @@ read-only pass**. There is no background sync and nothing is ever written to con
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage; it builds
   `--split-per-abi` and uploads `app-release-arm64-apk` (the one to install) plus an
   `…-other-abis-apk` for armeabi-v7a and x86_64. Splits carry Flutter's per-ABI
-  `versionCode` offsets, so a device must stay on one variant.
+  `versionCode` offsets, so a device must stay on one variant. The job's **"Audit the merged
+  manifest"** step is the permanent guard behind `docs/store/permissions-review.md` §8 rows 8, 13
+  and 17: it finds the merged manifest (under `build/app`, because `android/build.gradle` moves the
+  Gradle build directory), prints every `uses-permission` and every `service`/`receiver`/`provider`
+  with its `foregroundServiceType` — so an unused foreground-service component a plugin contributes
+  is visible in the log — and **fails** when `WRITE_CALENDAR` (the calendar feature is read-only),
+  `WRITE_CONTACTS` (the import is read-only) or `REQUEST_INSTALL_PACKAGES` appears. Declaring one of
+  them on purpose means changing that list *and* the review doc.
 - Releases for the owner's own device (F6.3b): `release.yml`, run manually. It **requires** the
   signing secrets (a debug-signed release could not install as an update, so it fails instead),
   derives `versionCode` from `date -u +%y%m%d%H` — `pubspec.yaml` pins `+8`, so every build

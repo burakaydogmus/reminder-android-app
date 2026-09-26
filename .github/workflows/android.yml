@@ -82,6 +82,70 @@ jobs:
       - name: Build release APKs
         run: flutter build apk --release --split-per-abi
 
+      # Rows 8, 13 and 17 of docs/store/permissions-review.md §8 asked someone
+      # to look at the **merged** manifest once: the app's own manifest says
+      # nothing about what plugins contribute, and Play asks about the merged
+      # result. A permanent guard beats a one-off look, because the answer can
+      # change with any plugin upgrade — which is exactly what rows 13 and 17
+      # feared ("the plugin declares no permission today, but an upgrade may").
+      #
+      # Printed: every uses-permission, and every service/receiver/provider
+      # with its foregroundServiceType — so an unused foreground-service
+      # component a plugin drops in (§6, WorkManager's SystemForegroundService)
+      # shows up in the log instead of being found by Play review.
+      #
+      # Failed on: WRITE_CALENDAR (the calendar feature is read-only, §9),
+      # WRITE_CONTACTS (the import is read-only, §10) and
+      # REQUEST_INSTALL_PACKAGES (never ours, and Play restricts it). Declaring
+      # one of them on purpose means changing this list *and* the review doc.
+      - name: Audit the merged manifest
+        run: |
+          # GitHub runs this with `bash -e`, so no `pipefail` here: `find` over a
+          # directory that does not exist, and `grep` with no match, both exit
+          # non-zero and would kill the step before it printed anything. Every
+          # such command is either last in its pipe or guarded.
+          set -u
+          # android/build.gradle moves the Gradle build directory to ./build,
+          # so the app module's merged manifest lands under build/app — not
+          # android/app/build. Search both, newest AGP layout included.
+          manifest=$(find build/app android/app/build -path '*merged_manifest*' \
+            -name AndroidManifest.xml 2>/dev/null | sort | head -1 || true)
+          if [ -z "$manifest" ]; then
+            echo "::error::no merged manifest found under build/app or android/app/build"
+            find build android -name AndroidManifest.xml 2>/dev/null | head -50
+            exit 1
+          fi
+          echo "── $manifest"
+          # One tag per line, whatever AGP's own line breaks were: join the
+          # document, then break before every '<'. An attribute list split over
+          # several source lines ends up on one line this way.
+          tags=$(tr '\n' ' ' < "$manifest" | sed 's/</\n</g')
+          permissions=$(echo "$tags" | grep '^<uses-permission' \
+            | sed -E 's/.*android:name="([^"]*)".*/\1/' | sort -u)
+          echo "── uses-permission"
+          echo "$permissions" | sed 's/^/   /'
+          echo "── service / receiver / provider"
+          echo "$tags" | grep -E '^<(service|receiver|provider)[ >]' \
+            | grep -oE '^<(service|receiver|provider)|android:(name|foregroundServiceType)="[^"]*"' \
+            | tr '\n' ' ' | sed 's/</\n   </g'
+          echo
+          forbidden='
+          android.permission.WRITE_CALENDAR
+          android.permission.WRITE_CONTACTS
+          android.permission.REQUEST_INSTALL_PACKAGES
+          '
+          status=0
+          for name in $forbidden; do
+            if echo "$permissions" | grep -qxF "$name"; then
+              echo "::error::$name is in the merged manifest — see docs/store/permissions-review.md §8"
+              status=1
+            fi
+          done
+          if [ "$status" -eq 0 ]; then
+            echo "OK: no WRITE_CALENDAR / WRITE_CONTACTS / REQUEST_INSTALL_PACKAGES"
+          fi
+          exit "$status"
+
       # Which key actually signed it, and that the signature verifies at all.
       # `apksigner`, not `keytool -printcert -jarfile`: minSdk 26 means AGP
       # signs with APK Signature Scheme v2/v3 only, and keytool can read just

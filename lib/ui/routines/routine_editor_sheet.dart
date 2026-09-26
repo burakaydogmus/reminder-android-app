@@ -5,8 +5,10 @@ import 'package:uuid/uuid.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/routine.dart';
+import 'package:reminder/domain/routine_apply.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/common/recurrence_text.dart';
@@ -29,6 +31,7 @@ abstract final class RoutineEditorKeys {
   static const save = Key('routineEditor.save');
   static const delete = Key('routineEditor.delete');
   static const addStep = Key('routineEditor.addStep');
+  static const refreshReminders = Key('routineEditor.refreshReminders');
   static const repeatSegments = Key('routineEditor.repeat');
   static Key swatch(KorColorKey key) => Key('routineEditor.swatch.${key.name}');
   static Key icon(String key) => Key('routineEditor.icon.$key');
@@ -193,6 +196,49 @@ class _RoutineEditorSheetState extends State<RoutineEditorSheet> {
     Navigator.of(context).pop();
   }
 
+  /// "Hatırlatıcılara uygula": ekrandaki düzenlemeyi kaydeder ve bu rutinden
+  /// oluşmuş hatırlatıcıları adımların güncel başlığı / saati / kategorisi /
+  /// önceliğine taşır. Onay istenir ve kaç hatırlatıcının değişeceği söylenir;
+  /// zamanlama eşitlemesi sonda bir kez çalışır (`ReminderCubit`).
+  Future<void> _refreshReminders() async {
+    final cubit = context.read<ReminderCubit>();
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final error = RoutineEditorSheet.validateName(
+      _name.text,
+      cubit.state.routines,
+      l10n,
+      exceptId: widget.existing?.id,
+    );
+    if (error != null) {
+      setState(() => _nameError = error);
+      return;
+    }
+    final routine = _draft();
+    final plan = cubit.planRoutineReminderRefresh(routine);
+    if (plan.isEmpty) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.routineRefreshNothing)),
+      );
+      return;
+    }
+    final confirmed = await showConfirmationDialog(
+      context,
+      title: l10n.routineRefreshConfirmTitle,
+      content: l10n.routineRefreshConfirmBody(plan.count),
+    );
+    if (!confirmed || !mounted) return;
+    // The edit itself is saved first, so "apply" always pushes what is on
+    // screen — otherwise the fields and the reminders would disagree.
+    await cubit.saveRoutine(routine);
+    final changed = await cubit.refreshRoutineReminders(routine);
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.routineRefreshed(changed))),
+    );
+    Navigator.of(context).pop(cubit.state.routines.byId(routine.id));
+  }
+
   Future<void> _editStep([RoutineItem? existing]) async {
     final item = await showRoutineStepSheet(
       context,
@@ -222,6 +268,17 @@ class _RoutineEditorSheetState extends State<RoutineEditorSheet> {
     final l10n = context.l10n;
     final draft = _draft();
     final categories = CategoryVisuals.catalogOf(context);
+    // F3.7 follow-up: editing a routine never rewrites the reminders it
+    // already created, so offer the bulk action — but only when there is
+    // something to apply it to.
+    // `select` on the list (a new instance whenever the reminders change), not
+    // on the plan: `RoutineReminderRefresh` has no value equality, so
+    // selecting it would rebuild on every state change.
+    final reminders =
+        context.select<ReminderCubit, List<Reminder>>((c) => c.state.reminders);
+    final refresh = isNew
+        ? null
+        : routineReminderRefresh(routine: draft, existing: reminders);
 
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets),
@@ -410,6 +467,36 @@ class _RoutineEditorSheetState extends State<RoutineEditorSheet> {
                 label: Text(l10n.routineStepAdd),
               ),
             ),
+            if (refresh != null && refresh.hasLinked) ...[
+              const SizedBox(height: KorSpacing.s6),
+              SectionHeader(
+                title: l10n.routineRefreshTitle,
+                icon: Icons.sync_rounded,
+              ),
+              const SizedBox(height: KorSpacing.s2),
+              Text(
+                l10n.routineRefreshHint(refresh.linked),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: KorSpacing.s3),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  key: RoutineEditorKeys.refreshReminders,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(
+                      KorSizes.minTouch,
+                      KorSizes.minTouch,
+                    ),
+                  ),
+                  onPressed: _refreshReminders,
+                  icon: const Icon(Icons.sync_rounded),
+                  label: Text(l10n.routineRefreshAction),
+                ),
+              ),
+            ],
             const SizedBox(height: KorSpacing.s6),
             OverflowBar(
               alignment: MainAxisAlignment.spaceBetween,

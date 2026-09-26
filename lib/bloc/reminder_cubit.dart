@@ -221,6 +221,32 @@ class ReminderCubit extends Cubit<ReminderState> {
     await _persistAndSync();
   }
 
+  /// Birden çok doğum günü ekler (rehberden aktarma, F7.3): liste **tek**
+  /// [ReminderRepository.saveBirthdays] transaction'ıyla yazılır ve sonda
+  /// **bir kez** [ScheduleSync.syncAll] çalışır.
+  ///
+  /// [addBirthday]'i N kez çağırmak N kalıcılaştırma + N fark tabanlı zamanlama
+  /// eşitlemesi demekti; 200 kişilik bir aktarma bunu görünür biçimde
+  /// yavaşlatıyordu. Tekli API aynen korunur.
+  ///
+  /// Yalnızca doğum günleri değiştiği için hatırlatıcılar ve ayarlar yeniden
+  /// yazılmaz. Yazma başarısız olursa transaction geri alınır: yarım yazılmış
+  /// bir durum kalmaz.
+  Future<void> addBirthdays(Iterable<Birthday> birthdays) async {
+    final added = birthdays.toList(growable: false);
+    if (added.isEmpty) return;
+    final next = [...state.birthdays, ...added];
+    emit(state.copyWith(birthdays: next));
+    final s = state;
+    await _repository.saveBirthdays(s.birthdays);
+    await _schedules.syncAll(
+      reminders: s.reminders,
+      birthdays: s.birthdays,
+      settings: s.settings,
+      categories: s.categories,
+    );
+  }
+
   Future<void> updateBirthday(Birthday updated) async {
     final next = state.birthdays
         .map((b) => b.id == updated.id ? updated : b)
@@ -408,6 +434,34 @@ class ReminderCubit extends Cubit<ReminderState> {
     emit(state.copyWith(reminders: next));
     await _persistAndSync();
     return outcome;
+  }
+
+  /// Rutinin var olan hatırlatıcılarını adımların güncel alanlarına göre yenileme
+  /// planı (saf; durumdaki hatırlatıcılara bakar). Arayüz "kaç hatırlatıcı
+  /// değişecek" sorusunu bununla yanıtlar.
+  RoutineReminderRefresh planRoutineReminderRefresh(Routine routine) =>
+      routineReminderRefresh(routine: routine, existing: state.reminders);
+
+  /// "Hatırlatıcıları güncelle": rutinden oluşmuş hatırlatıcıları adımların
+  /// güncel başlık / saat / kategori / önceliğine taşır, sonra olağan yoldan
+  /// kaydeder ve `ScheduleSync.syncAll` **bir kez** çalışır. Kaç hatırlatıcının
+  /// değiştiğini döndürür.
+  ///
+  /// Rutini düzenlemek hatırlatıcıları kendiliğinden **değiştirmez**
+  /// ([saveRoutine]); bu, kullanıcının bilerek istediği toplu eylemdir.
+  /// Tamamlanma durumu, not, sabitleme, konum ve maddelerin ilerlemesi
+  /// korunur (bkz. [routineReminderRefresh]). Plan uygulama anında yeniden
+  /// kurulur; değişen bir şey yoksa yazılmaz ve eşitleme çalışmaz.
+  Future<int> refreshRoutineReminders(Routine routine) async {
+    final plan = planRoutineReminderRefresh(routine);
+    if (plan.isEmpty) return 0;
+    final byId = {for (final r in plan.changed) r.id: r};
+    final next = _sorted([
+      for (final r in state.reminders) byId[r.id] ?? r,
+    ]);
+    emit(state.copyWith(reminders: next));
+    await _persistAndSync();
+    return plan.count;
   }
 
   static bool _sameRoutines(List<Routine> a, List<Routine> b) {

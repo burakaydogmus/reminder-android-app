@@ -2609,4 +2609,48 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get routineApplyNothing => 'Eklenecek yeni adım yok';
+
+  @override
+  String get routineRefreshTitle => 'Hatırlatıcıları güncelle';
+
+  @override
+  String routineRefreshHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Bu rutinden oluşturulmuş $count hatırlatıcı var. Rutini düzenlemek onları kendiliğinden değiştirmez.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineRefreshAction => 'Hatırlatıcılara uygula';
+
+  @override
+  String get routineRefreshConfirmTitle => 'Hatırlatıcılar güncellensin mi?';
+
+  @override
+  String routineRefreshConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count hatırlatıcının başlığı, saati, kategorisi ve önceliği rutindeki gibi olacak. Tamamlananlar, notlar, sabitlemeler ve madde ilerlemesi değişmez.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineRefreshNothing => 'Hatırlatıcılar zaten rutinle aynı';
+
+  @override
+  String routineRefreshed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hatırlatıcı güncellendi',
+    );
+    return '$_temp0';
+  }
 }

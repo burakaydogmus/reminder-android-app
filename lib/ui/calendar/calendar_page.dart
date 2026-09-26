@@ -20,7 +20,6 @@ import 'package:reminder/ui/components/birthday_row.dart';
 import 'package:reminder/ui/components/empty_state.dart';
 import 'package:reminder/ui/components/tab_header.dart';
 import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
-import 'package:reminder/ui/theme/tokens/kor_palette.dart';
 import 'package:reminder/ui/theme/tokens/kor_spacing.dart';
 
 /// Keys for tests.
@@ -156,14 +155,28 @@ class _CalendarPageState extends State<CalendarPage> {
           filter: _filter,
           includeEmptyDays: true,
         );
-        // F8.1: device calendar events live next to the reminder rows. The
-        // controller answers from its cache, so this costs nothing per
-        // rebuild; a range outside the cache schedules one lazy read.
+        final grid = CalendarDates.monthGrid(_gridMonth!);
+        final agendaEnd = CalendarDates.addDays(selected, CalendarPage.days);
+        // The strip/grid dots cover a different range than the agenda.
+        final markerFrom =
+            _expanded ? grid.first : CalendarDates.addDays(week, -7);
+        final markerTo = _expanded
+            ? CalendarDates.addDays(grid.last, 1)
+            : CalendarDates.addDays(week, 14);
+
+        // F8.1: device calendar events live next to the reminder rows, and
+        // (F8.3) give their days a neutral dot. The controller answers from
+        // its cache, so this costs nothing per rebuild; a range outside the
+        // cache schedules one lazy read — hence **one** read spanning both the
+        // agenda and the marker range, so paging does not thrash the cached
+        // window. The controller already applied the per-calendar selection.
         final calendar = DeviceCalendarScope.maybeOf(context);
         final eventsByDay = <DateTime, List<DeviceCalendarEvent>>{};
+        final deviceEventDays = <DateTime>{};
         if (calendar != null && calendar.enabled) {
-          final end = CalendarDates.addDays(selected, CalendarPage.days);
-          final events = calendar.eventsInRange(selected, end);
+          final from = markerFrom.isBefore(selected) ? markerFrom : selected;
+          final to = markerTo.isAfter(agendaEnd) ? markerTo : agendaEnd;
+          final events = calendar.eventsInRange(from, to);
           for (var i = 0; i < CalendarPage.days; i++) {
             final day = CalendarDates.addDays(selected, i);
             final onDay = [
@@ -172,23 +185,26 @@ class _CalendarPageState extends State<CalendarPage> {
             ];
             if (onDay.isNotEmpty) eventsByDay[day] = onDay;
           }
+          for (var day = markerFrom;
+              day.isBefore(markerTo);
+              day = CalendarDates.addDays(day, 1)) {
+            if (events.any((e) => e.coversDay(day))) deviceEventDays.add(day);
+          }
         }
         final hasEntries =
             agenda.any((d) => !d.isEmpty) || eventsByDay.isNotEmpty;
 
-        final grid = CalendarDates.monthGrid(_gridMonth!);
         final markers = calendarDayMarkers(
           reminders: state.reminders,
           birthdays: state.birthdays,
           now: now,
-          from: _expanded ? grid.first : CalendarDates.addDays(week, -7),
-          to: _expanded
-              ? CalendarDates.addDays(grid.last, 1)
-              : CalendarDates.addDays(week, 14),
+          from: markerFrom,
+          to: markerTo,
           filter: _filter,
           categories: state.categories,
+          deviceEventDays: deviceEventDays,
         );
-        List<KorColorKey> dotsFor(DateTime d) => markers[d] ?? const [];
+        List<CalendarDayMarker> dotsFor(DateTime d) => markers[d] ?? const [];
 
         final drop = DayDropHandler(
           canAccept: (r, d) => canRescheduleToDay(r, d, NowScope.now(context)),

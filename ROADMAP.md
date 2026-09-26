@@ -145,10 +145,17 @@ Diğer tüm fazların temeli.
   bildirim tekrarıyla getirir (F3.1 motoru). WorkManager/BGTaskScheduler bilinçli olarak
   kullanılmadı: iOS arka plan görevinin çalışacağını garanti etmez, yani bazı sabahlar rutin
   sessizce oluşmazdı. Saatsiz adım tekrar etmez (zamansız hatırlatıcı bildirim kurmaz).
+  **Rutin düzenleyicisinde "Hatırlatıcıları güncelle" (yapıldı, `chore/small-debt`):** rutini
+  düzenlemek oluşmuş hatırlatıcıları hâlâ kendiliğinden değiştirmiyor, ama düzenleyicideki
+  [Hatırlatıcılara uygula] adımların güncel başlık / saat / kategori / önceliğini var olan
+  hatırlatıcılara taşıyor: onay istiyor ve kaç hatırlatıcının değişeceğini söylüyor,
+  tamamlanma durumu / not / sabitleme / madde ilerlemesi / tekrar kuralına dokunmuyor, bildirimler
+  sonda **bir kez** yeniden kuruluyor. Gün hatırlatıcının kendisinde kalıyor — tekrarlayan bir
+  rutinin serisini başka güne taşımak uygulama sayfasının işi. Alan listesi tek yerde:
+  `reminderWithRoutineItem` (`domain/routine_apply.dart`), eşleştirme `routineReminderRefresh`.
   *Sonraki adımlar:* tek bir rutini paylaşma/dışa aktarma, var olan hatırlatıcılardan rutin
-  oluşturma ("bunları rutin olarak kaydet"), hızlı yakalama ayrıştırıcısında rutin adı, rutini
-  düzenledikten sonra "bu rutinin hatırlatıcılarını güncelle" toplu eylemi ve uygulamayı geri alma
-  (`UndoSnackBar`) yapılmadı.
+  oluşturma ("bunları rutin olarak kaydet"), hızlı yakalama ayrıştırıcısında rutin adı ve
+  uygulamayı geri alma (`UndoSnackBar`) yapılmadı.
 
 ## Faz 4 — Arayüz ve deneyim ("Kor")
 
@@ -248,9 +255,17 @@ Diğer tüm fazların temeli.
   Hatırlatıcıdan cihaz takvimine etkinlik oluşturma / güncelleme. `WRITE_CALENDAR` ve iOS'ta ayrı
   bir izin katmanı gerektirir, bu yüzden F8.1'in salt-okuma izin hikâyesini bilinçli olarak dışarıda
   bıraktı; mağaza yayınından önce gerçekten istenip istenmediğine karar verilmeli.
-- [ ] **F8.3 Takvim günü işaretleri** · `feat/calendar-day-markers` · *bağımlı: F8.1*
-  Hafta şeridi ve ay ızgarasındaki gün noktaları şimdilik yalnızca hatırlatıcı ve doğum günlerini
-  gösteriyor; cihaz etkinlikleri için kategori renklerinden ayrı, nötr bir işaret token'ı gerekiyor.
+- [x] **F8.3 Takvim günü işaretleri** · `chore/small-debt` · *bağımlı: F8.1*
+  Hafta şeridi ve ay ızgarasındaki gün noktaları artık cihaz takvimi etkinliklerini de gösteriyor.
+  Nokta artık bir `CalendarDayMarker`: ya bir kategori rengi (`colorKey`) ya da **nötr** cihaz
+  işareti (`colorKey == null`). Cihaz etkinliklerinin kategorisi olmadığı için yeni token
+  `KorColors.deviceEvent` olarak eklendi (açık + koyu, `kor_palette.dart` içinde belgeli) —
+  `KorColorKey`'e 13. değer eklenmedi: o enum kullanıcı kategorilerinin saklanan paleti.
+  **Nötr nokta en sonda:** 3 nokta sınırına ulaşmış bir günde kullanıcının kendi hatırlatıcıları
+  noktasını korur, salt-okuma bir cihaz etkinliği onu dışarı itmez. Yalnızca özellik açıkken
+  (`DeviceCalendarController.enabled`) ve takvim seçimine saygılı (seçim okuma anında uygulanıyor,
+  işaret kodunda tekrar süzme yok); ajanda satırları gibi filtre çiplerinden etkilenmiyor.
+  `CalendarPage` ajanda ve işaret aralığını **tek** `eventsInRange` çağrısıyla okuyor.
 
 - [x] **F7.3 Rehberden doğum günü aktarma** · `feat/contacts-import`
   *Numarası korundu (dal adı ve PR geçmişi F7.3 diyor), ama madde Faz 7'den (bulut) Faz 8'e taşındı:

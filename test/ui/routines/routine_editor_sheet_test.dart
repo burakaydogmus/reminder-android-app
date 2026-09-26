@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:reminder/domain/model/recurrence.dart';
+import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
 import 'package:reminder/domain/model/routine.dart';
@@ -281,5 +282,134 @@ void main() {
 
     expect(h.cubit.state.routines, isEmpty);
     expect(h.cubit.state.reminders.single.id, 'r1');
+  });
+
+  group('Hatırlatıcılara uygula (F3.7 follow-up)', () {
+    Future<UiHarness> pumpWithReminder(
+      WidgetTester tester, {
+      List<Reminder>? reminders,
+    }) async {
+      tester.view.physicalSize = const Size(800, 3000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final h = await UiHarness.create(
+        routines: [morning],
+        reminders: reminders ??
+            [
+              buildReminder(
+                id: 'r1',
+                title: 'Spor',
+                note: 'kendi notum',
+                pinned: true,
+                isDone: true,
+                remindAt: DateTime(2026, 9, 19, 7),
+                subtasks: buildSubtasks(['Isınma', 'Koşu'], done: {0}),
+                routineId: 'morning',
+                routineItemId: 'sport',
+              ),
+            ],
+        now: () => DateTime(2026, 9, 26, 6, 30),
+      );
+      // Opened as a real modal sheet over a host page, so the pop after the
+      // action returns to a page whose ScaffoldMessenger shows the snackbar.
+      await tester.pumpWidget(h.app(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () =>
+                  showRoutineEditorSheet(context, existing: morning),
+              child: const Text('Aç'),
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Aç'));
+      await tester.pumpAndSettle();
+      return h;
+    }
+
+    testWidgets(
+        'the action is hidden for a new routine and for one with no '
+        'reminders', (tester) async {
+      await pumpEditor(tester);
+      expect(find.byKey(RoutineEditorKeys.refreshReminders), findsNothing);
+
+      await pumpEditor(tester, existing: morning, routines: [morning]);
+      expect(find.byKey(RoutineEditorKeys.refreshReminders), findsNothing);
+    });
+
+    testWidgets('it says how many reminders exist and asks for confirmation',
+        (tester) async {
+      final h = await pumpWithReminder(tester);
+      expect(find.byKey(RoutineEditorKeys.refreshReminders), findsOneWidget);
+      expect(
+        find.textContaining('Bu rutinden oluşturulmuş 1 hatırlatıcı var'),
+        findsOneWidget,
+      );
+
+      // Rename the step through the step sheet, then push it.
+      await tester.tap(find.byKey(RoutineEditorKeys.step('sport')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(RoutineStepKeys.title), 'Sabah sporu');
+      await tester.tap(find.byKey(RoutineStepKeys.save));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(RoutineEditorKeys.refreshReminders));
+      await tester.pumpAndSettle();
+      expect(find.text('Hatırlatıcılar güncellensin mi?'), findsOneWidget);
+      expect(find.textContaining('1 hatırlatıcının başlığı'), findsOneWidget);
+
+      await tester.tap(find.text('Onayla'));
+      await tester.pumpAndSettle();
+
+      final updated = h.cubit.state.reminders.single;
+      expect(updated.id, 'r1', reason: 'the same reminder, not a new one');
+      expect(updated.title, 'Sabah sporu');
+      // The edit itself is saved too.
+      expect(
+        h.cubit.state.routines.single.items.first.title,
+        'Sabah sporu',
+      );
+      // Nothing of the user's own is touched.
+      expect(updated.isDone, isTrue);
+      expect(updated.note, 'kendi notum');
+      expect(updated.pinned, isTrue);
+      expect(updated.subtasks.map((t) => t.isDone), [true, false]);
+      expect(updated.remindAt, DateTime(2026, 9, 19, 7),
+          reason: 'the day and the unchanged time stay');
+      expect(find.textContaining('1 hatırlatıcı güncellendi'), findsOneWidget);
+    });
+
+    testWidgets('cancelling changes neither the routine nor the reminders',
+        (tester) async {
+      final h = await pumpWithReminder(tester);
+      await tester.tap(find.byKey(RoutineEditorKeys.step('sport')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(RoutineStepKeys.title), 'Sabah sporu');
+      await tester.tap(find.byKey(RoutineStepKeys.save));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(RoutineEditorKeys.refreshReminders));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('İptal'));
+      await tester.pumpAndSettle();
+
+      expect(h.cubit.state.reminders.single.title, 'Spor');
+      expect(h.cubit.state.routines.single.items.first.title, 'Spor');
+    });
+
+    testWidgets('nothing to change says so instead of asking', (tester) async {
+      final h = await pumpWithReminder(tester);
+      await tester.tap(find.byKey(RoutineEditorKeys.refreshReminders));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hatırlatıcılar güncellensin mi?'), findsNothing);
+      expect(
+        find.text('Hatırlatıcılar zaten rutinle aynı'),
+        findsOneWidget,
+      );
+      expect(h.cubit.state.reminders.single.title, 'Spor');
+    });
   });
 }

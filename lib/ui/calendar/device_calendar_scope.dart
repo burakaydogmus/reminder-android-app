@@ -38,7 +38,16 @@ class DeviceCalendarController extends ChangeNotifier
   final CalendarSettingsStore _store;
 
   /// Days loaded before the requested range (paging back a week stays cached).
-  static const int padBeforeDays = 7;
+  ///
+  /// Two weeks, not one, because the calendar's day dots (F8.3) reach further
+  /// back than the agenda: the week strip pre-computes the previous week, so
+  /// `CalendarPage` asks from `weekStart(today) - 7`, up to **13** days before
+  /// today. With a shorter pad, whether opening the app cost one read or two
+  /// depended on which page happened to ask first (`TodayPage` asks for today,
+  /// `CalendarPage` for the wider marker range) — `calendar_events_screen_test`
+  /// pinned "read once" and caught it. Expanding the month grid can still reach
+  /// past the window, but that is a tap, not a rebuild.
+  static const int padBeforeDays = 14;
 
   /// Days loaded after the requested range.
   static const int padAfterDays = 45;
