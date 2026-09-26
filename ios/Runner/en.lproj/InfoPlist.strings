@@ -1,3 +1,8 @@
 /* F6.1: English permission descriptions. */
 "NSLocationWhenInUseUsageDescription" = "Needed for location reminders and to pick a place on the map.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Location is needed to remind you when you get close to a place you chose.";
+
+/* F8.1: device calendar events are read-only. The iOS 17+ full-access key and
+   the legacy key for iOS 15/16 share the same wording. */
+"NSCalendarsFullAccessUsageDescription" = "We read your calendar to show its events in the Today and Calendar tabs. Nothing is ever written to your calendar.";
+"NSCalendarsUsageDescription" = "We read your calendar to show its events in the Today and Calendar tabs. Nothing is ever written to your calendar.";

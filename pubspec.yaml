@@ -56,6 +56,17 @@ dependencies:
   # F6.2b: privacy policy and OSM copyright links in the browser (launchUrl
   # only, no canLaunchUrl, so no <queries>/LSApplicationQueriesSchemes).
   url_launcher: ^6.3.2
+  # F8.1: read-only device calendar events. `device_calendar` (the usual
+  # choice) cannot be used here — 4.x pins `timezone ^0.9.0` against our
+  # ^0.11.1 (flutter_local_notifications 22) and its Android module still does
+  # `apply plugin: 'kotlin-android'` with compileSdk 34, which AGP 9 rejects;
+  # 3.9.0 resolves but is Dart 2 only, has no `namespace` and pins AGP 3.4.2.
+  # device_calendar_plus is the maintained federated replacement: no Dart
+  # dependencies of its own (so no timezone clash), built-in Kotlin,
+  # compileSdk 36 / minSdk 24, iOS 13, and the iOS 17 EventKit access API.
+  # Only its read side is used (listCalendars / listEvents / showEventModal);
+  # see CLAUDE.md › Device calendar (F8.1).
+  device_calendar_plus: ^0.9.0
 
 dev_dependencies:
   flutter_test:

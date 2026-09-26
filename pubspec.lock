@@ -265,6 +265,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.12"
+  device_calendar_plus:
+    dependency: "direct main"
+    description:
+      name: device_calendar_plus
+      sha256: "3e02cc5eb96ad0a3c859bbb7f26b0bda614f19510370a4502016cde3e2101540"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.0"
+  device_calendar_plus_android:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_android
+      sha256: a65da097ae08fcf7f2ea9804abc837fef30bae00a3ed341667e5666aef4492f1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.0"
+  device_calendar_plus_ios:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_ios
+      sha256: e82d2a4d93159ea8b08ead788c9e5238549ffed650cc31287f84370f082b0406
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.0"
+  device_calendar_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: device_calendar_plus_platform_interface
+      sha256: "474169d6d32654e190c2f1d50c82a0090d475c33c904177f96af831ba46c306e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.0"
   diff_match_patch:
     dependency: transitive
     description:

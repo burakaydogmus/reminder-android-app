@@ -1712,5 +1712,73 @@
     "description": "iOS notification action."
   },
   "notifActionSnooze1hLong": "1 saat ertele",
-  "notifActionTomorrowMorning": "Yarın sabah"
+  "notifActionTomorrowMorning": "Yarın sabah",
+  "permCalendarTitle": "Takvimindeki etkinlikleri de görelim",
+  "permCalendarBody": "Cihazının takvimindeki etkinlikleri Bugün ve Takvim sekmelerinde hatırlatıcılarının yanında gösterelim. Yalnızca okuruz: takvimine hiçbir şey yazılmaz, hiçbir etkinlik değiştirilmez.",
+  "@permCalendarBody": {
+      "description": "Pre-permission sheet body for read-only device calendar access (F8.1)."
+  },
+  "permCalendarPoint1": "Etkinlikler yalnızca bu cihazda okunur",
+  "permCalendarPoint2": "Takvimine hiçbir şey yazılmaz",
+  "permCalendarPoint3": "İstediğin zaman kapatabilirsin",
+  "permCalendarConfirm": "İzin ver",
+  "permissionCalendar": "Takvim",
+  "permissionCalendarNotRequested": "Takvim etkinlikleri için izin gerekiyor",
+  "permissionCalendarDenied": "İzin verilmedi — takvim etkinlikleri gösterilemiyor",
+  "permissionCalendarGranted": "Yalnızca okuma izni var",
+  "settingsCalendar": "Takvim etkinlikleri",
+  "settingsCalendarToggle": "Takvim etkinlikleri",
+  "settingsCalendarToggleHint": "Cihazının takvimindeki etkinlikler Bugün ve Takvim'de görünür. Yalnızca okunur.",
+  "@settingsCalendarToggleHint": {
+      "description": "Ayarlar > Takvim etkinlikleri switch subtitle."
+  },
+  "settingsCalendarPickerTitle": "Gösterilecek takvimler",
+  "settingsCalendarPickerHint": "Kapattığın takvimlerin etkinlikleri gösterilmez.",
+  "settingsCalendarLoading": "Takvimler okunuyor…",
+  "settingsCalendarNone": "Bu cihazda takvim bulunamadı.",
+  "settingsCalendarUnavailable": "Takvim şu an okunamıyor. Daha sonra tekrar dene.",
+  "settingsCalendarDenied": "Takvim izni verilmedi. Ayarlardan izin verip tekrar dene.",
+  "settingsCalendarAllHidden": "Her takvimi kapattın, bu yüzden etkinlik gösterilmiyor.",
+  "calendarEventsSection": "Takvim etkinlikleri",
+  "calendarEventAllDay": "Tüm gün",
+  "calendarEventSpokenAllDay": "tüm gün",
+  "calendarEventSpoken": "takvim etkinliği",
+  "@calendarEventSpoken": {
+      "description": "Screen reader marker that a row is a device calendar event, not a reminder."
+  },
+  "calendarEventSpokenReadOnly": "yalnızca okunur",
+  "calendarEventOpenInCalendar": "Takvimde aç",
+  "calendarEventCreateReminder": "Hatırlatıcı oluştur",
+  "calendarEventDetailsTitle": "Etkinlik",
+  "calendarEventNoCalendarApp": "Takvim uygulaması açılamadı.",
+  "calendarEventMoreActions": "Etkinlik işlemleri",
+  "calendarEventCalendarLabel": "Takvim: {name}",
+  "@calendarEventCalendarLabel": {
+      "placeholders": {
+          "name": {
+              "type": "String"
+          }
+      }
+  },
+  "calendarEventLocationLabel": "Yer: {place}",
+  "@calendarEventLocationLabel": {
+      "placeholders": {
+          "place": {
+              "type": "String"
+          }
+      }
+  },
+  "calendarEventWhenLabel": "Zaman",
+  "calendarEventMultiDay": "{start} – {end}",
+  "@calendarEventMultiDay": {
+      "description": "Start and end of a multi-day or all-day span.",
+      "placeholders": {
+          "start": {
+              "type": "String"
+          },
+          "end": {
+              "type": "String"
+          }
+      }
+  }
 }

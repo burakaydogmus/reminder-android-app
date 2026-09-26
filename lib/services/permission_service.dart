@@ -29,6 +29,21 @@ enum LocationPermissionState {
   denied,
 }
 
+/// Calendar read access for device calendar events (F8.1).
+///
+/// The app only ever **reads**; there is no write state, because neither
+/// platform has a read-only tier: Android needs `READ_CALENDAR` and iOS 17+
+/// needs EventKit's *full* access (`requestFullAccessToEvents`).
+enum CalendarPermissionState {
+  granted,
+
+  /// The system prompt has not been shown by this app yet.
+  notRequested,
+
+  /// Asked before (or blocked by the OS) and not granted.
+  denied,
+}
+
 /// What a "fix" control should do for a permission state.
 enum PermissionFix { none, request, openSettings }
 
@@ -37,7 +52,8 @@ enum PermissionPrompt {
   notifications,
   exactAlarms,
   locationWhenInUse,
-  locationAlways
+  locationAlways,
+  calendar,
 }
 
 class PermissionSnapshot {
@@ -45,27 +61,35 @@ class PermissionSnapshot {
     required this.notifications,
     required this.exactAlarms,
     required this.location,
+    this.calendar = CalendarPermissionState.notRequested,
   });
 
   final NotificationPermissionState notifications;
   final ExactAlarmState exactAlarms;
   final LocationPermissionState location;
 
+  /// Device calendar read access (F8.1). Off by default: nothing asks for it
+  /// until the user turns "Takvim etkinlikleri" on.
+  final CalendarPermissionState calendar;
+
   static const allGranted = PermissionSnapshot(
     notifications: NotificationPermissionState.granted,
     exactAlarms: ExactAlarmState.granted,
     location: LocationPermissionState.always,
+    calendar: CalendarPermissionState.granted,
   );
 
   PermissionSnapshot copyWith({
     NotificationPermissionState? notifications,
     ExactAlarmState? exactAlarms,
     LocationPermissionState? location,
+    CalendarPermissionState? calendar,
   }) {
     return PermissionSnapshot(
       notifications: notifications ?? this.notifications,
       exactAlarms: exactAlarms ?? this.exactAlarms,
       location: location ?? this.location,
+      calendar: calendar ?? this.calendar,
     );
   }
 
@@ -74,14 +98,16 @@ class PermissionSnapshot {
       other is PermissionSnapshot &&
       other.notifications == notifications &&
       other.exactAlarms == exactAlarms &&
-      other.location == location;
+      other.location == location &&
+      other.calendar == calendar;
 
   @override
-  int get hashCode => Object.hash(notifications, exactAlarms, location);
+  int get hashCode =>
+      Object.hash(notifications, exactAlarms, location, calendar);
 
   @override
-  String toString() =>
-      'PermissionSnapshot($notifications, $exactAlarms, $location)';
+  String toString() => 'PermissionSnapshot($notifications, $exactAlarms, '
+      '$location, $calendar)';
 }
 
 /// Fix action for the notification permission.
@@ -116,6 +142,18 @@ PermissionFix locationFix(LocationPermissionState state) {
   }
 }
 
+/// Fix action for calendar read access (F8.1).
+PermissionFix calendarFix(CalendarPermissionState state) {
+  switch (state) {
+    case CalendarPermissionState.granted:
+      return PermissionFix.none;
+    case CalendarPermissionState.notRequested:
+      return PermissionFix.request;
+    case CalendarPermissionState.denied:
+      return PermissionFix.openSettings;
+  }
+}
+
 /// Maps the OS notification state plus the persisted "requested" flag.
 NotificationPermissionState resolveNotificationState({
   required bool enabled,
@@ -143,6 +181,25 @@ LocationPermissionState resolveLocationState({
   return LocationPermissionState.notRequested;
 }
 
+/// Maps the permission_handler calendar status plus the persisted "requested"
+/// flag (F8.1).
+///
+/// iOS reports EventKit's `notDetermined` as plain `denied`
+/// (`EventPermissionStrategy`), so — exactly like location — only the stored
+/// flag tells "never asked" from "asked and refused" apart.
+CalendarPermissionState resolveCalendarState({
+  required ph.PermissionStatus status,
+  required bool requested,
+}) {
+  if (status.isGranted || status.isLimited) {
+    return CalendarPermissionState.granted;
+  }
+  if (status.isPermanentlyDenied || status.isRestricted || requested) {
+    return CalendarPermissionState.denied;
+  }
+  return CalendarPermissionState.notRequested;
+}
+
 /// Permission checks and requests used by the UI. Injected through
 /// `PermissionScope` so widgets can be tested with a fake.
 abstract class PermissionService {
@@ -163,6 +220,10 @@ abstract class PermissionService {
   /// 11+ opens the app's location page, iOS shows the upgrade prompt), app
   /// settings afterwards.
   Future<LocationPermissionState> requestLocationAlways();
+
+  /// Asks for device calendar **read** access (F8.1): the system prompt the
+  /// first time, app settings afterwards.
+  Future<CalendarPermissionState> requestCalendar();
 
   Future<void> openAppSettings();
 
@@ -190,6 +251,31 @@ abstract class LocationPermissionBackend {
   Future<ph.PermissionStatus> requestWhenInUse();
   Future<ph.PermissionStatus> requestAlways();
   Future<void> openAppSettings();
+}
+
+/// Platform calendar permission calls (permission_handler, F8.1).
+abstract class CalendarPermissionBackend {
+  Future<ph.PermissionStatus> status();
+  Future<ph.PermissionStatus> request();
+}
+
+/// `Permission.calendarFullAccess` — the only tier that can **read** events:
+/// Android `READ_CALENDAR` (+ `WRITE_CALENDAR` when declared; this app
+/// declares only read, and permission_handler asks for declared permissions
+/// only, see `PermissionUtils.getManifestNames`) and, on iOS 17+,
+/// `EKEventStore.requestFullAccessToEvents` — EventKit's write-only tier
+/// cannot read. Needs `PERMISSION_EVENTS=1` and
+/// `PERMISSION_EVENTS_FULL_ACCESS=1` in the Podfile.
+class PermissionHandlerCalendarBackend implements CalendarPermissionBackend {
+  const PermissionHandlerCalendarBackend();
+
+  @override
+  Future<ph.PermissionStatus> status() =>
+      ph.Permission.calendarFullAccess.status;
+
+  @override
+  Future<ph.PermissionStatus> request() =>
+      ph.Permission.calendarFullAccess.request();
 }
 
 class LocalNotificationsPermissionBackend
@@ -292,9 +378,11 @@ class PlatformPermissionService implements PermissionService {
   PlatformPermissionService({
     required NotificationPermissionBackend notifications,
     required LocationPermissionBackend location,
+    required CalendarPermissionBackend calendar,
     Future<SharedPreferences> Function()? preferences,
   })  : _notifications = notifications,
         _location = location,
+        _calendar = calendar,
         _preferences = preferences ?? SharedPreferences.getInstance;
 
   factory PlatformPermissionService.platform() => PlatformPermissionService(
@@ -302,10 +390,12 @@ class PlatformPermissionService implements PermissionService {
           FlutterLocalNotificationsPlugin(),
         ),
         location: const PermissionHandlerLocationBackend(),
+        calendar: const PermissionHandlerCalendarBackend(),
       );
 
   final NotificationPermissionBackend _notifications;
   final LocationPermissionBackend _location;
+  final CalendarPermissionBackend _calendar;
   final Future<SharedPreferences> Function() _preferences;
 
   static const _requestedNotificationsKey =
@@ -313,6 +403,7 @@ class PlatformPermissionService implements PermissionService {
   static const _requestedLocationKey = 'permissions.requested.location';
   static const _requestedLocationAlwaysKey =
       'permissions.requested.locationAlways';
+  static const _requestedCalendarKey = 'permissions.requested.calendar';
   static String _promptKey(PermissionPrompt p) =>
       'permissions.prompt.${p.name}';
 
@@ -338,6 +429,13 @@ class PlatformPermissionService implements PermissionService {
     );
   }
 
+  Future<CalendarPermissionState> _calendarState() async {
+    return resolveCalendarState(
+      status: await _calendar.status(),
+      requested: await _flag(_requestedCalendarKey),
+    );
+  }
+
   @override
   Future<PermissionSnapshot> check() async {
     final exact = await _notifications.canScheduleExact();
@@ -347,6 +445,7 @@ class PlatformPermissionService implements PermissionService {
           ? ExactAlarmState.notRequired
           : (exact ? ExactAlarmState.granted : ExactAlarmState.denied),
       location: await _locationState(),
+      calendar: await _calendarState(),
     );
   }
 
@@ -408,6 +507,21 @@ class PlatformPermissionService implements PermissionService {
         }
     }
     return _locationState();
+  }
+
+  @override
+  Future<CalendarPermissionState> requestCalendar() async {
+    final current = await _calendarState();
+    switch (calendarFix(current)) {
+      case PermissionFix.none:
+        return current;
+      case PermissionFix.openSettings:
+        await _location.openAppSettings();
+      case PermissionFix.request:
+        await _setFlag(_requestedCalendarKey);
+        await _calendar.request();
+    }
+    return _calendarState();
   }
 
   @override

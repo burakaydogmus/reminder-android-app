@@ -10,6 +10,14 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!--
+      F8.1: device calendar events are shown read-only. WRITE_CALENDAR is
+      deliberately NOT declared — the app never creates or edits device
+      events, and permission_handler only asks for calendar permissions that
+      are declared here (PermissionUtils.getManifestNames), so the runtime
+      request stays a read-only one.
+    -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <application
         android:allowBackup="false"

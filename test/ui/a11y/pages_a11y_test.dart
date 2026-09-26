@@ -14,6 +14,7 @@ import 'package:reminder/ui/lists/smart_lists.dart';
 import 'package:reminder/ui/maps/location_picker_page.dart';
 import 'package:reminder/ui/search/search_page.dart';
 import 'package:reminder/ui/settings/settings_page.dart';
+import '../../services/fake_device_calendar_platform.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ui_harness.dart';
@@ -26,13 +27,30 @@ const _bothPlatforms = [TargetPlatform.android, TargetPlatform.iOS];
 Future<UiHarness> _pumpPage(
   WidgetTester tester,
   A11yVariant variant,
-  Widget page,
-) async {
+  Widget page, {
+  bool calendarEvents = false,
+}) async {
   final h = await UiHarness.create(
     reminders: auditReminders(),
     birthdays: auditBirthdays(),
     now: auditClock,
   );
+  if (calendarEvents) {
+    h.calendarPlatform.calendarList = [
+      buildDeviceCalendar(id: 'cal-personal', name: 'Kişisel'),
+      buildDeviceCalendar(
+        id: 'cal-work',
+        name: 'İş',
+        accountName: 'is@example.com',
+      ),
+      buildDeviceCalendar(
+        id: 'cal-holidays',
+        name: 'Resmî tatiller ve dinî bayramlar',
+        accountName: null,
+        colorHex: null,
+      ),
+    ];
+  }
   await tester.pumpWidget(
     h.app(
       theme: variant.theme,
@@ -42,6 +60,10 @@ Future<UiHarness> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
+  if (calendarEvents) {
+    await h.calendar.setEnabled(true);
+    await tester.pumpAndSettle();
+  }
   return h;
 }
 
@@ -97,6 +119,22 @@ void main() {
     },
     platforms: _bothPlatforms,
     surface: const Size(390, 3200),
+  );
+
+  // F8.1: Ayarlar with the calendar opt-in on and the per-calendar picker.
+  a11yAudit(
+    'Ayarlar with the device calendar picker',
+    (tester, variant) async {
+      final h = await _pumpPage(
+        tester,
+        variant,
+        const SettingsPage(),
+        calendarEvents: true,
+      );
+      expect(h.calendar.enabled, isTrue);
+    },
+    platforms: _bothPlatforms,
+    surface: const Size(390, 4200),
   );
 
   a11yAudit('Doğum günleri', (tester, variant) async {

@@ -10,6 +10,8 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/l10n/app_language.dart';
+import 'package:reminder/services/calendar_settings_store.dart';
+import 'package:reminder/ui/calendar/device_calendar_scope.dart';
 import 'package:reminder/ui/permissions/permission_scope.dart';
 import 'package:reminder/ui/theme/haptics.dart';
 import 'package:reminder/ui/theme/haptics_store.dart';
@@ -17,6 +19,7 @@ import 'package:reminder/ui/theme/kor_theme.dart';
 
 import '../helpers/fake_permission_service.dart';
 import '../helpers/mocks.dart';
+import '../services/fake_device_calendar_platform.dart';
 
 /// Light and dark Kor themes for widget tests.
 final korThemes = <(String, ThemeData Function())>[
@@ -84,6 +87,22 @@ class UiHarness {
   /// "Dil" (F6.1): Turkish unless a test passes another [app] `language`.
   final AppLanguageStore languageStore = AppLanguageStore.memory();
 
+  /// F8.1 device calendar: the fake platform behind [calendar]. Seed
+  /// `calendarList` / `eventList` before pumping.
+  final FakeDeviceCalendarPlatform calendarPlatform =
+      FakeDeviceCalendarPlatform();
+
+  /// F8.1 "Takvim etkinlikleri": **off** unless a test enables it, so every
+  /// existing screen test sees exactly what it saw before.
+  late final DeviceCalendarController calendar = DeviceCalendarController(
+    permissions: permissions,
+    platform: calendarPlatform,
+    store: calendarStore,
+  );
+
+  /// Opt-in + selection store behind [calendar] (in memory).
+  final CalendarSettingsStore calendarStore = CalendarSettingsStore.memory();
+
   /// Wraps [home] like `App`. The app is Turkish by default so existing
   /// tests keep their Turkish expectations; pass
   /// `language: AppLanguage.english` for the English variants.
@@ -96,26 +115,29 @@ class UiHarness {
   }) {
     return PermissionScope(
       service: permissions,
-      child: BlocProvider.value(
-        value: cubit,
-        child: AppLanguageScope(
-          store: languageStore,
-          initial: language,
-          onChanged: onLanguageChanged,
-          child: Builder(
-            builder: (context) => MaterialApp(
-              theme: theme().copyWith(platform: platform),
-              locale: AppLocales.resolve(
-                AppLanguageScope.maybeOf(context)?.language ?? language,
-                const [AppLocales.turkish],
+      child: DeviceCalendarScope(
+        controller: calendar,
+        child: BlocProvider.value(
+          value: cubit,
+          child: AppLanguageScope(
+            store: languageStore,
+            initial: language,
+            onChanged: onLanguageChanged,
+            child: Builder(
+              builder: (context) => MaterialApp(
+                theme: theme().copyWith(platform: platform),
+                locale: AppLocales.resolve(
+                  AppLanguageScope.maybeOf(context)?.language ?? language,
+                  const [AppLocales.turkish],
+                ),
+                supportedLocales: AppLocales.supported,
+                localizationsDelegates: App.localizationsDelegates,
+                builder: (context, child) => HapticsScope(
+                  store: haptics,
+                  child: child ?? const SizedBox.shrink(),
+                ),
+                home: home,
               ),
-              supportedLocales: AppLocales.supported,
-              localizationsDelegates: App.localizationsDelegates,
-              builder: (context, child) => HapticsScope(
-                store: haptics,
-                child: child ?? const SizedBox.shrink(),
-              ),
-              home: home,
             ),
           ),
         ),

@@ -13,6 +13,7 @@ import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_surfaces.dart';
 import 'package:reminder/ui/settings/backup_actions.dart';
+import 'package:reminder/ui/settings/calendar_group.dart';
 import 'package:reminder/ui/settings/permissions_group.dart';
 import 'package:reminder/ui/settings/reset_data_dialog.dart';
 import 'package:reminder/ui/settings/widget_pin_sheet.dart';
@@ -173,6 +174,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: KorSpacing.s5),
+              // F8.1: read-only device calendar events, off by default.
+              const CalendarSettingsGroup(),
               if (PlatformChrome.isAndroid(context)) ...[
                 const SizedBox(height: KorSpacing.s5),
                 GroupedCard(

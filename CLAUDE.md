@@ -198,8 +198,14 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     decision (cooldown, initial-trigger grace). `geofence_platform.dart` wraps the
     plugin; `geofence_state_store.dart` persists registrations and last-notified times.
   - `permission_service.dart` — `PermissionService` (check/request/open settings for
-    notifications, exact alarms, location) with pure decision helpers;
-    `PlatformPermissionService` over flutter_local_notifications + permission_handler.
+    notifications, exact alarms, location, **calendar read access**) with pure decision
+    helpers; `PlatformPermissionService` over flutter_local_notifications +
+    permission_handler.
+  - `device_calendar_service.dart` — `DeviceCalendarPlatform`, the testable seam over
+    `device_calendar_plus` (F8.1), with `DeviceCalendarInfo` / `DeviceCalendarEvent` /
+    `DeviceCalendarReadException`. **Read-only: no write method exists.**
+    `calendar_settings_store.dart` — `CalendarSettingsStore` (opt-in + visible calendars in
+    SharedPreferences). See **Device calendar (F8.1)**.
   - `places_nearby_service.dart` — Google Places Nearby over HTTP.
   - `reminder_home_widget_sync.dart` — writes the widget payload and refreshes the
     platform's widgets (`syncRemindersToHomeWidget`; Android `ReminderHomeWidget`, iOS
@@ -249,6 +255,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     (`showCategoryEditorSheet`, `CategoryEditorSheet`, `ColorSwatchButton`,
     `CategoryPreview`) and `category_list_section.dart` (Listeler › Kategorilerim,
     `CategoryListSection`).
+  - `calendar/` also holds F8.1: `device_calendar_scope.dart`
+    (`DeviceCalendarController` + `DeviceCalendarScope`), `calendar_event_card.dart`
+    (`CalendarEventCard`) and `calendar_event_actions.dart` (open / read-only sheet /
+    reminder draft); `ui/settings/calendar_group.dart` is the Ayarlar group.
   - `today/` — `TodayPage` + `TodaySections` (overdue / today / untimed / completed
     grouping and `timeline(now:)`, pure), `time_ribbon.dart` (`TimeRibbonRow`,
     `NowLine`), `overdue_actions.dart` ("Hepsini yarına al"). `calendar/` —
@@ -1336,6 +1346,9 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - iOS: `ios/Podfile` sets `PERMISSION_LOCATION=1` for permission_handler (all its
   permissions are compiled out by default); notification permission goes through
   flutter_local_notifications.
+- Calendar (F8.1): `PermissionFlows.calendar` is only ever reached from the Ayarlar
+  toggle — nothing else asks for the calendar. `fixCalendar` is the Settings row's action.
+  See **Device calendar (F8.1)** for the platform details.
 - Exact alarms (F6.2c): the manifest declares only `SCHEDULE_EXACT_ALARM` —
   **never add `USE_EXACT_ALARM`** (Play restricts it to alarm-clock/calendar apps; see
   `docs/store/permissions-review.md` §3). The permission is optional: without it
@@ -1343,6 +1356,84 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   Settings row explain "İzin olmadan hatırlatmalar birkaç dakika gecikebilir"
   (`PermissionFlows.exactAlarmTradeOff`); `PermissionFlows.fixExactAlarms` reloads the cubit
   (→ resync) when the state changed on return from system settings.
+
+## Device calendar (F8.1)
+
+Device calendar events are shown **read-only** next to reminders, opt-in and off by default.
+
+- **Plugin:** [`device_calendar_plus`](https://pub.dev/packages/device_calendar_plus) `^0.9.0`
+  (federated: `_android` / `_ios` / `_platform_interface`). `device_calendar`, the usual
+  choice, **cannot be used here**: 4.x pins `timezone ^0.9.0` against our `^0.11.1`
+  (required by `flutter_local_notifications` 22) and its Android module still does
+  `apply plugin: 'kotlin-android'` with `compileSdkVersion 34` and its own AGP 4.1.3
+  classpath, which AGP 9 / built-in Kotlin rejects; 3.9.0 resolves but is Dart 2
+  (`sdk: <3.0.0`), has no `namespace` and pins AGP 3.4.2 / Kotlin 1.3.41.
+  `device_calendar_plus` has **no Dart dependencies of its own** (so nothing to pin),
+  `namespace` + built-in Kotlin, `compileSdk 36` / `minSdk 24`, iOS 13 and the iOS 17
+  EventKit access API. It is pre-1.0, so the constraint pins the minor (`^0.9.0`) — read
+  its CHANGELOG before upgrading. Its Android module ships its own
+  `consumerProguardFiles`, so `android/app/proguard-rules.pro` needs no entry.
+- **Seam:** `DeviceCalendarPlatform` (`lib/services/device_calendar_service.dart`) is the
+  only place that touches the plugin — the same role `HomeWidgetPlatform` plays for
+  `home_widget`. It has `calendars()`, `events()` and `openEvent()` and **no write
+  method**, so no code path can create or change a device event. Tests pass
+  `FakeDeviceCalendarPlatform` (`test/services/fake_device_calendar_platform.dart`); the
+  real plugin has no implementation on the test host.
+  **Do not use the plugin's own `requestPermissions` / `hasPermissions`:** they require
+  `WRITE_CALENDAR` to be declared in the manifest even for a read, while its read
+  endpoints gate on `READ_CALENDAR` alone (`PermissionGates.readAccessFailure`).
+  `DeviceCalendar.autoPermissions` therefore stays at its default `null` and permission
+  goes through `PermissionService.requestCalendar` like every other permission.
+- **Permissions:** Android declares **only `READ_CALENDAR`** — never add `WRITE_CALENDAR`
+  (it would widen the Play data-safety answer for a feature that writes nothing;
+  permission_handler only asks for permissions declared in the manifest, see
+  `PermissionUtils.getManifestNames`). iOS needs
+  `NSCalendarsFullAccessUsageDescription` (iOS 17+, `requestFullAccessToEvents`) **and**
+  the legacy `NSCalendarsUsageDescription` for iOS 15/16 (`requestAccess(to: .event)`);
+  `NSCalendarsWriteOnlyAccessUsageDescription` is deliberately absent because EventKit's
+  write-only tier **cannot read**. Localized copies live in
+  `ios/Runner/{tr,en}.lproj/InfoPlist.strings`, and the Podfile sets
+  `PERMISSION_EVENTS=1` + `PERMISSION_EVENTS_FULL_ACCESS=1` (permission_handler compiles
+  every permission out by default).
+- **State and caching:** `DeviceCalendarController` (`ui/calendar/device_calendar_scope.dart`)
+  holds the opt-in, the selection and **one padded window** of occurrences
+  (`padBeforeDays` 7, `padAfterDays` 45). `eventsInRange` / `eventsOnDay` answer from that
+  cache and are safe to call from `build`: a range outside the window schedules **one**
+  read in a microtask (concurrent requests coalesce), so a rebuild — the shell's minute
+  tick, a theme change, a scroll — never touches the calendar API. Changing the calendar
+  selection invalidates the window. `DeviceCalendarScope` sits above `MaterialApp` in
+  `app.dart`, so the tabs and the pushed Ayarlar route share one cache, and it reloads on
+  `resumed` (the same foreground trigger `AppStateReloader` uses for stored state).
+- **Graceful degradation:** a `permissionDenied` read (or a `refresh` that finds the
+  permission gone) persists the opt-in back to **off**, clears the cache and the calendar
+  list and notifies — the sections disappear instead of showing an empty header. A
+  non-permission failure (`unavailable`: no calendar provider, a plugin error) keeps the
+  feature on and shows nothing new. `permissionsNotDeclared` maps to `unavailable`, not to
+  a denial: it is a build-configuration bug, not a user decision.
+- **UI:** `CalendarEventCard` is a **sibling** of the reminder cards, never a
+  reconfigured `ReminderCard`: no `KorCheckbox`, no `ReminderSwipe`, no long-press
+  delete, no `LongPressDraggable`. It is a flat card with a 3 px colour rail (in a
+  `Stack`, not a stretched `Row` — a stretch cross-axis cannot resolve inside a sliver
+  list) and a meta line that always starts with "takvim etkinliği", so the row never
+  relies on colour alone; the semantics label adds "yalnızca okunur" and the time goes
+  through `KorFormat.spokenTime`. An all-day event shows "Tüm gün", never `00:00`, and the
+  time stacks under the title above text scale 1.3 (`ReminderCard.stacksTime`).
+  Recurring series arrive already expanded from the platform: one `DeviceCalendarEvent`
+  per occurrence sharing `eventId` but with its own `id` (the platform's *unstable*
+  instance id — never persist it).
+- **Opening an event:** `openCalendarEvent` calls the plugin's `showEventModal` (Android
+  `ACTION_VIEW` on the event, i.e. the system calendar app; iOS `EKEventViewController`).
+  `url_launcher` is deliberately **not** used: there is no cross-platform event URL and
+  probing one would need the `<queries>` / `LSApplicationQueriesSchemes` entries the
+  project avoids (see `config/app_links.dart`). When the platform cannot show it, the
+  read-only `showCalendarEventSheet` opens instead, so a tap is never a dead end.
+- **"Hatırlatıcı oluştur"** is the one write-ish path and writes only to **our** store:
+  `calendarEventDraft` (pure) then `showReminderEditorSheet(draft:)`. An all-day event
+  drafts 09:00 on its day; a start already in the past drafts an **untimed** reminder,
+  because the editor rightly refuses a past time (F1.8b).
+- **Not done on purpose:** writing to the device calendar (F8.2) and day dots for device
+  events in the week strip / month grid (F8.3 — they would need a neutral marker token
+  beside the category `KorColorKey`s).
 
 ## Platform notes
 
@@ -1361,4 +1452,5 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
   widgets over one payload (see **Home screen widgets — shared contract**): Android
   RemoteViews (F5.1), iOS WidgetKit (F5.2, `docs/ios-widget-setup.md`).
 - Store readiness (privacy policy, data safety answers, permissions/policy review, listing drafts,
-  licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change.
+  licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change
+  (F8.1 added `READ_CALENDAR` and the iOS calendar keys there).
