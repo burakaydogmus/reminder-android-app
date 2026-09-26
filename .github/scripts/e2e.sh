@@ -102,7 +102,9 @@ run_test() {
   adb logcat -c >/dev/null 2>&1 || true
   # --timeout=none: a device test is minutes long, the 30 s per-test default
   # would kill it. `pipefail` is on, so tee does not hide the exit status.
-  if flutter test "$file" -d "$DEVICE" --timeout=none "$@" 2>&1 \
+  # -r expanded: the default GitHub reporter only prints a group for a *failing*
+  # test, so a passing test's `print` (the E2E_PHASE marker) would be swallowed.
+  if flutter test "$file" -d "$DEVICE" --timeout=none -r expanded "$@" 2>&1 \
       | tee "$ARTIFACTS/out-$label.txt"; then
     record PASS "$label"
   else
