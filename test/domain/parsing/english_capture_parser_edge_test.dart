@@ -197,25 +197,47 @@ void main() {
     );
     test('bare day parts use the configured hours', () {
       expect(
-        parse('morning pills', kNow, config).dateTime,
+        parse('morning dentist', kNow, config).dateTime,
         DateTime(2026, 9, 14, 7),
       );
       expect(
-        parse('tomorrow afternoon meeting', kNow, config).dateTime,
+        parse('tomorrow afternoon dentist', kNow, config).dateTime,
         DateTime(2026, 9, 14, 16),
       );
       expect(
-        parse('evening call mom', kNow, config).dateTime,
+        parse('evening dentist', kNow, config).dateTime,
         DateTime(2026, 9, 13, 19),
       );
       expect(
-        parse('night pills', kNow, config).dateTime,
+        parse('night dentist', kNow, config).dateTime,
         DateTime(2026, 9, 13, 23),
       );
       expect(
         parse('at noon lunch', kNow, config).dateTime,
         DateTime(2026, 9, 14, 13),
       );
+    });
+    test('day parts after a date use the configured hours too', () {
+      expect(
+        parse('tomorrow morning yoga', kNow, config).dateTime,
+        DateTime(2026, 9, 14, 7),
+        reason: 'after a date the compound-noun guard does not apply',
+      );
+      expect(
+        parse('this morning yoga', kNow, config).dateTime,
+        DateTime(2026, 9, 13, 7),
+      );
+    });
+    test('a compound noun stays text whatever the configured hour is', () {
+      for (final input in const [
+        'morning pills',
+        'evening call mom',
+        'night cream',
+      ]) {
+        final r = parse(input, kNow, config);
+        expect(r.dateTime, isNull, reason: input);
+        expect(r.tokens, isEmpty, reason: input);
+      }
     });
     test('an explicit hour ignores the configured default', () {
       expect(
