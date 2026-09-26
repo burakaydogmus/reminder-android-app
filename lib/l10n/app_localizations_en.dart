@@ -2314,4 +2314,141 @@ class AppLocalizationsEn extends AppLocalizations {
   String calendarEventMultiDay(String start, String end) {
     return '$start – $end';
   }
+
+  @override
+  String get permContactsTitle => 'Let\'s take birthdays from your contacts';
+
+  @override
+  String get permContactsBody =>
+      'We read the birthdays in your address book once and add them to your list. Nothing is ever written to your contacts and nobody is changed; only the name and the date are taken.';
+
+  @override
+  String get permContactsPoint1 =>
+      'Your contacts are read once, on this device only';
+
+  @override
+  String get permContactsPoint2 => 'Nothing is ever written to your contacts';
+
+  @override
+  String get permContactsPoint3 =>
+      'Only the name and the date are kept — no photos, no numbers';
+
+  @override
+  String get permContactsConfirm => 'Allow';
+
+  @override
+  String get contactImportTooltip => 'Import from contacts';
+
+  @override
+  String get contactImportTitle => 'Import from contacts';
+
+  @override
+  String get contactImportLoading => 'Reading your contacts…';
+
+  @override
+  String get contactImportUnavailable =>
+      'Your contacts cannot be read right now. Try again later.';
+
+  @override
+  String get contactImportDenied =>
+      'Contacts access was not granted, so birthdays cannot be read. Allow it in settings and try again from here. You can always add birthdays by hand.';
+
+  @override
+  String get contactImportEmpty =>
+      'No contact has a birthday. Add birthdays to your contacts and they will show up here.';
+
+  @override
+  String contactImportFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count contacts have a birthday',
+      one: '1 contact has a birthday',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportSelectAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Select all ($count)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportSelectNone => 'Clear selection';
+
+  @override
+  String contactImportAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Import $count contacts',
+      one: 'Import 1 contact',
+      zero: 'Import',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportAlreadyAdded => 'already added';
+
+  @override
+  String get contactImportYearUnknown => 'year unknown';
+
+  @override
+  String contactImportRowSubtitle(String date, String note) {
+    return '$date · $note';
+  }
+
+  @override
+  String get contactImportResultTitle => 'Import summary';
+
+  @override
+  String contactImportResultImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported: $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportResultSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Already added: $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportResultNothing => 'No birthday was imported.';
+
+  @override
+  String contactImportSnack(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count birthdays imported',
+      one: '1 birthday imported',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportSnackWithSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count birthdays imported, $skipped already added',
+      one: '1 birthday imported, $skipped already added',
+    );
+    return '$_temp0';
+  }
 }

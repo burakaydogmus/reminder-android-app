@@ -22,6 +22,10 @@ class FakePermissionService implements PermissionService {
   CalendarPermissionState calendarRequestResult =
       CalendarPermissionState.granted;
 
+  /// State after [requestContacts] (default: granted, F7.3).
+  ContactsPermissionState contactsRequestResult =
+      ContactsPermissionState.granted;
+
   final Set<PermissionPrompt> shownPrompts = {};
   final List<String> calls = [];
 
@@ -73,9 +77,22 @@ class FakePermissionService implements PermissionService {
   }
 
   @override
+  Future<ContactsPermissionState> requestContacts() async {
+    calls.add('requestContacts');
+    snapshot = snapshot.copyWith(contacts: contactsRequestResult);
+    return contactsRequestResult;
+  }
+
+  @override
   Future<void> openAppSettings() async {
     calls.add('openAppSettings');
+    final result = appSettingsResult;
+    if (result != null) snapshot = snapshot.copyWith(contacts: result);
   }
+
+  /// Contacts state after returning from [openAppSettings] (default:
+  /// unchanged) — lets a test walk the "denied → Ayarları aç → granted" path.
+  ContactsPermissionState? appSettingsResult;
 
   @override
   Future<bool> shouldShowPrompt(PermissionPrompt prompt) async =>

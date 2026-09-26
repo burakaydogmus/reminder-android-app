@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:reminder/bloc/reminder_cubit.dart';
 import 'package:reminder/l10n/l10n.dart';
+import 'package:reminder/services/contacts_service.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/birthdays/birthday_groups.dart';
+import 'package:reminder/ui/birthdays/contact_import_sheet.dart';
 import 'package:reminder/ui/calendar/agenda.dart';
 import 'package:reminder/ui/common/kor_format.dart';
 import 'package:reminder/ui/common/now_scope.dart';
@@ -19,12 +21,22 @@ import 'package:reminder/ui/theme/tokens/kor_typography.dart';
 /// Keys for tests.
 abstract final class BirthdaysPageKeys {
   static const hero = Key('birthdays.hero');
+  static const import = Key('birthdays.import');
 }
 
 /// Listeler › Doğum günleri (§3.3.7): "SIRADAKİ" hero card, then every
 /// birthday grouped by the month of its next occurrence.
 class BirthdaysPage extends StatelessWidget {
-  const BirthdaysPage({super.key});
+  const BirthdaysPage({super.key, this.contactsPlatform});
+
+  /// F7.3 seam for "Rehberden aktar"; tests pass `FakeContactsPlatform`
+  /// (the real plugin has no implementation on the test host).
+  final ContactsPlatform? contactsPlatform;
+
+  Future<void> _import(BuildContext context) => showContactImportSheet(
+        context,
+        platform: contactsPlatform ?? const PluginContactsPlatform(),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +46,12 @@ class BirthdaysPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         actions: [
+          IconButton(
+            key: BirthdaysPageKeys.import,
+            tooltip: l10n.contactImportTooltip,
+            onPressed: () => _import(context),
+            icon: const Icon(Icons.contact_page_outlined),
+          ),
           IconButton(
             tooltip: l10n.birthdayAddTooltip,
             onPressed: () => showBirthdayEditorSheet(context),
