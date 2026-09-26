@@ -19,6 +19,24 @@ enum RecurrenceFrequency {
   yearly,
 }
 
+/// Tekrarın neye göre sayıldığı (F3.1c).
+enum RecurrenceAnchor {
+  /// **Takvime göre:** seri sabit tarihlerden oluşur. Geç tamamlamak sıradaki
+  /// tekrarı kaydırmaz, kaçırılan tekrarlar atlanır. F3.1 / F3.1b davranışı,
+  /// varsayılan.
+  schedule,
+
+  /// **Tamamlandıktan sonra:** sıradaki tekrar hatırlatıcının *tamamlandığı*
+  /// günden sayılır ("çarşafları yıkadıktan 14 gün sonra"). Tamamlanmadıkça
+  /// hatırlatıcı yerinde kalır ve gecikir — asıl amaç bu.
+  ///
+  /// Bu modda takvim alanları ([RecurrenceRule.weekdays],
+  /// [RecurrenceRule.dayOfMonth], [RecurrenceRule.month]) anlamsızdır ve kural
+  /// kurulurken **bilerek düşürülür**: sıradaki tarih ayın gününden değil
+  /// tamamlama gününden gelir.
+  completion,
+}
+
 /// Bir hatırlatıcının tekrar kuralı (saf Dart, değer tipi).
 ///
 /// Kural yalnızca **tarihi** üretir; saat, dakika ve saniye her zaman
@@ -30,6 +48,12 @@ enum RecurrenceFrequency {
 /// dizisi `anchor`'ın günü/haftası (Pazartesi başlangıçlı)/ayı/yılıyla başlar.
 /// Tamamlanınca `remindAt` bir sonraki tekrara ilerlediği için yeni `anchor`
 /// aynı dizinin üzerindedir; faz korunur.
+///
+/// İki **ölçüt** ([anchorMode], F3.1c) var: takvime göre (yukarısı) ve
+/// tamamlandıktan sonra. İkincisinde takvimde bilinen bir gelecek tarih
+/// **yoktur** — bu yüzden [nextOccurrence] (ve dolayısıyla [firstOnOrAfter],
+/// [upcoming]) `null` döner; sıradaki tarih yalnızca [nextAfterCompletion] ile,
+/// tamamlama anı belli olduğunda hesaplanır.
 class RecurrenceRule {
   const RecurrenceRule._({
     required this.frequency,
@@ -38,6 +62,7 @@ class RecurrenceRule {
     this.month,
     this.dayOfMonth,
     this.until,
+    this.anchorMode = RecurrenceAnchor.schedule,
   });
 
   /// Tekrar yok.
@@ -110,7 +135,32 @@ class RecurrenceRule {
         until: _dateOnly(until),
       );
 
+  /// Tamamlandıktan [interval] gün/hafta/ay/yıl sonra tekrarlayan kural
+  /// (F3.1c): "tamamlandıktan 14 gün sonra".
+  ///
+  /// Takvim alanları (haftanın günleri, ayın günü, yıllık ay/gün) bu modda
+  /// anlamsız olduğu için **hiç alınmaz**: sıradaki tarih yalnızca tamamlama
+  /// gününden ve [interval]'dan gelir. [RecurrenceFrequency.none] verilirse
+  /// [none] döner (mod tek başına bir tekrar değildir).
+  factory RecurrenceRule.afterCompletion(
+    RecurrenceFrequency frequency, {
+    int interval = 1,
+    DateTime? until,
+  }) {
+    if (frequency == RecurrenceFrequency.none) return none;
+    return RecurrenceRule._(
+      frequency: frequency,
+      interval: _clampInterval(interval),
+      until: _dateOnly(until),
+      anchorMode: RecurrenceAnchor.completion,
+    );
+  }
+
   final RecurrenceFrequency frequency;
+
+  /// Tekrarın ölçütü (F3.1c): takvim ya da tamamlama. [none] her zaman
+  /// [RecurrenceAnchor.schedule].
+  final RecurrenceAnchor anchorMode;
 
   /// Aralık (≥ 1): "2 haftada bir" için 2.
   final int interval;
@@ -131,6 +181,10 @@ class RecurrenceRule {
 
   bool get isNone => frequency == RecurrenceFrequency.none;
 
+  /// Tekrar tamamlama tarihine göre mi sayılıyor (F3.1c)?
+  bool get isCompletionAnchored =>
+      anchorMode == RecurrenceAnchor.completion && !isNone;
+
   RecurrenceRule withUntil(DateTime? value) => isNone
       ? this
       : RecurrenceRule._(
@@ -140,6 +194,7 @@ class RecurrenceRule {
           month: month,
           dayOfMonth: dayOfMonth,
           until: _dateOnly(value),
+          anchorMode: anchorMode,
         );
 
   /// Serinin tarihi [date]'e taşınınca ("tüm seri") kuralı yeni güne uyarlar:
@@ -148,8 +203,10 @@ class RecurrenceRule {
   /// kuralın açık ay/günü yeni tarihe geçer (kırpılmış gün — 29 Şubat kuralı
   /// 28 Şubat'a taşınırsa — aynı kalır), ay/günü `anchor`'dan alan kural
   /// zaten yeni tarihi izler. Diğer kurallar değişmez. Aralık ve bitiş
-  /// korunur.
+  /// korunur. Ölçüt ([anchorMode]) hiçbir zaman değişmez; tamamlamaya bağlı
+  /// kuralın hizalanacak takvim alanı olmadığı için kural aynen döner.
   RecurrenceRule alignedTo(DateTime date) {
+    if (isCompletionAnchored) return this;
     switch (frequency) {
       case RecurrenceFrequency.weekly:
         if (weekdays.contains(date.weekday)) return this;
@@ -191,8 +248,15 @@ class RecurrenceRule {
   /// dizinin başlangıcıdır ve kurala uyuyorsa kendisi de bir tekrardır;
   /// [anchor]'dan önceki günler hiçbir zaman döndürülmez. Tekrar yoksa veya
   /// [until] geçildiyse `null`.
+  ///
+  /// **Tamamlamaya bağlı kural (F3.1c) her zaman `null` döner:** takvimde
+  /// bilinen bir sonraki tarih yoktur, tarih ancak tamamlanınca doğar
+  /// ([nextAfterCompletion]). Bu sayede geçmiş kalan böyle bir hatırlatıcı
+  /// tekrarsız biri gibi yerinde kalıp gecikir (bildirim yeniden kurulmaz,
+  /// takvim de seriyi ileriye yansıtmaz).
   DateTime? nextOccurrence(
       {required DateTime after, required DateTime anchor}) {
+    if (isCompletionAnchored) return null;
     final candidate = switch (frequency) {
       RecurrenceFrequency.none => null,
       RecurrenceFrequency.daily => _nextDaily(after, anchor),
@@ -200,6 +264,57 @@ class RecurrenceRule {
       RecurrenceFrequency.monthly => _nextMonthly(after, anchor),
       RecurrenceFrequency.yearly => _nextYearly(after, anchor),
     };
+    return _withinUntil(candidate);
+  }
+
+  /// Tamamlamaya bağlı kuralın ([RecurrenceAnchor.completion]) sıradaki
+  /// tekrarı: **[completedAt]'in günü + [interval]**, saat/dakika [anchor]'dan
+  /// (hatırlatıcının kendi saati, tamamlama anı değil). 10:00'a kurulu, 14
+  /// günlük bir hatırlatıcı ayın 3'ünde 23:40'ta tamamlanırsa sıradaki tekrar
+  /// 17'si 10:00 olur.
+  ///
+  /// Hesap yine takvim alanlarıyla yapılır (`DateTime(y, m, d + n, h, min)`),
+  /// `Duration` eklenmez: yaz saati geçişinde saat kaymaz. Ay ve yıl
+  /// aralıklarında gün ayın son gününe kırpılır (31 Ocak + 1 ay → 28/29 Şubat).
+  ///
+  /// Takvime bağlı kurallarda ve [none]'da `null`; [until] geçildiyse de `null`
+  /// (seri bitti, hatırlatıcı tamamlanmış sayılır).
+  DateTime? nextAfterCompletion({
+    required DateTime completedAt,
+    required DateTime anchor,
+  }) {
+    if (!isCompletionAnchored) return null;
+    final year = completedAt.year;
+    final month = completedAt.month;
+    final day = completedAt.day;
+    final candidate = switch (frequency) {
+      RecurrenceFrequency.none => null,
+      RecurrenceFrequency.daily => _at(anchor, year, month, day + interval),
+      RecurrenceFrequency.weekly =>
+        _at(anchor, year, month, day + 7 * interval),
+      RecurrenceFrequency.monthly => _monthsAfter(anchor, year, month, day),
+      RecurrenceFrequency.yearly => _yearsAfter(anchor, year, month, day),
+    };
+    return _withinUntil(candidate);
+  }
+
+  /// [interval] ay sonrası, gün ayın son gününe kırpılmış.
+  DateTime _monthsAfter(DateTime anchor, int year, int month, int day) {
+    final index = year * 12 + month - 1 + interval;
+    final y = index ~/ 12;
+    final m = index % 12 + 1;
+    return _at(anchor, y, m, math.min(day, daysInMonth(y, m)));
+  }
+
+  /// [interval] yıl sonrası, gün ayın son gününe kırpılmış (29 Şubat → 28
+  /// Şubat, yıllık takvim kuralıyla aynı davranış).
+  DateTime _yearsAfter(DateTime anchor, int year, int month, int day) {
+    final y = year + interval;
+    return _at(anchor, y, month, math.min(day, daysInMonth(y, month)));
+  }
+
+  /// [candidate] bitişi ([until], dahil) geçtiyse `null`.
+  DateTime? _withinUntil(DateTime? candidate) {
     if (candidate == null) return null;
     final end = until;
     if (end != null &&
@@ -300,9 +415,10 @@ class RecurrenceRule {
   }
 
   /// Yıllık kuralın hedef ay/günü, `null` alanları [anchor]'dan tamamlanmış
-  /// hali; kural yıllık değilse `null`.
+  /// hali; kural yıllık değilse `null`. Tamamlamaya bağlı yıllık kuralın sabit
+  /// bir ay/günü **yoktur** (tarih tamamlamadan gelir), o da `null` döner.
   ({int month, int day})? yearlyTarget(DateTime anchor) =>
-      frequency == RecurrenceFrequency.yearly
+      frequency == RecurrenceFrequency.yearly && !isCompletionAnchored
           ? (month: month ?? anchor.month, day: dayOfMonth ?? anchor.day)
           : null;
 
@@ -341,17 +457,27 @@ class RecurrenceRule {
   // JSON
 
   /// `null` → tekrar yok (eski kayıtlar).
+  ///
+  /// Ölçüt **ek bir alan** olarak yazılır (`anchor: 'completion'`) ve yalnızca
+  /// tamamlamaya bağlı kurallarda görünür: takvime bağlı kuralların JSON'u
+  /// F3.1b'dekiyle bit bit aynı kalır (bildirim parmak izi değişmez).
   Map<String, dynamic>? toJson() {
     if (isNone) return null;
     final end = until;
+    final calendar = !isCompletionAnchored;
     return {
       'frequency': frequency.name,
       'interval': interval,
-      if (frequency == RecurrenceFrequency.weekly) 'weekdays': weekdays,
-      if (frequency == RecurrenceFrequency.monthly) 'dayOfMonth': dayOfMonth,
-      if (frequency == RecurrenceFrequency.yearly && month != null)
+      if (isCompletionAnchored) 'anchor': anchorMode.name,
+      if (calendar && frequency == RecurrenceFrequency.weekly)
+        'weekdays': weekdays,
+      if (calendar && frequency == RecurrenceFrequency.monthly)
+        'dayOfMonth': dayOfMonth,
+      if (calendar && frequency == RecurrenceFrequency.yearly && month != null)
         'month': month,
-      if (frequency == RecurrenceFrequency.yearly && dayOfMonth != null)
+      if (calendar &&
+          frequency == RecurrenceFrequency.yearly &&
+          dayOfMonth != null)
         'dayOfMonth': dayOfMonth,
       if (end != null)
         'until': '${end.year.toString().padLeft(4, '0')}-'
@@ -365,13 +491,32 @@ class RecurrenceRule {
   /// **Geriye dönük uyumluluk:** bu tolerans bilerek böyle; `yearly`
   /// bilmeyen **eski bir sürüm** (ya da eski bir yedek okuyucusu) yıllık
   /// kuralı [none] olarak okur — hatırlatıcı korunur, yalnızca tekrarını
-  /// kaybeder.
+  /// kaybeder. Ölçüt ek bir alan olduğu için (`anchor`) eski sürüm onu
+  /// **yok sayar**: tekrar çalışmaya devam eder, ama takvime göre — artık
+  /// tamamlama tarihini takip etmez.
+  ///
+  /// `anchor: 'completion'` okunurken takvim alanları (`weekdays`,
+  /// `dayOfMonth`, `month`) **bilerek düşürülür**: o modda anlamları yok.
   static RecurrenceRule fromJson(Object? json) {
     if (json is! Map) return none;
     try {
       final interval = (json['interval'] as num?)?.toInt() ?? 1;
       final untilRaw = json['until'];
       final until = untilRaw is String ? DateTime.tryParse(untilRaw) : null;
+      if (json['anchor'] == RecurrenceAnchor.completion.name) {
+        final frequency = switch (json['frequency']) {
+          'daily' => RecurrenceFrequency.daily,
+          'weekly' => RecurrenceFrequency.weekly,
+          'monthly' => RecurrenceFrequency.monthly,
+          'yearly' => RecurrenceFrequency.yearly,
+          _ => RecurrenceFrequency.none,
+        };
+        return RecurrenceRule.afterCompletion(
+          frequency,
+          interval: interval,
+          until: until,
+        );
+      }
       switch (json['frequency']) {
         case 'daily':
           return RecurrenceRule.daily(interval: interval, until: until);
@@ -407,6 +552,7 @@ class RecurrenceRule {
   bool operator ==(Object other) =>
       other is RecurrenceRule &&
       other.frequency == frequency &&
+      other.anchorMode == anchorMode &&
       other.interval == interval &&
       _listEquals(other.weekdays, weekdays) &&
       other.month == month &&
@@ -416,6 +562,7 @@ class RecurrenceRule {
   @override
   int get hashCode => Object.hash(
         frequency,
+        anchorMode,
         interval,
         Object.hashAll(weekdays),
         month,
