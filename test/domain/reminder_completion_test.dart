@@ -48,6 +48,35 @@ void main() {
       );
     });
 
+    test('a yearly reminder advances to the next year', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 13, 18),
+        recurrence: RecurrenceRule.yearly(),
+      );
+      final next = completeReminder(r, now);
+      expect(next.isDone, isFalse);
+      expect(next.remindAt, DateTime(2027, 9, 13, 18));
+    });
+
+    test('a 29 February yearly reminder advances to 28 February', () {
+      final r = buildReminder(
+        remindAt: DateTime(2028, 2, 29, 10),
+        recurrence: RecurrenceRule.yearly(),
+      );
+      expect(
+        completeReminder(r, DateTime(2028, 2, 29, 11)).remindAt,
+        DateTime(2029, 2, 28, 10),
+      );
+    });
+
+    test('a yearly series past its end date is marked done', () {
+      final r = buildReminder(
+        remindAt: DateTime(2026, 9, 13, 18),
+        recurrence: RecurrenceRule.yearly(until: DateTime(2026, 12, 31)),
+      );
+      expect(completeReminder(r, now).isDone, isTrue);
+    });
+
     test('weekly overdue by weeks moves to the next future Saturday', () {
       final r = buildReminder(
         remindAt: DateTime(2026, 8, 22, 16),

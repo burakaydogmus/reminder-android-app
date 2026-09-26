@@ -153,6 +153,20 @@ void main() {
     );
   }, surface: const Size(390, 1600));
 
+  // The yearly option adds a sixth segment and its own note line.
+  a11yAudit('Tekrar (yıllık, 29 Şubat)', (tester, variant) async {
+    await _openSheet(
+      tester,
+      variant,
+      (context) => showRecurrenceSheet(
+        context,
+        initial: RecurrenceRule.yearly(interval: 2),
+        anchor: DateTime(2028, 2, 29, 9),
+        now: auditNow,
+      ),
+    );
+  }, surface: const Size(390, 1600));
+
   // Category chips keep working when the list is long.
   a11yAudit('Hatırlatıcı editörü (kategori seçili)', (tester, variant) async {
     await _openSheet(

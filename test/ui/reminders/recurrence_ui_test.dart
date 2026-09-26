@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/reminder_completion.dart';
+import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/l10n/l10n.dart';
 import 'package:reminder/ui/components/kor_checkbox.dart';
 import 'package:reminder/ui/components/reminder_card.dart';
@@ -30,13 +31,17 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-Finder _segment(RecurrenceMode mode) => find.descendant(
+Finder _segment(RecurrenceMode mode, [AppLocalizations? l10n]) =>
+    find.descendant(
       of: find.byKey(RecurrenceSheetKeys.segments),
-      matching: find.text(mode.labelIn(AppL10n.turkish)),
+      matching: find.text(mode.labelIn(l10n ?? AppL10n.turkish)),
     );
 
 String _previewText(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(RecurrenceSheetKeys.preview)).data!;
+
+String _yearNoteText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(RecurrenceSheetKeys.yearNote)).data!;
 
 String _intervalText(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(RecurrenceSheetKeys.intervalLabel)).data!;
@@ -76,6 +81,7 @@ void main() {
       RecurrenceRule initial = RecurrenceRule.none,
       DateTime? anchor,
       ThemeData Function() theme = KorTheme.light,
+      AppLanguage language = AppLanguage.turkish,
     }) async {
       result = null;
       closed = false;
@@ -83,6 +89,7 @@ void main() {
       await tester.pumpWidget(
         h.app(
           theme: theme,
+          language: language,
           home: Scaffold(
             body: Builder(
               builder: (context) => Center(
@@ -196,6 +203,75 @@ void main() {
       );
       await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
       expect(result, RecurrenceRule.monthly(dayOfMonth: 31));
+    });
+
+    testWidgets('Yıllık repeats on the anchor date; the stepper counts years',
+        (tester) async {
+      await openSheet(tester);
+      await _tap(tester, _segment(RecurrenceMode.yearly));
+
+      expect(_intervalText(tester), 'Her yıl');
+      expect(_yearNoteText(tester), 'Her yıl 19 Eylül.');
+      expect(
+        _previewText(tester),
+        'Sonraki 3: Cmt 19 Eyl · Paz 19 Eyl 2027 · Sal 19 Eyl 2028',
+      );
+      // Every year is the minimum.
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(RecurrenceSheetKeys.decrement))
+            .onPressed,
+        isNull,
+      );
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.increment));
+      expect(_intervalText(tester), '2 yılda bir');
+      expect(
+        _previewText(tester),
+        'Sonraki 3: Cmt 19 Eyl · Sal 19 Eyl 2028 · Per 19 Eyl 2030',
+      );
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 2));
+    });
+
+    testWidgets('Yıllık on 29 February explains non-leap years',
+        (tester) async {
+      await openSheet(tester, anchor: DateTime(2028, 2, 29, 9));
+      await _tap(tester, _segment(RecurrenceMode.yearly));
+
+      expect(
+        _yearNoteText(tester),
+        'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.',
+      );
+      final preview = _previewText(tester);
+      expect(preview, contains('29 Şub 2028'));
+      expect(preview, contains('28 Şub 2029'));
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly());
+    });
+
+    testWidgets('Yıllık is "Yearly" in English', (tester) async {
+      await openSheet(tester, language: AppLanguage.english);
+      await _tap(tester, _segment(RecurrenceMode.yearly, AppL10n.english));
+
+      expect(_intervalText(tester), 'Every year');
+      expect(_yearNoteText(tester), 'Every year on September 19.');
+
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.increment));
+      expect(_intervalText(tester), 'Every 2 years');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 2));
+    });
+
+    testWidgets('an existing yearly rule opens on the Yıllık segment',
+        (tester) async {
+      await openSheet(tester, initial: RecurrenceRule.yearly(interval: 3));
+      expect(_intervalText(tester), '3 yılda bir');
+      expect(_yearNoteText(tester), 'Her yıl 19 Eylül.');
+      await _tap(tester, find.byKey(RecurrenceSheetKeys.done));
+      expect(result, RecurrenceRule.yearly(interval: 3));
     });
 
     testWidgets('an existing rule opens on its segment; Bitiş can be cleared',

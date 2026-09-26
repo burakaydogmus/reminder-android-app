@@ -55,6 +55,9 @@ RecurrenceSpec monthly(int day, {int interval = 1}) => RecurrenceSpec(
       dayOfMonth: day,
     );
 
+RecurrenceSpec yearly({int interval = 1}) =>
+    RecurrenceSpec(kind: RecurrenceKind.yearly, interval: interval);
+
 RecurrenceSpec everyDays(int n) =>
     RecurrenceSpec(kind: RecurrenceKind.everyNDays, interval: n);
 
