@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
@@ -84,11 +85,14 @@ void main() {
         tester,
         variant,
         // F5.3 opens it pre-filled (share / shortcut); same parsed state
-        // as typing.
+        // as typing. F4.6c: the grammar follows the app language, so each
+        // language needs its own sentence to audit **filled** chips.
         (context) => showQuickCaptureSheet(
           context,
           now: auditClock,
-          initialText: 'yarın 9da market alışverişi #market !',
+          initialText: variant.language == AppLanguage.english
+              ? 'tomorrow at 9 the grocery shopping #groceries !'
+              : 'yarın 9da market alışverişi #market !',
         ),
       );
       expect(find.byKey(QuickCaptureKeys.field), findsOneWidget);

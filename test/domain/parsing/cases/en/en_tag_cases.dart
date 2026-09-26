@@ -1,0 +1,162 @@
+import '../capture_case.dart';
+
+/// `#category`, `!` priority and `@place` with the English grammar — the
+/// token syntax itself is language-independent (F4.6c).
+const enTagCases = <CaptureCase>[
+  CaptureCase(
+    'buy bread #market',
+    title: 'Buy bread',
+    tag: 'market',
+    categoryId: 'market',
+    tokens: ['category:#market'],
+  ),
+  CaptureCase(
+    '#groceries buy bread',
+    title: 'Buy bread',
+    tag: 'groceries',
+    categoryId: 'market',
+    tokens: ['category:#groceries'],
+  ),
+  CaptureCase(
+    '#SHOPPING olive oil',
+    title: 'Olive oil',
+    tag: 'SHOPPING',
+    categoryId: 'market',
+    tokens: ['category:#SHOPPING'],
+  ),
+  CaptureCase(
+    'send the report #work',
+    title: 'Send the report',
+    tag: 'work',
+    categoryId: 'work',
+    tokens: ['category:#work'],
+  ),
+  CaptureCase(
+    'send the report #office',
+    title: 'Send the report',
+    tag: 'office',
+    categoryId: 'work',
+    tokens: ['category:#office'],
+  ),
+  // The stored built-in names are Turkish, so Turkish tags keep matching
+  // while the app is in English.
+  CaptureCase(
+    'send the report #iş',
+    title: 'Send the report',
+    tag: 'iş',
+    categoryId: 'work',
+    tokens: ['category:#iş'],
+  ),
+  CaptureCase(
+    'vitamins #health',
+    title: 'Vitamins',
+    tag: 'health',
+    categoryId: 'health',
+    tokens: ['category:#health'],
+  ),
+  CaptureCase(
+    'vitamins #saglik',
+    title: 'Vitamins',
+    tag: 'saglik',
+    categoryId: 'health',
+    tokens: ['category:#saglik'],
+  ),
+  CaptureCase(
+    '#home hang the laundry',
+    title: 'Hang the laundry',
+    tag: 'home',
+    categoryId: 'home',
+    tokens: ['category:#home'],
+  ),
+  CaptureCase(
+    '#chores hoover the stairs',
+    title: 'Hoover the stairs',
+    tag: 'chores',
+    categoryId: 'home',
+    tokens: ['category:#chores'],
+  ),
+  CaptureCase(
+    'pay the bill #errands',
+    title: 'Pay the bill',
+    tag: 'errands',
+    categoryId: 'errands',
+    tokens: ['category:#errands'],
+  ),
+  CaptureCase(
+    'take notes #other',
+    title: 'Take notes',
+    tag: 'other',
+    categoryId: 'other',
+    tokens: ['category:#other'],
+  ),
+  // 5+ letters and one edit away from an alias.
+  CaptureCase(
+    'detergent #grocries',
+    title: 'Detergent',
+    tag: 'grocries',
+    categoryId: 'market',
+    tokens: ['category:#grocries'],
+  ),
+  CaptureCase(
+    'read a book #hobby',
+    title: 'Read a book',
+    tag: 'hobby',
+    tokens: ['category:#hobby'],
+  ),
+  CaptureCase(
+    'flight tickets #travel',
+    title: 'Flight tickets',
+    tag: 'travel',
+    tokens: ['category:#travel'],
+  ),
+  CaptureCase(
+    '#market #work bread',
+    title: '#work bread',
+    tag: 'market',
+    categoryId: 'market',
+    tokens: ['category:#market'],
+  ),
+  CaptureCase(
+    'pay the bill !',
+    title: 'Pay the bill',
+    priority: 1,
+    tokens: ['priority:!'],
+  ),
+  CaptureCase(
+    'pay the bill !!',
+    title: 'Pay the bill',
+    priority: 2,
+    tokens: ['priority:!!'],
+  ),
+  CaptureCase(
+    '!!! pay the bill',
+    title: 'Pay the bill',
+    priority: 3,
+    tokens: ['priority:!!!'],
+  ),
+  CaptureCase('urgent! pay the bill', title: 'Urgent! pay the bill'),
+  CaptureCase('pay the bill !!!!', title: 'Pay the bill !!!!'),
+  CaptureCase(
+    'turn off the lights @home',
+    title: 'Turn off the lights',
+    place: 'home',
+    tokens: ['place:@home'],
+  ),
+  CaptureCase(
+    '@office print the slides',
+    title: 'Print the slides',
+    place: 'office',
+    tokens: ['place:@office'],
+  ),
+  CaptureCase('email ann@example.com', title: 'Email ann@example.com'),
+  CaptureCase('sign up for the C# course', title: 'Sign up for the C# course'),
+  CaptureCase(
+    'take the pills #health !! @home',
+    title: 'Take the pills',
+    tag: 'health',
+    categoryId: 'health',
+    priority: 2,
+    place: 'home',
+    tokens: ['category:#health', 'priority:!!', 'place:@home'],
+  ),
+];

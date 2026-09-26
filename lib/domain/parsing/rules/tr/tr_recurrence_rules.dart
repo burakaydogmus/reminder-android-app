@@ -1,4 +1,4 @@
-part of '../turkish_capture_parser.dart';
+part of '../../capture_parser.dart';
 
 /// Repeats.
 ///
@@ -16,7 +16,7 @@ part of '../turkish_capture_parser.dart';
 /// - `3 günde bir`/`üç günde bir` (every N days), `gün aşırı`/`günaşırı`
 ///   (every 2 days), `2 haftada bir`, `3 ayda bir` (`1 günde bir` = daily).
 /// - Not supported (left as text): `her yıl`/`her sene`, `her şey`.
-extension _RecurrenceRules on _Scanner {
+extension _TrRecurrenceRules on _TrScanner {
   static final RegExp _pluralWeekday = RegExp(
     r'^(pazartesi|sali|carsamba|persembe|cumartesi|cuma)(leri|lari)$',
   );
@@ -61,7 +61,7 @@ extension _RecurrenceRules on _Scanner {
             : null;
     }
 
-    final n = _DateRules.numberValue(w);
+    final n = _TrDateRules.numberValue(w);
     if (n != null) {
       final unit = next(i + 1);
       if (n == 0 || next(i + 2) != 'bir') return null;
@@ -128,7 +128,7 @@ extension _RecurrenceRules on _Scanner {
         final day = _dayOfMonth(next(i + 2));
         return day == null ? null : _rec(i, i + 3, _monthly(day), 1);
     }
-    if (_TimeRules.daypartNames.contains(n1)) {
+    if (_TrTimeRules.daypartNames.contains(n1)) {
       return _daypartRepeat(i, i + 2, n1 == 'oglen' ? 'ogle' : n1, 1);
     }
     final list = _weekdayList(i + 1, n1, plural: false);
@@ -148,7 +148,7 @@ extension _RecurrenceRules on _Scanner {
       RecurrenceSpec(kind: RecurrenceKind.monthly, dayOfMonth: day);
 
   static int? _dayOfMonth(String? w) {
-    final m = _DateRules._dayOfMonth.firstMatch(w ?? '');
+    final m = _TrDateRules._dayOfMonth.firstMatch(w ?? '');
     if (m == null) return null;
     final day = int.parse(m.group(1)!);
     return day >= 1 && day <= 31 ? day : null;
@@ -209,9 +209,9 @@ extension _RecurrenceRules on _Scanner {
     final int? day;
     if (plural) {
       final m = _pluralWeekday.firstMatch(w);
-      day = m == null ? null : _DateRules.weekdayNumbers[m.group(1)!];
+      day = m == null ? null : _TrDateRules.weekdayNumbers[m.group(1)!];
     } else {
-      day = _DateRules.weekdayNumbers[w];
+      day = _TrDateRules.weekdayNumbers[w];
     }
     if (day == null) return null;
     if (day == DateTime.tuesday && words[j].lower.startsWith('ş')) return null;

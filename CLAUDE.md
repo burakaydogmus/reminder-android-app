@@ -113,7 +113,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   `priority`, missing/non-number → 0, out of range clamped) and `Reminder.pinned`
   (default false, JSON `pinned`, missing/non-bool → false). Priority does not change
   notifications.
-- `domain/parsing/` — Turkish quick-capture parser (F4.6a) and
+- `domain/parsing/` — quick-capture parser, Turkish (F4.6a) and English (F4.6c)
+  grammars behind one `CaptureLocale`, and
   `capture_to_reminder.dart`, its mapping to a new `Reminder` (F4.6b); see
   **Quick capture**.
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
@@ -626,14 +627,36 @@ same labels as the widget picker) and refreshes all four after every sync.
   not SF Symbols. Titles come from the ARB (`AppShortcut.titleIn(l10n)`, F6.1): `attach`
   publishes them in the resolved language, `publish` again after a language change.
 
-## Quick-capture parser (F4.6a)
+## Quick-capture parser (F4.6a Turkish, F4.6c English)
 
 - `lib/domain/parsing/`: pure Dart, no Flutter or model imports besides
   `ReminderCategoryIds` (except the separate F4.6b mapping,
-  `capture_to_reminder.dart`). Entry point `CaptureParser.parse(input, now:, config:)` in
-  `turkish_capture_parser.dart`; the rules are `part` files in `rules/` (scanner,
-  tags, dates, times, recurrence, resolution, list split); `turkish_text.dart` does
-  Turkish casing/folding (İ↔i, I↔ı) **without shifting string offsets**.
+  `capture_to_reminder.dart`). Entry point
+  `CaptureParser.parse(input, now:, config:, locale:)` in `capture_parser.dart`
+  (`turkish_capture_parser.dart` is a re-export so older imports keep working).
+- **`locale` picks the grammar** (`CaptureLocale { turkish, english }`,
+  `capture_locale.dart`), defaults to Turkish and is an **explicit parameter** — the
+  parser never reads a locale from the platform. The UI passes the resolved **app**
+  language (F6.1), through `CaptureLocaleOfL10n.captureLocale` on `AppLocalizations`
+  (`ui/capture/capture_text.dart`); `CaptureLocale.forLanguageCode('tr_TR')` is the
+  pure equivalent for code without an `l10n`. `CaptureLocale` also carries the
+  locale-safe `toLower` / `fold` / `capitalizeFirst`, so no rule calls
+  `String.toLowerCase` directly.
+- **Layout:** `rules/capture_scanner.dart` holds the shared abstract `_Scanner` with
+  the grammar hooks `ruleAt`, `leadingConnector`, `trailingConnector`,
+  `listSeparators`, `tidyListItems`; the language rules are `part` files under
+  `rules/tr/` (`tr_scanner`, `tr_date_rules`, `tr_time_rules`,
+  `tr_recurrence_rules`) and `rules/en/` (the same four). Tags, resolution and the
+  list split are shared (`rules/tag_rules.dart`, `resolution.dart`,
+  `list_rules.dart`). `turkish_text.dart` / `english_text.dart` do the casing and
+  folding — one UTF-16 code unit per code unit, so **string offsets never shift**;
+  they differ only in the dotted/dotless `i` (`I`→`ı` in Turkish, `I`→`i` in
+  English), and both fold Turkish diacritics so `#saglik` keeps matching "Sağlık".
+- **Adding or changing a rule:** work in the `rules/<lang>/` file of that language
+  only, keep the result types neutral, and add table rows to
+  `test/domain/parsing/cases/<lang>/`. A rule that must apply to both languages
+  belongs in the shared file, and then **both** corpora need rows. Never make a rule
+  read the language from anywhere but the `locale` it was given.
 - Result types (`capture_parse_result.dart`) are **neutral**: `CaptureToken` (kind,
   exact `start`/`end` in the original input, `confidence`), `RecurrenceSpec`
   (daily / weekly / monthly / everyNDays), `CaptureParseResult` (title, tokens,
@@ -644,17 +667,38 @@ same labels as the widget picker) and refreshes all four after every sync.
   the title), day parts used as nouns (`akşam yemeği`, `bir akşam`) are text,
   `pazar` with a suffix is the market, a time without a date is today if still
   ahead, else tomorrow. Details in each rule file's doc comment.
-- **Category aliases (F4.3):** `category_aliases.dart` (`CategoryAliases.of(catalog)`,
-  `configFor(catalog, base:)`) builds `CaptureParserConfig.categoryAliases` from the
-  current categories: built-ins keep the default aliases + folded name, user
-  categories their folded name; the first category wins a folded clash. The capture
-  sheet passes it on every parse.
+- English specifics (F4.6c): numeric dates are **month/day** (en_US — `5/3` is
+  3 May), with a day/month fallback when the first number cannot be a month
+  (`25/12`); ISO `2027-05-03` is always y-m-d; a **dot form is never a date** in
+  English (`9.30` is a time). Weekday abbreviations (`mon`, `sat`) only count after
+  `on`/`by`/`next`/`this`/`every`. A bare day part before a compound noun is text
+  (`morning run`, `night cream`, `evening class`) — the guard applies **only** to a
+  bare day part, so `this morning stretch` is a time. `every year` / `yearly` /
+  `annually` are deliberately **not** parsed: `RecurrenceRule` has no yearly kind
+  (Turkish leaves `her yıl` as text for the same reason).
+- **Category aliases (F4.3):** `category_aliases.dart`
+  (`CategoryAliases.of(catalog, locale:)`, `configFor(catalog, base:, locale:)`) builds
+  `CaptureParserConfig.categoryAliases` from the current categories: built-ins keep
+  the grammar's default aliases + folded name, user categories their folded name; the
+  first category wins a folded clash. The capture sheet passes it — with the same
+  `locale` it parses with — on every parse. `categoryAliases` is **nullable**: `null`
+  means "the built-ins of the locale" (`CaptureParserConfig.aliasesFor`,
+  `builtInAliasesOf`), Turkish `defaultCategoryAliases` or English
+  `englishCategoryAliases` (the Turkish aliases stay in the English map — the stored
+  built-in names are Turkish).
 - **No model mapping in the parser.** `capture_to_reminder.dart` (F4.6b) is the only
   place that turns a `CaptureParseResult` into a `Reminder` (see **Quick capture**).
-- Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/` on a fixed
-  clock (`kNow`, 13 Eylül 2026 14:32; the table must keep ≥ 200 sentences), plus
-  `turkish_capture_parser_edge_test.dart` for other clocks, offsets and config;
-  `capture_to_reminder_test.dart` for the mapping.
+- Tests: `test/domain/parsing/` — table-driven `CaptureCase`s in `cases/tr/` and
+  `cases/en/` on a fixed clock (`kNow`, 13 Eylül 2026 14:32; **each** table must keep
+  ≥ 200 sentences), run by `turkish_capture_parser_test.dart` /
+  `english_capture_parser_test.dart`, plus `*_capture_parser_edge_test.dart` per
+  language for other clocks, offsets and config, `turkish_text_test.dart` /
+  `english_text_test.dart` for casing, folding and offset stability (and
+  `CaptureLocale.forLanguageCode`), and `capture_to_reminder_test.dart` for the
+  mapping in both languages. The widget-level locale choice is
+  `test/ui/capture/quick_capture_sheet_test.dart` → "the grammar follows the app
+  language". English case lists must be `final` (a `DateTime` is not const), so the
+  `DateTime`-free entries need their own `const`.
 
 ## Quick capture (F4.6b)
 
@@ -712,7 +756,9 @@ same labels as the widget picker) and refreshes all four after every sync.
   placeholders and on Turkish string literals in `lib/ui`, `lib/services`, `lib/home`
   (allowlist: grammar tables in `kor_format.dart`, `recurrence_text.dart`,
   `snooze_options.dart`, `capture_text.dart`). The quick-capture parser
-  (`lib/domain/parsing/`) is Turkish by design and not affected.
+  (`lib/domain/parsing/`) has a grammar **per language** (F4.6c) and is not scanned:
+  its rule tables are Turkish and English *grammar*, not UI strings, so they need no
+  allowlist entry — but a new user-visible string in the capture UI still does.
 - **Adding a string:** add the key to `app_tr.arb` (with `@key.description` when the context
   is not obvious, and `placeholders` for arguments; counts use ICU plurals —
   `{count, plural, =1{…} other{…}}`, Turkish usually only `other`), then the same key to
@@ -721,6 +767,15 @@ same labels as the widget picker) and refreshes all four after every sync.
   commit the generated files — CI fails when they are stale. `flutter_localizations` is a
   direct dependency only because the generated file imports it; the app's Material/Cupertino
   delegates still come from `material_ui` (`App.localizationsDelegates`).
+- **Adding a parser rule for a language:** grammar is **not** localization — it lives
+  in `lib/domain/parsing/rules/tr/` or `rules/en/` (see **Quick-capture parser**), is
+  chosen by the explicit `CaptureLocale` the UI derives from the app language
+  (`AppLocalizations.captureLocale`), and never goes through the ARB. Adding a language
+  means a new `CaptureLocale` value, a `rules/<lang>/` set, a `<Lang>Text` helper and a
+  ≥ 200-sentence corpus under `test/domain/parsing/cases/<lang>/`. Only the strings
+  *around* the parser are localized: `captureParserExamples` (the helper line under the
+  capture field, example phrases in the app language), `captureListTitle*` and the
+  `@place` note, which the sheet passes in as `CaptureTexts`.
 - **Using strings:** `context.l10n.key` (`lib/l10n/l10n.dart`; without `AppLocalizations`
   in the tree — isolated widget tests — it falls back to Turkish). Pure helpers take an
   `AppLocalizations l10n` parameter instead of a context (`KorFormat.when(at, now, l10n)`,
@@ -760,7 +815,9 @@ same labels as the widget picker) and refreshes all four after every sync.
 - **Tests:** `UiHarness.app(language:)` defaults to Turkish, so existing expectations stay
   Turkish; pass `AppLanguage.english` for English. The a11y audit runs every entry in both
   languages (`A11yVariant.language`, `auditLanguages`) — English strings are longer, so
-  overflow must hold in both. English smoke tests: `test/ui/english_screens_test.dart`.
+  overflow must hold in both. The a11y capture-sheet entry opens with an `initialText`
+  per language, so both audits see filled chips (F4.6c). English smoke tests:
+  `test/ui/english_screens_test.dart`.
   Pure tests pass `AppL10n.turkish` / `AppL10n.english`; call `initTestDateFormatting`
   (`test/helpers/l10n_setup.dart`) when they format dates.
 

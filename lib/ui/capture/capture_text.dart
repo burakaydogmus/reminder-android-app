@@ -1,6 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:reminder/domain/parsing/turkish_capture_parser.dart';
+import 'package:reminder/domain/parsing/capture_parser.dart';
+import 'package:reminder/l10n/l10n.dart';
+
+/// The capture grammar of an app language (F4.6c): the parser is chosen
+/// from the **app** language (F6.1 Ayarlar › Görünüm › Dil), never from the
+/// device locale.
+extension CaptureLocaleOfL10n on AppLocalizations {
+  CaptureLocale get captureLocale =>
+      isTurkish ? CaptureLocale.turkish : CaptureLocale.english;
+}
 
 /// Parses capture input while some recognized phrases were turned back
 /// into plain text ("×" on a chip, design §3.3.3 › Token davranışı).
@@ -19,10 +28,16 @@ abstract final class CaptureText {
     required DateTime now,
     Set<String> suppressed = const {},
     CaptureParserConfig config = const CaptureParserConfig(),
+    CaptureLocale locale = CaptureLocale.turkish,
   }) {
     final ranges = _suppressedRanges(input, suppressed);
     if (ranges.isEmpty) {
-      return CaptureParser.parse(input, now: now, config: config);
+      return CaptureParser.parse(
+        input,
+        now: now,
+        config: config,
+        locale: locale,
+      );
     }
     final masked = StringBuffer();
     var at = 0;
@@ -37,12 +52,14 @@ abstract final class CaptureText {
       masked.toString(),
       now: now,
       config: config,
+      locale: locale,
     );
     final originals = [for (final (s, e) in ranges) input.substring(s, e)];
-    final title = _uncapitalizeAfterMask(result.title, input, ranges, result);
+    final title =
+        _uncapitalizeAfterMask(result.title, input, ranges, result, locale);
     return CaptureParseResult(
       input: input,
-      title: _capitalized(_restore(title, originals)),
+      title: locale.capitalizeFirst(_restore(title, originals)),
       tokens: result.tokens,
       dateTime: result.dateTime,
       hasExplicitTime: result.hasExplicitTime,
@@ -103,6 +120,7 @@ abstract final class CaptureText {
     String input,
     List<(int, int)> masked,
     CaptureParseResult result,
+    CaptureLocale locale,
   ) {
     if (!title.startsWith(_mask)) return title;
     bool covered(int i) =>
@@ -118,7 +136,7 @@ abstract final class CaptureText {
     for (var q = 0; q < title.length; q++) {
       final c = title[q];
       if (c == _mask || c.trim().isEmpty) continue;
-      if (c != typed && c == _capitalized(typed)) {
+      if (c != typed && c == locale.capitalizeFirst(typed)) {
         return '${title.substring(0, q)}$typed${title.substring(q + 1)}';
       }
       return title;
@@ -145,17 +163,6 @@ abstract final class CaptureText {
           (m) => k < originals.length ? originals[k++] : m[0]!,
         ),
     ]);
-  }
-
-  static String _capitalized(String text) {
-    if (text.isEmpty) return text;
-    final first = text[0];
-    final upper = switch (first) {
-      'i' => 'İ',
-      'ı' => 'I',
-      _ => first.toUpperCase(),
-    };
-    return '$upper${text.substring(1)}';
   }
 }
 

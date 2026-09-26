@@ -139,27 +139,40 @@ void main() {
     expect(find.text('Save'), findsOneWidget);
   });
 
-  testWidgets('Quick capture: Turkish parsing with the English hint',
-      (tester) async {
+  testWidgets('Quick capture: English parsing (F4.6c)', (tester) async {
     await open(
       tester,
       (context) => showQuickCaptureSheet(context, now: auditClock),
     );
 
     expect(find.text('What should I remind you of?'), findsOneWidget);
+    // The parser is no longer Turkish-only, so the old warning is gone and
+    // the helper line shows English examples instead.
     expect(
       find.textContaining('Natural language: Turkish only'),
+      findsNothing,
+    );
+    expect(
+      find.text('Example: tomorrow at 9, every monday, #market'),
       findsOneWidget,
     );
 
     await tester.enterText(
       find.byKey(QuickCaptureKeys.field),
-      'yarın 16:00 süt al #market',
+      'tomorrow at 16:00 buy milk #groceries',
     );
     await tester.pumpAndSettle();
     expect(find.text('Tomorrow, 16:00'), findsOneWidget);
     expect(find.text('Groceries'), findsOneWidget);
     expect(find.text('All details'), findsOneWidget);
+
+    // A Turkish sentence is plain text while the app is in English.
+    await tester.enterText(
+      find.byKey(QuickCaptureKeys.field),
+      'yarın 16:00 süt al',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tomorrow, 16:00'), findsNothing);
   });
 
   testWidgets('Birthdays page', (tester) async {

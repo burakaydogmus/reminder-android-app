@@ -1129,9 +1129,9 @@
   "captureBarLabel": "Hızlı ekle",
   "captureBarHint": "Ne hatırlatayım? Uzun basınca ayrıntılı hatırlatıcı veya doğum günü seçilir",
   "captureFieldHint": "Ne hatırlatayım?",
-  "captureParserHint": "Doğal dil: Türkçe",
-  "@captureParserHint": {
-    "description": "Shown under the quick capture field when the app is not Turkish: the parser only understands Turkish."
+  "captureParserExamples": "Örnek: yarın 9'da, her pazartesi, #market",
+  "@captureParserExamples": {
+    "description": "Helper line under the quick capture field: examples of the natural-language phrases the parser understands, in the app language."
   },
   "captureCategory": "Kategori",
   "capturePriority": "Öncelik",

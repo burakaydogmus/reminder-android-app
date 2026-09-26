@@ -168,12 +168,18 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
   void _reparse({bool haptics = true}) {
     final text = _controller.text;
     _lastParsed = text;
+    // F4.6c: the grammar follows the **app** language (F6.1), not the device.
+    final locale = context.l10n.captureLocale;
     final result = CaptureText.parse(
       text,
       now: widget.clock(),
       suppressed: _suppressed,
       // F4.3: `#tag` also matches user categories.
-      config: CategoryAliases.configFor(CategoryVisuals.readCatalog(context)),
+      config: CategoryAliases.configFor(
+        CategoryVisuals.readCatalog(context),
+        locale: locale,
+      ),
+      locale: locale,
     );
     final keys = {
       for (final t in result.tokens) '${t.kind.name}:${t.text}',
@@ -244,8 +250,8 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
         texts: _captureTexts(context.l10n),
       );
 
-  /// List titles and the place note in the app language (the parser itself
-  /// stays Turkish, F6.1).
+  /// List titles and the place note in the app language (F6.1; the parser
+  /// itself follows the same language since F4.6c).
   CaptureTexts _captureTexts(AppLocalizations l10n) => CaptureTexts(
         listTitle: (id) => id == ReminderCategoryIds.market
             ? l10n.captureListTitleMarket
@@ -558,10 +564,9 @@ class _QuickCaptureSheetState extends State<QuickCaptureSheet> {
               decoration: InputDecoration(
                 hintText: context.l10n.captureFieldHint,
                 semanticCounterText: '',
-                // F6.1: parsing is Turkish-only; say so in other languages.
-                helperText: context.l10n.isTurkish
-                    ? null
-                    : context.l10n.captureParserHint,
+                // F4.6c: examples of what the parser understands, in the
+                // app language.
+                helperText: context.l10n.captureParserExamples,
                 helperMaxLines: 2,
               ),
             ),

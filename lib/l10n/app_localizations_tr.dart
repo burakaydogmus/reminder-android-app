@@ -1324,7 +1324,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get captureFieldHint => 'Ne hatırlatayım?';
 
   @override
-  String get captureParserHint => 'Doğal dil: Türkçe';
+  String get captureParserExamples =>
+      'Örnek: yarın 9\'da, her pazartesi, #market';
 
   @override
   String get captureCategory => 'Kategori';
