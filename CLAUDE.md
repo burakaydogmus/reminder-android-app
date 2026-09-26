@@ -671,17 +671,23 @@ flutter test integration_test/notifications_test.dart -d emulator-5554
 - Grant `POST_NOTIFICATIONS` first, otherwise Android silently drops every scheduled
   notification: `adb shell pm grant com.burakaydogmus.reminder
   android.permission.POST_NOTIFICATIONS`.
-- `flutter test integration_test` (the whole directory) does not guarantee file order,
-  so the two persistence phases may run the wrong way round. CI runs the files in a
-  defined order through `.github/scripts/e2e.sh`; locally, run those two by hand.
+- `persistence_restart_test.dart` is **two phases in one file**: it picks the phase
+  from a marker it leaves in SharedPreferences, so run it twice (with no `pm clear`
+  in between) to exercise the restart. It prints `E2E_PHASE=write|read`; CI asserts
+  both lines appeared. `flutter test integration_test` (the whole directory) runs it
+  once, i.e. the write phase only.
+- **Why twice and not `restartAndRestore()`:** that only rebuilds the widget tree in
+  one process and the app declares no restoration scopes, so the database is never
+  reopened. Two *files* do not work either — `flutter test` uninstalls before
+  installing a different APK, and `adb uninstall` takes the app data with it. Running
+  the **same** file twice leaves the installed build unchanged, so the data survives.
 
 **What each file covers.**
 
 | File | Verifies (only a device can) |
 |---|---|
 | `cold_start_test.dart` | `path_provider` + `drift_flutter` + `sqlite3` create `reminder.sqlite` on a cleared device (`onCreate`, not a migration); the 4-step onboarding runs and persists `onboarding_completed_v1`; the repository does **not** silently fall back to `LegacyPrefsStore` |
-| `persistence_write_test.dart` | reminders created **through the UI** (FAB → quick capture) reach the file on disk — read back with an **independent** `sqlite3` connection, not drift's own |
-| `persistence_read_test.dart` | the same rows are still there after a real **process** restart, with the wall-clock `remindAt` intact (`tester.restartAndRestore()` only rebuilds the widget tree in one process and the app declares no restoration scopes, so it cannot show this) |
+| `persistence_restart_test.dart` | reminders created **through the UI** (FAB → quick capture) reach the file on disk — read back with an **independent** `sqlite3` connection, not drift's own — and are still there after a real **process** restart, with the wall-clock `remindAt` intact. **Runs twice** (see below) |
 | `notifications_test.dart` | `pendingNotificationRequests()` **from Android**: the diff sync's exact desired set (F1.7), the stable ids (F1.5), cancel on complete/delete, reschedule on re-open, a recurring rule accepted as a repeating alarm, both birthday offsets, and the F6.2c schedule mode against the real `SCHEDULE_EXACT_ALARM` app op (`--dart-define=E2E_EXACT_ALARMS=deny\|allow`) |
 | `home_widget_test.dart` | the real `widget_payload_v2` bytes in `home_widget`'s Android `SharedPreferences` — `v`, `lang`, `dueAt`, the deleted pre-F5.1 key |
 | `backup_test.dart` | export → a real file in `getTemporaryDirectory()` → `clearAllData` (rows gone, alarms cancelled) → `BackupFormat.decode` → `apply(replace)` → data and alarms back |

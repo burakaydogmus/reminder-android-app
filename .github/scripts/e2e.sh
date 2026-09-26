@@ -4,9 +4,9 @@
 # `reactivecircus/android-emulator-runner` by `.github/workflows/e2e.yml`.
 #
 # Why a script and not a matrix of steps:
-# - the files must run in a **defined order** (`persistence_read_test.dart`
-#   asserts what `persistence_write_test.dart` wrote in the previous process,
-#   so the app data must survive between exactly those two);
+# - the files must run in a **defined order**, and
+#   `persistence_restart_test.dart` runs **twice** with the app data surviving
+#   in between (its second run asserts what the first one wrote);
 # - every other file needs a **cleared** app, and `pm clear` also drops the
 #   runtime permission grants, so granting has to be interleaved;
 # - one failing file must not hide the others: each result is collected and the
@@ -66,6 +66,10 @@ record() { # record <status> <name>
 grant_permissions() {
   adb shell pm grant "$PKG" android.permission.POST_NOTIFICATIONS \
     >/dev/null 2>&1 || true
+  # Allowed by default so `PermissionFlows.beforeScheduling` does not stop the
+  # UI tests with the exact-alarm explanation sheet on the first timed save.
+  # notifications_test.dart overrides this per run (see set_exact_alarms).
+  adb shell appops set "$PKG" SCHEDULE_EXACT_ALARM allow >/dev/null 2>&1 || true
 }
 
 # Puts the SCHEDULE_EXACT_ALARM app op in $1 (allow|deny) and echoes the state
@@ -86,23 +90,27 @@ reset_app() {
   grant_permissions
 }
 
-# run_test <file> [extra flutter test args...]
+# run_test <label> <file> [extra flutter test args...]
+#
+# The label names the artifacts, so the same file can run twice (the exact-alarm
+# pair, the persistence phases) without overwriting them. Flutter's output is
+# kept in `$ARTIFACTS/out-<label>.txt` so later checks can assert on it.
 run_test() {
+  local label="$1"; shift
   local file="$1"; shift
-  local name
-  name=$(basename "$file" .dart)
-  echo "::group::$name"
+  echo "::group::$label"
   adb logcat -c >/dev/null 2>&1 || true
   # --timeout=none: a device test is minutes long, the 30 s per-test default
-  # would kill it. --ignore-timeouts also covers the compile step.
-  if flutter test "$file" -d "$DEVICE" --timeout=none "$@"; then
-    record PASS "$name"
+  # would kill it. `pipefail` is on, so tee does not hide the exit status.
+  if flutter test "$file" -d "$DEVICE" --timeout=none "$@" 2>&1 \
+      | tee "$ARTIFACTS/out-$label.txt"; then
+    record PASS "$label"
   else
-    record FAIL "$name"
+    record FAIL "$label"
     failures=$((failures + 1))
   fi
-  adb logcat -d > "$ARTIFACTS/logcat-$name.txt" 2>&1 || true
-  adb exec-out screencap -p > "$ARTIFACTS/screen-$name.png" 2>/dev/null || true
+  adb logcat -d > "$ARTIFACTS/logcat-$label.txt" 2>&1 || true
+  adb exec-out screencap -p > "$ARTIFACTS/screen-$label.png" 2>/dev/null || true
   echo "::endgroup::"
 }
 
@@ -122,8 +130,11 @@ native_failures=0
 adb logcat -c >/dev/null 2>&1 || true
 
 # A cold launch must reach a resumed activity.
-if adb shell am start -W -n "$ACTIVITY" 2>&1 | tee /dev/stderr \
-    | grep -q 'Status: ok'; then
+# Captured rather than piped through `tee /dev/stderr`: that device does not
+# exist on the runner, and its failure broke the pipeline being grepped.
+launch_output=$(adb shell am start -W -n "$ACTIVITY" 2>&1)
+echo "$launch_output"
+if printf '%s' "$launch_output" | grep -q 'Status: ok'; then
   echo "launcher start: ok"
 else
   echo "FAIL: the launcher intent did not start $ACTIVITY"
@@ -160,7 +171,10 @@ for uri in \
     'reminderwidget://open?id=missing&homeWidget=true' \
     'reminderwidget://birthday?id=missing&homeWidget=true' \
     'reminderwidget://permissions?homeWidget=true'; do
-  if adb shell am start -W -n "$ACTIVITY" -a "$LAUNCH_ACTION" -d "$uri" 2>&1 \
+  # "'$uri'" keeps the URI in one piece for the shell that runs ON the device:
+  # adb re-parses the arguments there, and an unquoted '&' would background the
+  # command instead of staying part of the query string.
+  if adb shell am start -W -n "$ACTIVITY" -a "$LAUNCH_ACTION" -d "'$uri'" 2>&1 \
       | grep -q 'Status: ok'; then
     echo "deep link $uri: delivered"
   else
@@ -190,7 +204,7 @@ echo "::endgroup::"
 
 # Cold start: needs a device with no database at all.
 reset_app
-run_test integration_test/cold_start_test.dart
+run_test cold_start integration_test/cold_start_test.dart
 
 # Notifications, once with the exact-alarm app op denied (the F6.2c inexact
 # fallback, which is also how Android installs the app on API 34+) and once
@@ -198,33 +212,64 @@ run_test integration_test/cold_start_test.dart
 reset_app
 state=$(set_exact_alarms deny)
 echo "SCHEDULE_EXACT_ALARM reported as: $state"
-run_test integration_test/notifications_test.dart \
+run_test notifications-inexact integration_test/notifications_test.dart \
   "--dart-define=E2E_EXACT_ALARMS=$state"
 
 reset_app
 state=$(set_exact_alarms allow)
 echo "SCHEDULE_EXACT_ALARM reported as: $state"
-run_test integration_test/notifications_test.dart \
+run_test notifications-exact integration_test/notifications_test.dart \
   "--dart-define=E2E_EXACT_ALARMS=$state"
 
 reset_app
-run_test integration_test/home_widget_test.dart
+run_test home_widget integration_test/home_widget_test.dart
 
 reset_app
-run_test integration_test/backup_test.dart
+run_test backup integration_test/backup_test.dart
 
 reset_app
-run_test integration_test/deep_link_test.dart
+run_test deep_link integration_test/deep_link_test.dart
 
 reset_app
-run_test integration_test/routine_test.dart
+run_test routine integration_test/routine_test.dart
 
-# Persistence: phase 1 writes, phase 2 asserts the rows survived a real process
-# restart — so **no** `pm clear` between them. Last in the list, so nothing
-# else can clear the data in between.
+# Persistence across a real restart: the **same file** twice, so `flutter test`
+# has no different APK to install — it uninstalls before installing a different
+# one, and `adb uninstall` takes the app data with it (that is how the first
+# version of this check failed). No `pm clear` between the runs; `am force-stop`
+# kills the process, so the second run is a genuine cold start against the
+# database the first one left behind. Last in the list, so nothing else can
+# clear the data in between.
 reset_app
-run_test integration_test/persistence_write_test.dart
-run_test integration_test/persistence_read_test.dart
+run_test persistence-write integration_test/persistence_restart_test.dart
+adb shell am force-stop "$PKG" >/dev/null 2>&1 || true
+run_test persistence-read integration_test/persistence_restart_test.dart
+
+# The file picks its phase from a marker it stores on the device. Assert that
+# both phases really ran: if the app data was wiped in between, the second run
+# takes the write branch again and would otherwise pass on an empty database.
+echo "::group::Persistence phases"
+phase_failures=0
+for expected in write:persistence-write read:persistence-read; do
+  want=${expected%%:*}
+  label=${expected#*:}
+  if grep -q "E2E_PHASE=$want" "$ARTIFACTS/out-$label.txt"; then
+    echo "$label ran the '$want' phase"
+  else
+    echo "FAIL: $label did not run the '$want' phase — the app data did not"
+    echo "      survive between the two runs, so the restart was not tested."
+    grep -o 'E2E_PHASE=[a-z]*' "$ARTIFACTS/out-$label.txt" \
+      || echo "      (no E2E_PHASE line at all)"
+    phase_failures=$((phase_failures + 1))
+  fi
+done
+if [ "$phase_failures" -eq 0 ]; then
+  record PASS persistence-phases
+else
+  record FAIL persistence-phases
+  failures=$((failures + phase_failures))
+fi
+echo "::endgroup::"
 
 # --- 3. Summary --------------------------------------------------------------
 echo "::group::Summary"

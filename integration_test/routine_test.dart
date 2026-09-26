@@ -9,11 +9,13 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:reminder/data/reminder_repository.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/routine.dart';
+import 'package:reminder/ui/lists/lists_page.dart';
 import 'package:reminder/ui/routines/routine_apply_sheet.dart';
 import 'package:reminder/ui/routines/routine_list_section.dart';
 
@@ -66,7 +68,19 @@ void main() {
     final row = find.byKey(RoutineListKeys.row(routineId));
     await pumpUntil(tester, find.byType(RoutineListSection),
         reason: 'for the Rutinlerim section on Listeler');
-    await tester.scrollUntilVisible(row, 200, maxScrolls: 30);
+    // ListsPage's own ListView; `find.byType(Scrollable)` alone can match a
+    // nested one and `dragUntilVisible` requires exactly one match.
+    final listsScrollable = find
+        .descendant(
+          of: find.byType(ListsPage),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    if (row.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(row, 300,
+          scrollable: listsScrollable, maxScrolls: 30);
+    }
+    await tester.ensureVisible(row);
     await settle(tester);
     await tester.tap(row);
     await settle(tester);

@@ -36,6 +36,7 @@ import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/home/kor_navigation.dart';
 import 'package:reminder/ui/onboarding/onboarding_flow.dart';
+import 'package:reminder/ui/permissions/permission_sheet.dart';
 import 'package:reminder/ui/today/today_page.dart';
 
 /// How often a polling expectation looks again.
@@ -139,14 +140,23 @@ Future<void> reachToday(WidgetTester tester) async {
       reason: 'for the Bugün tab after onboarding');
 }
 
+/// Finds the shell **including offstage**: an opaque `MaterialPageRoute` (the
+/// Doğum günleri or Ayarlar page) makes the `Overlay` put the routes below it
+/// offstage, and `Finder`s skip offstage widgets by default.
+final Finder shellFinder = find.byType(HomeShell, skipOffstage: false);
+
 /// The live cubit with the real repository, notification, geofence and home
 /// widget services (`app.dart` builds it).
 ReminderCubit cubitOf(WidgetTester tester) =>
-    BlocProvider.of<ReminderCubit>(tester.element(find.byType(HomeShell)));
+    BlocProvider.of<ReminderCubit>(tester.element(shellFinder));
 
 /// Pops the topmost route (a modal sheet) through the real navigator.
+///
+/// Guarded by [NavigatorState.canPop]: popping the shell's own route would ask
+/// Android to close the app and take the test process with it.
 Future<void> popRoute(WidgetTester tester) async {
-  Navigator.of(tester.element(find.byType(HomeShell))).pop();
+  final navigator = Navigator.of(tester.element(shellFinder));
+  if (navigator.canPop()) navigator.pop();
   await settle(tester);
 }
 
@@ -163,8 +173,18 @@ Future<void> addViaQuickCapture(WidgetTester tester, String sentence) async {
   await settle(tester);
   await tester.tap(find.byKey(QuickCaptureKeys.save));
   await settle(tester);
-  await pumpUntil(tester, find.byKey(QuickCaptureKeys.toast),
-      reason: 'for the "Eklendi" toast of "$sentence"');
+  await pumpUntilTrue(
+    tester,
+    () => find.byKey(QuickCaptureKeys.toast).evaluate().isNotEmpty,
+    // A timed sentence runs `PermissionFlows.beforeScheduling` first, and a
+    // missing notification permission or exact-alarm app op puts an
+    // explanation sheet in front of the save. Say so instead of leaving a bare
+    // timeout: that mistake cost a CI round once already.
+    reason: 'for the "Eklendi" toast of "$sentence"'
+        '${find.byType(PermissionSheet).evaluate().isEmpty ? '' : ' — a '
+            'PermissionSheet is on screen, so the harness did not grant a '
+            'permission this save needs (see .github/scripts/e2e.sh)'}',
+  );
   await popRoute(tester);
 }
 
