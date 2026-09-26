@@ -4,6 +4,9 @@ import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/ui/birthdays/birthday_editor_sheet.dart';
+import 'package:reminder/services/contacts_service.dart';
+import 'package:reminder/services/permission_service.dart';
+import 'package:reminder/ui/birthdays/contact_import_sheet.dart';
 import 'package:reminder/ui/calendar/calendar_event_actions.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
@@ -13,6 +16,7 @@ import 'package:reminder/ui/reminders/reminder_editor_sheet.dart';
 import 'package:reminder/ui/reminders/snooze_sheet.dart';
 
 import '../../helpers/factories.dart';
+import '../../services/fake_contacts_platform.dart';
 import '../ui_harness.dart';
 import 'a11y_audit.dart';
 import 'a11y_sample_data.dart';
@@ -42,6 +46,39 @@ Future<UiHarness> _openSheet(
       platform: variant.platform,
       language: variant.language,
       home: NowScope(clock: auditClock, child: auditOpener(open)),
+    ),
+  );
+  await tapAuditOpener(tester);
+  return h;
+}
+
+/// F7.3: opens "Rehberden aktar" over its fake address book. [permissions] and
+/// [failure] select the refused / unreadable stages.
+Future<UiHarness> _openContactImport(
+  WidgetTester tester,
+  A11yVariant variant, {
+  PermissionSnapshot? permissions,
+  ContactsReadException? failure,
+}) async {
+  final platform = FakeContactsPlatform(
+    contactBirthdays: auditContactBirthdays(),
+  )..failure = failure;
+  final h = await UiHarness.create(
+    birthdays: auditBirthdays(),
+    now: auditClock,
+  );
+  if (permissions != null) h.permissions.snapshot = permissions;
+  await tester.pumpWidget(
+    h.app(
+      theme: variant.theme,
+      platform: variant.platform,
+      language: variant.language,
+      home: NowScope(
+        clock: auditClock,
+        child: auditOpener(
+          (context) => showContactImportSheet(context, platform: platform),
+        ),
+      ),
     ),
   );
   await tapAuditOpener(tester);
@@ -240,4 +277,35 @@ void main() {
       ),
     );
   }, surface: const Size(390, 2400));
+
+  // F7.3: the contacts import sheet. Long contact names, the "zaten ekli" /
+  // "yıl bilinmiyor" notes and the checkbox rows all have to hold at text
+  // scale 2.0 in either language.
+  a11yAudit('Rehberden aktar (liste)', (tester, variant) async {
+    await _openContactImport(tester, variant);
+    expect(find.byKey(ContactImportKeys.importButton), findsOneWidget);
+  }, surface: const Size(390, 1200));
+
+  a11yAudit('Rehberden aktar (özet)', (tester, variant) async {
+    await _openContactImport(tester, variant);
+    await tester.tap(find.byKey(ContactImportKeys.selectAll));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ContactImportKeys.importButton));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ContactImportKeys.done), findsOneWidget);
+  }, surface: const Size(390, 1200));
+
+  a11yAudit('Rehberden aktar (izin yok)', (tester, variant) async {
+    await _openContactImport(
+      tester,
+      variant,
+      permissions: const PermissionSnapshot(
+        notifications: NotificationPermissionState.granted,
+        exactAlarms: ExactAlarmState.granted,
+        location: LocationPermissionState.always,
+        contacts: ContactsPermissionState.denied,
+      ),
+    );
+    expect(find.byKey(ContactImportKeys.openSettings), findsOneWidget);
+  }, surface: const Size(390, 1000));
 }

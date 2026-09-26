@@ -4,11 +4,13 @@ import 'package:reminder/domain/model/birthday.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/services/contacts_service.dart';
 import 'package:reminder/services/device_calendar_service.dart';
 import 'package:reminder/ui/home/home_shell.dart';
 import 'package:reminder/ui/theme/adaptive/a11y_prefs.dart';
 
 import '../../helpers/factories.dart';
+import '../../services/fake_contacts_platform.dart';
 import '../../services/fake_device_calendar_platform.dart';
 import '../ui_harness.dart';
 import 'a11y_audit.dart';
@@ -82,6 +84,24 @@ List<Birthday> auditBirthdays() => [
         date: DateTime(1990, 10, 3),
         yearKnown: false,
       ),
+    ];
+
+/// F7.3 contacts import sample: a long name that has to wrap at text scale
+/// 2.0, a year-less contact, a year-known one and a duplicate of the stored
+/// `Zeynep Aydın` birthday (so the "zaten ekli" row is audited too).
+List<ContactBirthday> auditContactBirthdays() => [
+      buildContactBirthday(
+        name: 'Zeynep Aydın',
+        month: 9,
+        day: 14,
+        year: 1996,
+      ),
+      buildContactBirthday(
+        name: 'Mehmet Şükrü Karaosmanoğlu',
+        month: 3,
+        day: 4,
+      ),
+      buildContactBirthday(name: 'Bora Demir', month: 6, day: 2, year: 1985),
     ];
 
 /// F8.1 device calendar sample: an all-day row, a long-titled timed row with a

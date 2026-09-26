@@ -104,5 +104,14 @@
 	<string>Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.</string>
+	<!--
+	  F7.3 contacts, read only and one-shot: "Rehberden aktar" reads the
+	  birthdays in the address book once. Contacts has a single usage key
+	  (there is no read-only vs write tier the way EventKit has), and the app
+	  never writes, so nothing else is needed. Localized copies live in
+	  {tr,en}.lproj/InfoPlist.strings.
+	-->
+	<key>NSContactsUsageDescription</key>
+	<string>Doğum günlerini rehberinden aktarabilmek için rehberini bir kez okuruz. Rehberine hiçbir şey yazılmaz; yalnızca ad ve tarih alınır.</string>
 </dict>
 </plist>

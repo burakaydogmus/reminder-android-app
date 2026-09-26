@@ -6,3 +6,6 @@
    iOS 15/16 için eski anahtar aynı metni kullanır. */
 "NSCalendarsFullAccessUsageDescription" = "Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.";
 "NSCalendarsUsageDescription" = "Takvim etkinliklerini Bugün ve Takvim sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz.";
+
+/* F7.3: doğum günü aktarma için rehber bir kez, salt okunur biçimde okunur. */
+"NSContactsUsageDescription" = "Doğum günlerini rehberinden aktarabilmek için rehberini bir kez okuruz. Rehberine hiçbir şey yazılmaz; yalnızca ad ve tarih alınır.";

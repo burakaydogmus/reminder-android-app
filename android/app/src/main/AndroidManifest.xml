@@ -18,6 +18,16 @@
       request stays a read-only one.
     -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!--
+      F7.3: birthdays are imported from the address book in a one-shot,
+      read-only pass (Doğum günleri › "Rehberden aktar"). WRITE_CONTACTS is
+      deliberately NOT declared — the app never creates, edits or deletes a
+      contact, and permission_handler only asks for the contacts permissions
+      declared here (PermissionUtils.getManifestNames), so the runtime request
+      stays a read-only one. Only the name and the date are kept; the contact
+      id, photo, phone numbers and e-mails are never fetched or stored.
+    -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:allowBackup="false"

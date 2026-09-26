@@ -23,6 +23,7 @@ Kaynak: [Data safety bölümü yardım sayfası](https://support.google.com/goog
 | `lib/data/**` (Drift `reminder.sqlite`, SharedPreferences) | Yalnızca cihaz. Sunucu, SDK, analiz yok. |
 | `lib/services/notification_service.dart` | Yerel bildirim (`flutter_local_notifications`), push yok. |
 | `lib/services/device_calendar_service.dart` (F8.1, `device_calendar_plus`) | Cihaz takvimi **yalnızca okunur** (`CalendarContract` / EventKit), kullanıcı Ayarlar'dan açtıysa. Etkinlikler bellekte tutulur, veritabanına yazılmaz ve hiçbir sunucuya gönderilmez. Yazma metodu yok. |
+| `lib/services/contacts_service.dart` (F7.3, `flutter_contacts`) | Rehber **yalnızca okunur** ve **yalnızca bir kez**, kullanıcı "Rehberden aktar"a bastığında. `getAll` yalnızca `ContactProperty.event` ile çağrılır: ad + doğum tarihi dışında hiçbir alan (kişi kimliği, fotoğraf, telefon, e-posta) istenmez. Seçilen doğum günleri uygulamanın kendi veritabanına yazılır; hiçbir sunucuya gönderilmez. Yazma metodu yok, arka plan senkronu yok. |
 | `lib/services/geofence_*.dart` (`native_geofence`) | Bölgeler işletim sistemine kaydedilir; olaylar cihazda işlenir. Uygulama koordinatları hiçbir sunucuya göndermez. |
 | `lib/ui/maps/location_picker_page.dart` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` karo indirir (IP + user agent + görüntülenen bölge OSMF'ye ulaşır). Konum parametresi göndermez; karo adresi yalnızca görüntülenen harita bölgesini içerir. |
 | `lib/services/places_nearby_service.dart` | **Yalnızca `GOOGLE_MAPS_KEY` ile derlenmişse** (`mapsConfigured`) ve kullanıcı Market kategorisinde "Yakındaki marketleri göster"e basarsa: seçili noktanın enlem/boylamı `maps.googleapis.com`'a gider. Anahtarsız derlemede düğme görünmez, istek yapılmaz. |
@@ -45,14 +46,14 @@ A = anahtarsız derleme (önerilen) · B = `GOOGLE_MAPS_KEY` ile derleme
 |---|---|---|---|---|---|---|---|
 | Konum → Kesin konum | Hayır | Hayır | **Evet** | Hayır (*doğrulanmalı*) | Uygulama işlevselliği | Evet (kullanıcı düğmeye basarsa) | A: GPS konumu ve seçilen noktalar cihazda kalır; geofence OS'ta işlenir. B: Places isteği koordinatı tam hassasiyetle gönderir (<3 km² → kesin). Google, geliştirici adına API hizmeti veren taraf olarak değerlendirilirse "paylaşma" sayılmaz; bu yorum *doğrulanmalı*. Geçici işlenir: **Evet** (uygulama/geliştirici saklamaz). |
 | Konum → Yaklaşık konum | Hayır | Hayır | Hayır | Hayır | — | — | Ayrı yaklaşık konum gönderimi yok. IP'den türetilebilecek konum için aşağıdaki not. |
-| Kişisel bilgiler (ad, e-posta, kullanıcı kimliği, adres, telefon…) | Hayır | Hayır | Hayır | Hayır | — | — | Hesap yok. Doğum günü kayıtlarındaki kişi adları yalnızca cihazda. |
+| Kişisel bilgiler (ad, e-posta, kullanıcı kimliği, adres, telefon…) | Hayır | Hayır | Hayır | Hayır | — | — | Hesap yok. Doğum günü kayıtlarındaki kişi adları yalnızca cihazda — F7.3'te rehberden aktarılanlar da (ad + tarih) cihazda kalıyor. |
 | Finansal bilgiler | Hayır | Hayır | Hayır | Hayır | — | — | Satın alma yok. |
 | Sağlık ve fitness | Hayır | Hayır | Hayır | Hayır | — | — | "Sağlık" yalnızca bir kategori etiketi, cihazda. |
 | Mesajlar / e-posta / SMS | Hayır | Hayır | Hayır | Hayır | — | — | — |
 | Fotoğraflar ve videolar / Ses | Hayır | Hayır | Hayır | Hayır | — | — | — |
 | Dosyalar ve dokümanlar | Hayır | Hayır | Hayır | Hayır | — | — | Yedek dosyası kullanıcı başlatınca, kullanıcının seçtiği hedefe gider; geliştiriciye aktarım yok (kullanıcı başlatımlı aktarım istisnası). |
 | Takvim (etkinlikler) | Hayır | Hayır | Hayır | Hayır | — | — | **F8.1:** kullanıcı Ayarlar'dan açarsa cihaz takvimi **okunuyor**, ama veri cihaz dışına çıkmıyor → Play tanımına göre "toplama" değil. Yazma yok (`WRITE_CALENDAR` tanımlı değil). Uygulamanın kendi hatırlatıcıları da cihazda. |
-| Kişiler | Hayır | Hayır | Hayır | Hayır | — | — | Rehber erişimi yok (F7.3 eklenirse değişir). |
+| Kişiler | Hayır | Hayır | Hayır | Hayır | — | — | **F7.3:** kullanıcı "Rehberden aktar"a basarsa rehber **bir kez okunuyor**; veri cihaz dışına çıkmıyor → Play tanımına göre "toplama" değil. Yalnızca ad + tarih uygulamanın kendi veritabanına yazılıyor (kişi kimliği/fotoğraf/telefon hiç okunmuyor), yazma yok (`WRITE_CONTACTS` tanımlı değil). Bkz. `permissions-review.md` §10 — 27 Ocak 2027 Contacts Permissions politikası targetSdk 37+ için beyan istiyor. |
 | Uygulama etkinliği (etkileşimler, arama geçmişi, kullanıcı içerikleri) | Hayır | Hayır | Hayır | Hayır | — | — | Hatırlatıcı metinleri kullanıcı içeriği ama cihaz dışına çıkmıyor. |
 | Web tarama | Hayır | Hayır | Hayır | Hayır | — | — | — |
 | Uygulama bilgileri ve performans (çökme kayıtları, tanılama) | Hayır | Hayır | Hayır | Hayır | — | — | Çökme raporlama yok. F6.3'te eklenirse **Evet** olur. |

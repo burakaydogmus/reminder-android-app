@@ -75,6 +75,21 @@ class _FakeCalendar implements CalendarPermissionBackend {
   }
 }
 
+class _FakeContacts implements ContactsPermissionBackend {
+  PermissionStatus current = PermissionStatus.denied;
+  PermissionStatus result = PermissionStatus.granted;
+  final calls = <String>[];
+
+  @override
+  Future<PermissionStatus> status() async => current;
+
+  @override
+  Future<PermissionStatus> request() async {
+    calls.add('request');
+    return current = result;
+  }
+}
+
 void main() {
   group('decision logic', () {
     test('notification state: granted / not requested / denied', () {
@@ -167,6 +182,15 @@ void main() {
         locationFix(LocationPermissionState.denied),
         PermissionFix.openSettings,
       );
+      expect(contactsFix(ContactsPermissionState.granted), PermissionFix.none);
+      expect(
+        contactsFix(ContactsPermissionState.notRequested),
+        PermissionFix.request,
+      );
+      expect(
+        contactsFix(ContactsPermissionState.denied),
+        PermissionFix.openSettings,
+      );
       expect(exactAlarmFix(ExactAlarmState.granted), PermissionFix.none);
       expect(exactAlarmFix(ExactAlarmState.notRequired), PermissionFix.none);
       expect(
@@ -176,16 +200,60 @@ void main() {
     });
   });
 
+  // F7.3: iOS reports CNAuthorizationStatusNotDetermined as plain `denied`,
+  // and iOS 18 "limited" access is enough to read the picked contacts.
+  group('contacts state', () {
+    test('granted and limited both count as granted', () {
+      for (final status in [
+        PermissionStatus.granted,
+        PermissionStatus.limited
+      ]) {
+        expect(
+          resolveContactsState(status: status, requested: false),
+          ContactsPermissionState.granted,
+        );
+      }
+    });
+
+    test('denied is "not requested" until the app asked once', () {
+      expect(
+        resolveContactsState(
+          status: PermissionStatus.denied,
+          requested: false,
+        ),
+        ContactsPermissionState.notRequested,
+      );
+      expect(
+        resolveContactsState(status: PermissionStatus.denied, requested: true),
+        ContactsPermissionState.denied,
+      );
+    });
+
+    test('permanently denied and restricted are denied without the flag', () {
+      for (final status in [
+        PermissionStatus.permanentlyDenied,
+        PermissionStatus.restricted,
+      ]) {
+        expect(
+          resolveContactsState(status: status, requested: false),
+          ContactsPermissionState.denied,
+        );
+      }
+    });
+  });
+
   group('PlatformPermissionService', () {
     late _FakeNotifications notifications;
     late _FakeLocation location;
     late _FakeCalendar calendar;
+    late _FakeContacts contacts;
     late PermissionService service;
 
     PermissionService build() => PlatformPermissionService(
           notifications: notifications,
           location: location,
           calendar: calendar,
+          contacts: contacts,
         );
 
     setUp(() {
@@ -193,6 +261,7 @@ void main() {
       notifications = _FakeNotifications();
       location = _FakeLocation();
       calendar = _FakeCalendar();
+      contacts = _FakeContacts();
       service = build();
     });
 
@@ -297,6 +366,37 @@ void main() {
         await service.shouldShowPrompt(PermissionPrompt.notifications),
         isTrue,
       );
+    });
+    // F7.3: the address book is asked for exactly once; afterwards the fix is
+    // app settings, never a second system prompt (iOS reports notDetermined as
+    // plain denied, so only the stored flag can tell them apart).
+    test('contacts: asks once, then only opens settings', () async {
+      expect(
+        (await service.check()).contacts,
+        ContactsPermissionState.notRequested,
+      );
+      expect(await service.requestContacts(), ContactsPermissionState.granted);
+      expect(contacts.calls, ['request']);
+
+      contacts.current = PermissionStatus.denied;
+      service = build();
+      expect((await service.check()).contacts, ContactsPermissionState.denied);
+      expect(await service.requestContacts(), ContactsPermissionState.denied);
+      expect(contacts.calls, ['request']);
+      expect(location.calls, contains('appSettings'));
+    });
+
+    test('contacts: a refusal is remembered across instances', () async {
+      contacts.result = PermissionStatus.denied;
+      expect(await service.requestContacts(), ContactsPermissionState.denied);
+      service = build();
+      expect((await service.check()).contacts, ContactsPermissionState.denied);
+    });
+
+    test('contacts: granted needs no request at all', () async {
+      contacts.current = PermissionStatus.granted;
+      expect(await service.requestContacts(), ContactsPermissionState.granted);
+      expect(contacts.calls, isEmpty);
     });
   });
 }

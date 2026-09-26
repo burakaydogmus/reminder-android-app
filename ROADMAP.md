@@ -224,11 +224,35 @@ Diğer tüm fazların temeli.
   Hafta şeridi ve ay ızgarasındaki gün noktaları şimdilik yalnızca hatırlatıcı ve doğum günlerini
   gösteriyor; cihaz etkinlikleri için kategori renklerinden ayrı, nötr bir işaret token'ı gerekiyor.
 
+- [x] **F7.3 Rehberden doğum günü aktarma** · `feat/contacts-import`
+  *Numarası korundu (dal adı ve PR geçmişi F7.3 diyor), ama madde Faz 7'den (bulut) Faz 8'e taşındı:
+  rehber cihazın kendi verisi, buluta hiç dokunmuyor — F8.1 ile aynı hikâye.*
+  Doğum günleri sayfasındaki **"Rehberden aktar"** rehberi **bir kez** okuyor, doğum günü olan
+  kişileri ad + tarih + (varsa) yaş bilgisiyle listeliyor ve seçilenleri uygulamanın kendi listesine
+  ekliyor. Hiçbir satır seçili başlamıyor ("Tümünü seç" bir dokunuş); uygulamada **zaten olan** bir
+  doğum günü "zaten ekli" olarak, seçilemez biçimde görünüyor — sessizce atılmıyor — ve aktarma
+  sonrası özet + bildirim çubuğu neyin eklendiğini, neyin atlandığını söylüyor.
+  **Yılsız doğum günleri asıl durum:** yılı olmayan bir kayıt `year: null` olarak (nöbetçi yılla
+  **değil**) aktarılıyor; şema v6 bunu zaten destekliyor, yeni bir kolon gerekmedi. Aktarılanlar
+  uygulamanın varsayılan bildirim saati ve önbildirimlerini alıyor (09:00, gününde + 1 gün önce) —
+  elle eklemekle birebir aynı.
+  **Yinelenen kontrolü:** kırpılmış, Türkçe büyük/küçük harf ve aksan duyarsız ad
+  (`TextSearch.foldName`, `İLKAY` = `ilkay` = `Ilkay`) + aynı ay/gün; yıl anahtara **girmiyor**.
+  *Not:* eklenti `flutter_contacts` (quis.co, 2.5.0, 160/160 puan, kendi Dart bağımlılığı yok).
+  `fast_contacts` reddedildi: modeli yalnızca telefon/e-posta/ad/kurum veriyor, **doğum gününü hiç
+  okuyamıyor**. Android'de yalnızca `READ_CONTACTS`, iOS'ta tek anahtar
+  `NSContactsUsageDescription`. Rehbere yazan kod yolu yok (`ContactsPlatform` seam'inde tek bir
+  okuma metodu var) ve kişi kimliği, fotoğraf, telefon, e-posta hiç istenmiyor. İzin verilmezse
+  ya da okuma sırasında geri alınırsa sayfa ne olduğunu anlatıp [Ayarları aç] sunuyor.
+  **Mağaza notu:** Play'in **27 Ocak 2027**'de yürürlüğe girecek Contacts Permissions politikası
+  targetSdk 37+ için Play Console beyanı istiyor; uygulama şu an targetSdk 36 ile kapsam dışında
+  (bkz. `docs/store/permissions-review.md` §10).
+
 ## Faz 7 — İleri (bulut)
 
 - [ ] **F7.1 Firebase Auth + Firestore senkron** · `feat/cloud-sync` · *bağımlı: F2.1*
 - [ ] **F7.2 Paylaşılan listeler** · `feat/shared-lists` · *bağımlı: F7.1*
-- [ ] **F7.3 Rehberden doğum günü aktarma** · `feat/contacts-import`
+- ~~F7.3 Rehberden doğum günü aktarma~~ → **Faz 8'e taşındı** (rehber cihaz verisi, buluta dokunmuyor); madde numarası dal/PR geçmişi için F7.3 kaldı.
 
 ---
 
@@ -255,5 +279,7 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
 
 - **F4.5 erişilebilirlik** tek seferlik bir adım değil: F4.1'den itibaren her PR'ın kabul kriteri, sonda kapanış denetimi.
 - **F4.1 ile Faz 1 paralelliği:** F1.6 (izin arayüzü) ve F1.8 (editörde geçmiş saat) `lib/ui` dosyalarına da dokunur; hangisi önce merge edilirse diğeri rebase eder.
+- **F7.3 Faz 8'de:** rehberden doğum günü aktarma bulut değil cihaz verisi; madde numarası dal
+  adı yüzünden F7.3 kaldı ama F8.1'in salt-okuma izin hikâyesini izliyor.
 - **Faz 8 Faz 7'yi beklemez:** entegrasyonlar yereldir (cihaz takvimi), buluta dokunmaz; F8.1 yalnızca F4.4 (Takvim) ve F1.6 (izin akışı) üzerine kurulur.
 - **F1.6 artık F4.1'den sonra yürütülür:** izin durumu arayüzü yeni Ayarlar gruplu kartlarına (İzinler) ve yeni editörün "Nerede" kartına yerleşir; F4.1 bu bölümleri bilerek boş bıraktı.

@@ -30,6 +30,7 @@ Gerekçe:
 | OpenStreetMap karoları | İstek kullanıcı konumu parametresi içermez; IP ve user agent sunucu çağrısında gider, geliştirici tarafından saklanmaz. OSMF'nin kendi günlük kayıtları (IP kısaltılarak, 180 gün) üçüncü taraf *ortak* SDK'sı değil, harici bir içerik sunucusudur — bu yorum *doğrulanmalı*. |
 | JSON yedek | Kullanıcının başlattığı paylaşım; geliştiriciye aktarım yok. |
 | Cihaz takvimi etkinlikleri (F8.1) | EventKit'ten **yalnızca okunur**, kullanıcı Ayarlar › "Takvim etkinlikleri"ni açtıysa. Etkinlikler ekranda gösterilmek için bellekte tutulur; diske yazılmaz, hiçbir sunucuya gitmez, uygulama takvime yazmaz. |
+| Rehber (F7.3) | `CNContactStore`'dan **yalnızca okunur** ve **yalnızca bir kez**, kullanıcı Doğum günleri › "Rehberden aktar"a bastığında. Yalnızca görünen ad ve doğum tarihi alınır — kişi kimliği, fotoğraf, telefon ve e-posta hiç istenmez. Seçilen doğum günleri uygulamanın kendi veritabanına yazılır; hiçbir sunucuya gitmez, rehbere hiçbir şey yazılmaz. Veri toplanmadığı için etikete girmiyor. |
 
 ## `GOOGLE_MAPS_KEY` ile derlenen sürüm (önerilmez)
 
@@ -57,6 +58,10 @@ daha iyi yol iOS sürümünü anahtarsız yayınlamaktır.
   - `NSCalendarsFullAccessUsageDescription` (F8.1, iOS 17+): "Takvim etkinliklerini Bugün ve Takvim
     sekmelerinde göstermek için takvimini okuruz. Takvimine hiçbir şey yazılmaz."
   - `NSCalendarsUsageDescription` (F8.1, iOS 15/16 için eski anahtar): aynı metin.
+  - `NSContactsUsageDescription` (F7.3): "Doğum günlerini rehberinden aktarabilmek için rehberini
+    bir kez okuruz. Rehberine hiçbir şey yazılmaz; yalnızca ad ve tarih alınır." Rehberde EventKit
+    gibi ayrı bir salt-okuma katmanı yok, tek anahtar bu. iOS 18'in *limited* erişimi de yeterli:
+    sistem yalnızca kullanıcının seçtiği kişileri veriyor.
     `NSCalendarsWriteOnlyAccessUsageDescription` **bilinçli olarak yok** — EventKit'in write-only
     katmanı okuma yapamaz (bkz. [`permissions-review.md`](permissions-review.md) §9).
   Öneri: "uygulama kapalıyken de" ve "konumun cihazdan çıkmaz" vurgusu; uygulama dili "sen" iken

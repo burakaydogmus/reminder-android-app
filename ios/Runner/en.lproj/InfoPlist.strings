@@ -6,3 +6,6 @@
    the legacy key for iOS 15/16 share the same wording. */
 "NSCalendarsFullAccessUsageDescription" = "We read your calendar to show its events in the Today and Calendar tabs. Nothing is ever written to your calendar.";
 "NSCalendarsUsageDescription" = "We read your calendar to show its events in the Today and Calendar tabs. Nothing is ever written to your calendar.";
+
+/* F7.3: contacts are read once, read-only, to import birthdays. */
+"NSContactsUsageDescription" = "We read your contacts once so you can import birthdays from them. Nothing is ever written to your contacts; only the name and the date are taken.";

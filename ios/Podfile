@@ -38,16 +38,20 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       # permission_handler compiles every permission out by default; location
-      # (when in use + always) is used by the F1.6 permission flow and calendar
-      # read access by F8.1. PERMISSION_EVENTS covers iOS 15/16
-      # (requestAccess(to: .event)), PERMISSION_EVENTS_FULL_ACCESS the iOS 17+
-      # requestFullAccessToEvents path — reading events needs the full tier and
-      # EventKit's write-only tier cannot read, so it stays out.
+      # (when in use + always) is used by the F1.6 permission flow, calendar
+      # read access by F8.1 and contacts read access by F7.3.
+      # PERMISSION_EVENTS covers iOS 15/16 (requestAccess(to: .event)),
+      # PERMISSION_EVENTS_FULL_ACCESS the iOS 17+ requestFullAccessToEvents
+      # path — reading events needs the full tier and EventKit's write-only
+      # tier cannot read, so it stays out. PERMISSION_CONTACTS enables
+      # Permission.contacts (CNContactStore); contacts has a single access
+      # tier, so there is no read-only variant to pick.
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_LOCATION=1',
         'PERMISSION_EVENTS=1',
         'PERMISSION_EVENTS_FULL_ACCESS=1',
+        'PERMISSION_CONTACTS=1',
       ]
     end
   end

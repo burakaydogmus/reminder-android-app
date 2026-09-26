@@ -2271,4 +2271,136 @@ class AppLocalizationsTr extends AppLocalizations {
   String calendarEventMultiDay(String start, String end) {
     return '$start – $end';
   }
+
+  @override
+  String get permContactsTitle => 'Doğum günlerini rehberden alalım';
+
+  @override
+  String get permContactsBody =>
+      'Rehberindeki kişilerin doğum günlerini bir kerede okuyup listeye ekleyelim. Rehberine hiçbir şey yazılmaz, hiçbir kişi değiştirilmez; yalnızca ad ve tarih alınır.';
+
+  @override
+  String get permContactsPoint1 => 'Rehber yalnızca bu cihazda, bir kez okunur';
+
+  @override
+  String get permContactsPoint2 => 'Rehberine hiçbir şey yazılmaz';
+
+  @override
+  String get permContactsPoint3 =>
+      'Yalnızca ad ve tarih saklanır, fotoğraf ve numara saklanmaz';
+
+  @override
+  String get permContactsConfirm => 'İzin ver';
+
+  @override
+  String get contactImportTooltip => 'Rehberden aktar';
+
+  @override
+  String get contactImportTitle => 'Rehberden aktar';
+
+  @override
+  String get contactImportLoading => 'Rehber okunuyor…';
+
+  @override
+  String get contactImportUnavailable =>
+      'Rehber şu an okunamıyor. Daha sonra tekrar dene.';
+
+  @override
+  String get contactImportDenied =>
+      'Rehber izni verilmedi, bu yüzden doğum günleri okunamıyor. Ayarlardan izin verirsen buradan tekrar deneyebilirsin. Doğum günlerini elle de ekleyebilirsin.';
+
+  @override
+  String get contactImportEmpty =>
+      'Rehberde doğum günü yok. Rehberdeki kişilere doğum günü eklersen burada görünürler.';
+
+  @override
+  String contactImportFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişide doğum günü var',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportSelectAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tümünü seç ($count)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportSelectNone => 'Seçimi temizle';
+
+  @override
+  String contactImportAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kişiyi aktar',
+      zero: 'Aktar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportAlreadyAdded => 'zaten ekli';
+
+  @override
+  String get contactImportYearUnknown => 'yıl bilinmiyor';
+
+  @override
+  String contactImportRowSubtitle(String date, String note) {
+    return '$date · $note';
+  }
+
+  @override
+  String get contactImportResultTitle => 'Aktarma özeti';
+
+  @override
+  String contactImportResultImported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Aktarılan: $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportResultSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zaten ekliydi: $count',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get contactImportResultNothing => 'Hiçbir doğum günü aktarılmadı.';
+
+  @override
+  String contactImportSnack(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doğum günü aktarıldı',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String contactImportSnackWithSkipped(int count, int skipped) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doğum günü aktarıldı, $skipped tanesi zaten ekliydi',
+    );
+    return '$_temp0';
+  }
 }
