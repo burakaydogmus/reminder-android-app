@@ -100,12 +100,16 @@ jobs:
       # one of them on purpose means changing this list *and* the review doc.
       - name: Audit the merged manifest
         run: |
-          set -uo pipefail
+          # GitHub runs this with `bash -e`, so no `pipefail` here: `find` over a
+          # directory that does not exist, and `grep` with no match, both exit
+          # non-zero and would kill the step before it printed anything. Every
+          # such command is either last in its pipe or guarded.
+          set -u
           # android/build.gradle moves the Gradle build directory to ./build,
           # so the app module's merged manifest lands under build/app — not
           # android/app/build. Search both, newest AGP layout included.
           manifest=$(find build/app android/app/build -path '*merged_manifest*' \
-            -name AndroidManifest.xml 2>/dev/null | sort | head -1)
+            -name AndroidManifest.xml 2>/dev/null | sort | head -1 || true)
           if [ -z "$manifest" ]; then
             echo "::error::no merged manifest found under build/app or android/app/build"
             find build android -name AndroidManifest.xml 2>/dev/null | head -50
