@@ -1644,7 +1644,14 @@ read-only pass**. There is no background sync and nothing is ever written to con
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage; it builds
   `--split-per-abi` and uploads `app-release-arm64-apk` (the one to install) plus an
   `…-other-abis-apk` for armeabi-v7a and x86_64. Splits carry Flutter's per-ABI
-  `versionCode` offsets, so a device must stay on one variant.
+  `versionCode` offsets, so a device must stay on one variant. The job's **"Audit the merged
+  manifest"** step is the permanent guard behind `docs/store/permissions-review.md` §8 rows 8, 13
+  and 17: it finds the merged manifest (under `build/app`, because `android/build.gradle` moves the
+  Gradle build directory), prints every `uses-permission` and every `service`/`receiver`/`provider`
+  with its `foregroundServiceType` — so an unused foreground-service component a plugin contributes
+  is visible in the log — and **fails** when `WRITE_CALENDAR` (the calendar feature is read-only),
+  `WRITE_CONTACTS` (the import is read-only) or `REQUEST_INSTALL_PACKAGES` appears. Declaring one of
+  them on purpose means changing that list *and* the review doc.
 - Releases for the owner's own device (F6.3b): `release.yml`, run manually. It **requires** the
   signing secrets (a debug-signed release could not install as an update, so it fails instead),
   derives `versionCode` from `date -u +%y%m%d%H` — `pubspec.yaml` pins `+8`, so every build

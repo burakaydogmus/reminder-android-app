@@ -12,6 +12,12 @@ Durum: 19 Eylül 2026. **Bu belge hukuki görüş değildir;** kararlar repo sah
 - Sonuç: başkaları uygulamanın kopyalarını da yayınlayabilir. Mağaza adı, simge ve ekran
   görüntüleri kod lisansıyla korunmaz; marka koruması isteniyorsa ayrıca değerlendirilmeli.
 - MIT, mağazada yayına engel değildir; mağaza dağıtımı için ek lisans gerekmez.
+- **GitHub lisansı tanıyor** (26 Eylül 2026'da doğrulandı): `gh repo view --json licenseInfo`
+  `{"key":"mit","name":"MIT License"}`, `gh api repos/.../license` de `spdx_id: MIT` veriyor, yani
+  repo sayfasındaki lisans rozeti çıkıyor. `LICENSE` dosyası choosealicense'ın MIT metniyle birebir
+  aynı (yalnızca telif satırı doldurulmuş), commit'lenen blob LF satır sonlu ve `.gitattributes`
+  yok — GitHub'ın `licensee` eşleştiricisinin istediği hâl. **Dosyaya dokunmayın:** başlığı,
+  boşlukları veya satır sonlarını değiştirmek tanımayı bozabilir.
 - Repodaki MIT lisansı **üçüncü taraf bileşenlerin lisanslarını değiştirmez**. Aşağıdaki atıflar
   ayrıca verilmelidir:
   - **Google Sans Flex** yazı tipi: SIL Open Font License 1.1 (`fonts/GoogleSansFlex/OFL.txt`);

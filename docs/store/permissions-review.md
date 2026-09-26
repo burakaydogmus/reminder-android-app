@@ -8,9 +8,15 @@ hemen önce bağlantılar tekrar okunmalı.
 
 Kaynak: `android/app/src/main/AndroidManifest.xml`. Eklentilerin (ör. `native_geofence` →
 WorkManager, `flutter_local_notifications`) birleştirilmiş manifeste ekledikleri izin ve servisler
-burada **yok**; release derlemesinden sonra
-`build/app/intermediates/merged_manifests/release/.../AndroidManifest.xml` (veya
-`aapt dump permissions app-release.apk`) ile *doğrulanmalı*.
+burada **yok**.
+
+**Birleştirilmiş manifest artık CI'da denetleniyor** (madde 8/13/17): `android.yml` › *Audit the
+merged manifest* adımı release derlemesinden sonra
+`build/app/intermediates/merged_manifest*/.../AndroidManifest.xml` dosyasını bulur, bütün
+`uses-permission` satırlarını ve her `service`/`receiver`/`provider` bileşenini
+(`foregroundServiceType` dâhil) koşu günlüğüne yazar, `WRITE_CALENDAR`, `WRITE_CONTACTS` veya
+`REQUEST_INSTALL_PACKAGES` görürse koşuyu **başarısız** eder. Elle bakmak yerine bu adımın
+günlüğüne bakılır; birini bilerek eklemek hem o listeyi hem bu dokümanı değiştirmeyi gerektirir.
 
 | İzin | Tür | Neden kullanılıyor (kod) | Play politikası durumu | Karar |
 |---|---|---|---|---|
@@ -190,9 +196,12 @@ Kaynaklar:
   Önizleme sayfası tarihi 27 Ocak 2027 olarak veriyor; `CLAUDE.md` 28 Ekim 2026 diyor — tarih
   *doğrulanmalı*, ama uygulamayı etkilemiyor.
 - Uygulama **FGS kullanmıyor** (`NativeGeofenceBackgroundManager.promoteToForeground` çağrılmıyor,
-  uygulama manifestinde FGS izni yok). WorkManager'ın birleştirilmiş manifeste `SystemForegroundService`
-  / `FOREGROUND_SERVICE` ekleyip eklemediği kontrol edilmeli; eklenmişse ve kullanılmıyorsa
-  `tools:node="remove"` ile çıkarmak Play Console'daki FGS sorusunu sadeleştirir (*doğrulanmalı*).
+  uygulama manifestinde FGS izni yok). WorkManager'ın birleştirilmiş manifeste
+  `SystemForegroundService` / `FOREGROUND_SERVICE` ekleyip eklemediği artık her Android koşusunda
+  *Audit the merged manifest* adımının günlüğünde görünüyor (§1): bileşenler `foregroundServiceType`
+  değerleriyle listeleniyor. Kullanılmayan bir bileşen çıkarsa `tools:node="remove"` ile çıkarmak
+  Play Console'daki FGS sorusunu sadeleştirir — adım bunu **başarısız etmiyor**, çünkü bir eklentinin
+  servisini kaldırmak davranışı bozabilir; kararı insan verir.
 
 ## 7. iOS
 
@@ -352,14 +361,14 @@ Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar ol
 | 5 | Engelleyici | Release'i `GOOGLE_MAPS_KEY` olmadan derle (F6.3 pipeline'ında sabitle) | CI/süreç | Places koşulları + gizlilik formu |
 | 6 | Yüksek | Arka plan konumu beyan metni + 30 sn video; 2/2 açıklamasında özellik adını netleştir | Play Console + küçük metin değişikliği | Reddedilme için B planı: `ACCESS_BACKGROUND_LOCATION`'sız sürüm |
 | 7 | Yüksek | OSM atfını "© OpenStreetMap contributors" + bağlantı yap; karo önbelleğini doğrula | Kod (`location_picker_page.dart`) | OSMF politikası |
-| 8 | Yüksek | Birleştirilmiş manifestte izin/servis dökümü; kullanılmayan FGS bileşenlerini çıkar | Doğrulama (+ gerekirse manifest) | |
+| 8 | ~~Yüksek~~ | ~~Birleştirilmiş manifestte izin/servis dökümü; kullanılmayan FGS bileşenlerini çıkar~~ | CI koruması | **Yapıldı** — `android.yml` › "Audit the merged manifest" her Android koşusunda birleştirilmiş manifestin `uses-permission` ve `service`/`receiver`/`provider` (+ `foregroundServiceType`) satırlarını yazdırır; döküm koşu günlüğünde. Kullanılmayan bir FGS bileşeni artık gözden kaçmaz |
 | 9 | Orta | "Lisanslar" girişi (`showLicensePage`) + Google Sans Flex OFL'in `LicenseRegistry`'ye eklenmesi | Kod | bkz. `licensing.md` |
 | 10 | Orta | iOS: `PrivacyInfo.xcprivacy` gerekliliğini doğrula; İngilizce `InfoPlist.strings`, "sen" hitabı | Kod (iOS) | F6.1 ile |
 | 11 | Orta | Places özelliği kalacaksa: Google haritası/atıf/saklama kurallarına göre yeniden tasarım, yoksa kaldır | Kod | |
 | 12 | Düşük | `VIBRATE` gerekliliğini ve `dataExtractionRules` davranışını doğrula | Doğrulama | |
-| 13 | Orta | F8.1: birleştirilmiş manifestte `WRITE_CALENDAR`'ın **olmadığını** doğrula (eklenti kendi manifestinde izin bildirmiyor, ama yükseltmede değişebilir) | Doğrulama | §9 |
+| 13 | ~~Orta~~ | ~~F8.1: birleştirilmiş manifestte `WRITE_CALENDAR`'ın **olmadığını** doğrula~~ | CI koruması | **Yapıldı** — aynı adım `WRITE_CALENDAR` görürse koşuyu **başarısız** eder. Tek seferlik bir bakıştan iyisi: eklenti yükseltmesi izni geri getirirse PR'da yakalanır (maddenin korktuğu tam senaryo). §9 |
 | 14 | Orta | F8.1: cihazda izin akışını dene (Android 14+, iOS 17 tam erişim ve iOS 15/16 eski anahtar) | Cihaz testi | §9; Windows'ta doğrulanamaz |
 | 15 | Düşük | `device_calendar_plus` 0.x → 1.0 çıkınca sürümü yükselt ve tekrarlayan etkinlik hatalarının (upstream #173, #163) düzelip düzelmediğini kontrol et | Bağımlılık | pre-1.0 |
 | 16 | **Yüksek (tarihli)** | F7.3: `targetSdk` 37'ye çıkarken Play Console'da Contacts Permissions beyanını doldur (*User-initiated Selection*; Contact Picker'ın neden yetmediğini yaz). 27 Ocak 2027'den sonra targetSdk 37+ için zorunlu | Play Console + süreç | §10 |
-| 17 | Orta | F7.3: birleştirilmiş manifestte `WRITE_CONTACTS`'ın **olmadığını** doğrula (eklenti kendi manifestinde izin bildirmiyor, ama yükseltmede değişebilir) | Doğrulama | §10; madde 13 ile aynı koşuda |
+| 17 | ~~Orta~~ | ~~F7.3: birleştirilmiş manifestte `WRITE_CONTACTS`'ın **olmadığını** doğrula~~ | CI koruması | **Yapıldı** — aynı adım `WRITE_CONTACTS` (ve `REQUEST_INSTALL_PACKAGES`) görürse koşuyu **başarısız** eder. §10; madde 13 ile aynı adımda |
 | 18 | Orta | F7.3: cihazda izin akışını dene (Android 14+, iOS 18 *limited* erişim dâhil) | Cihaz testi | §10; Windows'ta doğrulanamaz |
