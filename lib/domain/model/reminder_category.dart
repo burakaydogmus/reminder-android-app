@@ -324,10 +324,9 @@ class CategoryCatalog {
 
 /// Kategori adı karşılaştırma yardımcıları.
 abstract final class CategoryNames {
-  /// Türkçe katlanmış anahtar ([TextSearch.fold]: büyük/küçük harf ve aksan
-  /// duyarsız, İ/I/ı → i, ş → s, ğ → g, ç → c, ö → o, ü → u), boşluklar teke
-  /// inmiş ve kırpılmış. `Spor Salonu`, `spor  salonu` ve `SPOR SALONU` aynı
-  /// anahtarı verir.
-  static String fold(String name) =>
-      TextSearch.fold(name.trim()).replaceAll(RegExp(r'\s+'), ' ');
+  /// Türkçe katlanmış anahtar ([TextSearch.foldName]: büyük/küçük harf ve
+  /// aksan duyarsız, İ/I/ı → i, ş → s, ğ → g, ç → c, ö → o, ü → u), boşluklar
+  /// teke inmiş ve kırpılmış. `Spor Salonu`, `spor  salonu` ve `SPOR SALONU`
+  /// aynı anahtarı verir.
+  static String fold(String name) => TextSearch.foldName(name);
 }

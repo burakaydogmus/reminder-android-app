@@ -44,6 +44,20 @@ enum CalendarPermissionState {
   denied,
 }
 
+/// Contacts read access for the birthday import (F7.3).
+///
+/// The app only ever **reads** the address book, once, when the user starts an
+/// import; there is no write state because nothing is ever written back.
+enum ContactsPermissionState {
+  granted,
+
+  /// The system prompt has not been shown by this app yet.
+  notRequested,
+
+  /// Asked before (or blocked by the OS) and not granted.
+  denied,
+}
+
 /// What a "fix" control should do for a permission state.
 enum PermissionFix { none, request, openSettings }
 
@@ -54,6 +68,7 @@ enum PermissionPrompt {
   locationWhenInUse,
   locationAlways,
   calendar,
+  contacts,
 }
 
 class PermissionSnapshot {
@@ -62,6 +77,7 @@ class PermissionSnapshot {
     required this.exactAlarms,
     required this.location,
     this.calendar = CalendarPermissionState.notRequested,
+    this.contacts = ContactsPermissionState.notRequested,
   });
 
   final NotificationPermissionState notifications;
@@ -72,11 +88,16 @@ class PermissionSnapshot {
   /// until the user turns "Takvim etkinlikleri" on.
   final CalendarPermissionState calendar;
 
+  /// Address book read access (F7.3). Only the birthday import asks for it,
+  /// and only while the import sheet is open.
+  final ContactsPermissionState contacts;
+
   static const allGranted = PermissionSnapshot(
     notifications: NotificationPermissionState.granted,
     exactAlarms: ExactAlarmState.granted,
     location: LocationPermissionState.always,
     calendar: CalendarPermissionState.granted,
+    contacts: ContactsPermissionState.granted,
   );
 
   PermissionSnapshot copyWith({
@@ -84,12 +105,14 @@ class PermissionSnapshot {
     ExactAlarmState? exactAlarms,
     LocationPermissionState? location,
     CalendarPermissionState? calendar,
+    ContactsPermissionState? contacts,
   }) {
     return PermissionSnapshot(
       notifications: notifications ?? this.notifications,
       exactAlarms: exactAlarms ?? this.exactAlarms,
       location: location ?? this.location,
       calendar: calendar ?? this.calendar,
+      contacts: contacts ?? this.contacts,
     );
   }
 
@@ -99,15 +122,16 @@ class PermissionSnapshot {
       other.notifications == notifications &&
       other.exactAlarms == exactAlarms &&
       other.location == location &&
-      other.calendar == calendar;
+      other.calendar == calendar &&
+      other.contacts == contacts;
 
   @override
   int get hashCode =>
-      Object.hash(notifications, exactAlarms, location, calendar);
+      Object.hash(notifications, exactAlarms, location, calendar, contacts);
 
   @override
   String toString() => 'PermissionSnapshot($notifications, $exactAlarms, '
-      '$location, $calendar)';
+      '$location, $calendar, $contacts)';
 }
 
 /// Fix action for the notification permission.
@@ -150,6 +174,18 @@ PermissionFix calendarFix(CalendarPermissionState state) {
     case CalendarPermissionState.notRequested:
       return PermissionFix.request;
     case CalendarPermissionState.denied:
+      return PermissionFix.openSettings;
+  }
+}
+
+/// Fix action for contacts read access (F7.3).
+PermissionFix contactsFix(ContactsPermissionState state) {
+  switch (state) {
+    case ContactsPermissionState.granted:
+      return PermissionFix.none;
+    case ContactsPermissionState.notRequested:
+      return PermissionFix.request;
+    case ContactsPermissionState.denied:
       return PermissionFix.openSettings;
   }
 }
@@ -200,6 +236,27 @@ CalendarPermissionState resolveCalendarState({
   return CalendarPermissionState.notRequested;
 }
 
+/// Maps the permission_handler contacts status plus the persisted "requested"
+/// flag (F7.3).
+///
+/// iOS reports `CNAuthorizationStatusNotDetermined` as plain `denied`
+/// (`ContactPermissionStrategy`), so — exactly like location and calendar —
+/// only the stored flag tells "never asked" from "asked and refused" apart.
+/// iOS 18 *limited* access counts as granted: the OS then hands over the
+/// contacts the user picked, which is all the import needs.
+ContactsPermissionState resolveContactsState({
+  required ph.PermissionStatus status,
+  required bool requested,
+}) {
+  if (status.isGranted || status.isLimited) {
+    return ContactsPermissionState.granted;
+  }
+  if (status.isPermanentlyDenied || status.isRestricted || requested) {
+    return ContactsPermissionState.denied;
+  }
+  return ContactsPermissionState.notRequested;
+}
+
 /// Permission checks and requests used by the UI. Injected through
 /// `PermissionScope` so widgets can be tested with a fake.
 abstract class PermissionService {
@@ -224,6 +281,10 @@ abstract class PermissionService {
   /// Asks for device calendar **read** access (F8.1): the system prompt the
   /// first time, app settings afterwards.
   Future<CalendarPermissionState> requestCalendar();
+
+  /// Asks for address book **read** access (F7.3): the system prompt the first
+  /// time, app settings afterwards.
+  Future<ContactsPermissionState> requestContacts();
 
   Future<void> openAppSettings();
 
@@ -257,6 +318,27 @@ abstract class LocationPermissionBackend {
 abstract class CalendarPermissionBackend {
   Future<ph.PermissionStatus> status();
   Future<ph.PermissionStatus> request();
+}
+
+/// Platform contacts permission calls (permission_handler, F7.3).
+abstract class ContactsPermissionBackend {
+  Future<ph.PermissionStatus> status();
+  Future<ph.PermissionStatus> request();
+}
+
+/// `Permission.contacts` — Android `READ_CONTACTS` (+ `WRITE_CONTACTS` when
+/// declared; this app declares only read, and permission_handler asks for
+/// declared permissions only, see `PermissionUtils.getManifestNames`) and, on
+/// iOS, `CNContactStore.requestAccess(for: .contacts)`. Needs
+/// `PERMISSION_CONTACTS=1` in the Podfile.
+class PermissionHandlerContactsBackend implements ContactsPermissionBackend {
+  const PermissionHandlerContactsBackend();
+
+  @override
+  Future<ph.PermissionStatus> status() => ph.Permission.contacts.status;
+
+  @override
+  Future<ph.PermissionStatus> request() => ph.Permission.contacts.request();
 }
 
 /// `Permission.calendarFullAccess` — the only tier that can **read** events:
@@ -379,10 +461,12 @@ class PlatformPermissionService implements PermissionService {
     required NotificationPermissionBackend notifications,
     required LocationPermissionBackend location,
     required CalendarPermissionBackend calendar,
+    required ContactsPermissionBackend contacts,
     Future<SharedPreferences> Function()? preferences,
   })  : _notifications = notifications,
         _location = location,
         _calendar = calendar,
+        _contacts = contacts,
         _preferences = preferences ?? SharedPreferences.getInstance;
 
   factory PlatformPermissionService.platform() => PlatformPermissionService(
@@ -391,11 +475,13 @@ class PlatformPermissionService implements PermissionService {
         ),
         location: const PermissionHandlerLocationBackend(),
         calendar: const PermissionHandlerCalendarBackend(),
+        contacts: const PermissionHandlerContactsBackend(),
       );
 
   final NotificationPermissionBackend _notifications;
   final LocationPermissionBackend _location;
   final CalendarPermissionBackend _calendar;
+  final ContactsPermissionBackend _contacts;
   final Future<SharedPreferences> Function() _preferences;
 
   static const _requestedNotificationsKey =
@@ -404,6 +490,7 @@ class PlatformPermissionService implements PermissionService {
   static const _requestedLocationAlwaysKey =
       'permissions.requested.locationAlways';
   static const _requestedCalendarKey = 'permissions.requested.calendar';
+  static const _requestedContactsKey = 'permissions.requested.contacts';
   static String _promptKey(PermissionPrompt p) =>
       'permissions.prompt.${p.name}';
 
@@ -436,6 +523,13 @@ class PlatformPermissionService implements PermissionService {
     );
   }
 
+  Future<ContactsPermissionState> _contactsState() async {
+    return resolveContactsState(
+      status: await _contacts.status(),
+      requested: await _flag(_requestedContactsKey),
+    );
+  }
+
   @override
   Future<PermissionSnapshot> check() async {
     final exact = await _notifications.canScheduleExact();
@@ -446,6 +540,7 @@ class PlatformPermissionService implements PermissionService {
           : (exact ? ExactAlarmState.granted : ExactAlarmState.denied),
       location: await _locationState(),
       calendar: await _calendarState(),
+      contacts: await _contactsState(),
     );
   }
 
@@ -522,6 +617,21 @@ class PlatformPermissionService implements PermissionService {
         await _calendar.request();
     }
     return _calendarState();
+  }
+
+  @override
+  Future<ContactsPermissionState> requestContacts() async {
+    final current = await _contactsState();
+    switch (contactsFix(current)) {
+      case PermissionFix.none:
+        return current;
+      case PermissionFix.openSettings:
+        await _location.openAppSettings();
+      case PermissionFix.request:
+        await _setFlag(_requestedContactsKey);
+        await _contacts.request();
+    }
+    return _contactsState();
   }
 
   @override

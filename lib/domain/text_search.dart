@@ -49,6 +49,16 @@ abstract final class TextSearch {
     return buffer.toString();
   }
 
+  /// Folded comparison key for a **name**: [fold] plus trimming and collapsing
+  /// runs of whitespace, so `Ayşe  Yılmaz`, `ayse yilmaz` and ` AYŞE YILMAZ `
+  /// give the same key. Used wherever two user-typed names must count as the
+  /// same one (category names, the F7.3 contact birthday dedupe).
+  ///
+  /// Unlike [fold] this does **not** keep the 1:1 index mapping, so never use
+  /// it to highlight ranges in the original text.
+  static String foldName(String name) =>
+      fold(name.trim()).replaceAll(RegExp(r'\s+'), ' ');
+
   /// Query split into folded, non-empty tokens (whitespace separated).
   static List<String> tokens(String query) => [
         for (final t in fold(query).split(RegExp(r'\s+')))

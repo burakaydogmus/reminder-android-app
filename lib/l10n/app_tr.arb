@@ -1781,6 +1781,101 @@
           }
       }
   },
+  "permContactsTitle": "Doğum günlerini rehberden alalım",
+  "permContactsBody": "Rehberindeki kişilerin doğum günlerini bir kerede okuyup listeye ekleyelim. Rehberine hiçbir şey yazılmaz, hiçbir kişi değiştirilmez; yalnızca ad ve tarih alınır.",
+  "@permContactsBody": {
+      "description": "Pre-permission sheet body for the one-shot read-only contacts import (F7.3)."
+  },
+  "permContactsPoint1": "Rehber yalnızca bu cihazda, bir kez okunur",
+  "permContactsPoint2": "Rehberine hiçbir şey yazılmaz",
+  "permContactsPoint3": "Yalnızca ad ve tarih saklanır, fotoğraf ve numara saklanmaz",
+  "permContactsConfirm": "İzin ver",
+  "contactImportTooltip": "Rehberden aktar",
+  "@contactImportTooltip": {
+      "description": "Doğum günleri page action that opens the contacts import sheet (F7.3)."
+  },
+  "contactImportTitle": "Rehberden aktar",
+  "contactImportLoading": "Rehber okunuyor…",
+  "contactImportUnavailable": "Rehber şu an okunamıyor. Daha sonra tekrar dene.",
+  "contactImportDenied": "Rehber izni verilmedi, bu yüzden doğum günleri okunamıyor. Ayarlardan izin verirsen buradan tekrar deneyebilirsin. Doğum günlerini elle de ekleyebilirsin.",
+  "contactImportEmpty": "Rehberde doğum günü yok. Rehberdeki kişilere doğum günü eklersen burada görünürler.",
+  "contactImportFound": "{count, plural, other{{count} kişide doğum günü var}}",
+  "@contactImportFound": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportSelectAll": "{count, plural, other{Tümünü seç ({count})}}",
+  "@contactImportSelectAll": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportSelectNone": "Seçimi temizle",
+  "contactImportAction": "{count, plural, =0{Aktar} other{{count} kişiyi aktar}}",
+  "@contactImportAction": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportAlreadyAdded": "zaten ekli",
+  "contactImportYearUnknown": "yıl bilinmiyor",
+  "contactImportRowSubtitle": "{date} · {note}",
+  "@contactImportRowSubtitle": {
+      "description": "Contact import row: the birthday date and a note (year unknown / already added).",
+      "placeholders": {
+          "date": {
+              "type": "String"
+          },
+          "note": {
+              "type": "String"
+          }
+      }
+  },
+  "contactImportResultTitle": "Aktarma özeti",
+  "contactImportResultImported": "{count, plural, other{Aktarılan: {count}}}",
+  "@contactImportResultImported": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportResultSkipped": "{count, plural, other{Zaten ekliydi: {count}}}",
+  "@contactImportResultSkipped": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportResultNothing": "Hiçbir doğum günü aktarılmadı.",
+  "contactImportSnack": "{count, plural, other{{count} doğum günü aktarıldı}}",
+  "@contactImportSnack": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "contactImportSnackWithSkipped": "{count, plural, other{{count} doğum günü aktarıldı, {skipped} tanesi zaten ekliydi}}",
+  "@contactImportSnackWithSkipped": {
+      "description": "Import result snackbar when some rows were already in the app.",
+      "placeholders": {
+          "count": {
+              "type": "int"
+          },
+          "skipped": {
+              "type": "int"
+          }
+      }
+  },
   "routinesTitle": "Rutinlerim",
   "routinesEmpty": "Henüz rutin yok",
   "routinesEmptyHint": "Sabah rutini gibi hazır paketler kur, tek dokunuşla hatırlatıcıya çevir.",

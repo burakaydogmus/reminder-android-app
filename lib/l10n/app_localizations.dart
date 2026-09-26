@@ -3698,6 +3698,156 @@ abstract class AppLocalizations {
   /// **'{start} – {end}'**
   String calendarEventMultiDay(String start, String end);
 
+  /// No description provided for @permContactsTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Doğum günlerini rehberden alalım'**
+  String get permContactsTitle;
+
+  /// Pre-permission sheet body for the one-shot read-only contacts import (F7.3).
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehberindeki kişilerin doğum günlerini bir kerede okuyup listeye ekleyelim. Rehberine hiçbir şey yazılmaz, hiçbir kişi değiştirilmez; yalnızca ad ve tarih alınır.'**
+  String get permContactsBody;
+
+  /// No description provided for @permContactsPoint1.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehber yalnızca bu cihazda, bir kez okunur'**
+  String get permContactsPoint1;
+
+  /// No description provided for @permContactsPoint2.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehberine hiçbir şey yazılmaz'**
+  String get permContactsPoint2;
+
+  /// No description provided for @permContactsPoint3.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yalnızca ad ve tarih saklanır, fotoğraf ve numara saklanmaz'**
+  String get permContactsPoint3;
+
+  /// No description provided for @permContactsConfirm.
+  ///
+  /// In tr, this message translates to:
+  /// **'İzin ver'**
+  String get permContactsConfirm;
+
+  /// Doğum günleri page action that opens the contacts import sheet (F7.3).
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehberden aktar'**
+  String get contactImportTooltip;
+
+  /// No description provided for @contactImportTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehberden aktar'**
+  String get contactImportTitle;
+
+  /// No description provided for @contactImportLoading.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehber okunuyor…'**
+  String get contactImportLoading;
+
+  /// No description provided for @contactImportUnavailable.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehber şu an okunamıyor. Daha sonra tekrar dene.'**
+  String get contactImportUnavailable;
+
+  /// No description provided for @contactImportDenied.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehber izni verilmedi, bu yüzden doğum günleri okunamıyor. Ayarlardan izin verirsen buradan tekrar deneyebilirsin. Doğum günlerini elle de ekleyebilirsin.'**
+  String get contactImportDenied;
+
+  /// No description provided for @contactImportEmpty.
+  ///
+  /// In tr, this message translates to:
+  /// **'Rehberde doğum günü yok. Rehberdeki kişilere doğum günü eklersen burada görünürler.'**
+  String get contactImportEmpty;
+
+  /// No description provided for @contactImportFound.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} kişide doğum günü var}}'**
+  String contactImportFound(int count);
+
+  /// No description provided for @contactImportSelectAll.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{Tümünü seç ({count})}}'**
+  String contactImportSelectAll(int count);
+
+  /// No description provided for @contactImportSelectNone.
+  ///
+  /// In tr, this message translates to:
+  /// **'Seçimi temizle'**
+  String get contactImportSelectNone;
+
+  /// No description provided for @contactImportAction.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =0{Aktar} other{{count} kişiyi aktar}}'**
+  String contactImportAction(int count);
+
+  /// No description provided for @contactImportAlreadyAdded.
+  ///
+  /// In tr, this message translates to:
+  /// **'zaten ekli'**
+  String get contactImportAlreadyAdded;
+
+  /// No description provided for @contactImportYearUnknown.
+  ///
+  /// In tr, this message translates to:
+  /// **'yıl bilinmiyor'**
+  String get contactImportYearUnknown;
+
+  /// Contact import row: the birthday date and a note (year unknown / already added).
+  ///
+  /// In tr, this message translates to:
+  /// **'{date} · {note}'**
+  String contactImportRowSubtitle(String date, String note);
+
+  /// No description provided for @contactImportResultTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Aktarma özeti'**
+  String get contactImportResultTitle;
+
+  /// No description provided for @contactImportResultImported.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{Aktarılan: {count}}}'**
+  String contactImportResultImported(int count);
+
+  /// No description provided for @contactImportResultSkipped.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{Zaten ekliydi: {count}}}'**
+  String contactImportResultSkipped(int count);
+
+  /// No description provided for @contactImportResultNothing.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hiçbir doğum günü aktarılmadı.'**
+  String get contactImportResultNothing;
+
+  /// No description provided for @contactImportSnack.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} doğum günü aktarıldı}}'**
+  String contactImportSnack(int count);
+
+  /// Import result snackbar when some rows were already in the app.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} doğum günü aktarıldı, {skipped} tanesi zaten ekliydi}}'**
+  String contactImportSnackWithSkipped(int count, int skipped);
+
   /// No description provided for @routinesTitle.
   ///
   /// In tr, this message translates to:

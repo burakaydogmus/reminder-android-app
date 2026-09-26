@@ -159,6 +159,10 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   grammars behind one `CaptureLocale`, and
   `capture_to_reminder.dart`, its mapping to a new `Reminder` (F4.6b); see
   **Quick capture**.
+- `domain/contact_birthday_import.dart` (F7.3) — the pure rules of the contacts
+  birthday import: the dedupe key (`TextSearch.foldName` + month/day, year excluded),
+  `candidates` (rows, duplicates marked and collapsed, sorted), `toBirthday` and
+  `plan`. See **Contacts import (F7.3)**.
 - `domain/reminder_completion.dart` — `completeReminder(reminder, now)`: the **only**
   "Tamamla" rule (cubit `toggleDone`, home widget toggle, notification Tamamla
   action; any new completion path must use it too). Recurring reminders are never marked done: on a
@@ -198,9 +202,12 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     decision (cooldown, initial-trigger grace). `geofence_platform.dart` wraps the
     plugin; `geofence_state_store.dart` persists registrations and last-notified times.
   - `permission_service.dart` — `PermissionService` (check/request/open settings for
-    notifications, exact alarms, location, **calendar read access**) with pure decision
-    helpers; `PlatformPermissionService` over flutter_local_notifications +
-    permission_handler.
+    notifications, exact alarms, location, **calendar read access**, **contacts read
+    access**) with pure decision helpers; `PlatformPermissionService` over
+    flutter_local_notifications + permission_handler.
+  - `contacts_service.dart` (F7.3) — `ContactsPlatform`, the read-only seam over
+    `flutter_contacts`, and `ContactBirthday` (name + month/day + optional year, nothing
+    else). See **Contacts import (F7.3)**.
   - `device_calendar_service.dart` — `DeviceCalendarPlatform`, the testable seam over
     `device_calendar_plus` (F8.1), with `DeviceCalendarInfo` / `DeviceCalendarEvent` /
     `DeviceCalendarReadException`. **Read-only: no write method exists.**
@@ -271,7 +278,8 @@ Formatting is enforced in CI: run `dart format lib test` before committing
   - `reminders/` — `ReminderEditorSheet`, `CategoryVisuals` (the only category id →
     `KorColorKey`/icon/label mapping; `CategoryIcons`, `CategoryColorNames`), `reminder_actions.dart` (complete / snooze / delete
     handlers with undo, long-press menu), `reminder_swipe.dart`, `snooze_sheet.dart`
-    + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`. `settings/` (with
+    + `snooze_options.dart` (pure snooze times), `undo_snack_bar.dart` (F3.5). `birthdays/` — editor sheet, `BirthdaysPage`,
+    `contact_import_sheet.dart` (F7.3 "Rehberden aktar"). `settings/` (with
     `PermissionsGroup`), `maps/`.
   - `permissions/` — `PermissionScope`/`PermissionController`, `PermissionSheet`,
     `PermissionBanner`, `PermissionFlows` (see **Permissions** below).
@@ -312,7 +320,9 @@ Tests mirror `lib/`:
   `NotificationService` against `FakeNotificationsPlugin`
   (`test/helpers/fake_notifications_plugin.dart`, via `NotificationService.forTesting`;
   records cancelled/scheduled ids and shown notifications, needs mock
-  `SharedPreferences` for fingerprints); `ScheduleSync` ordering and coalescing.
+  `SharedPreferences` for fingerprints); `ScheduleSync` ordering and coalescing. Platform seams get a fake
+  instead of a mock: `FakeDeviceCalendarPlatform` (F8.1) and `FakeContactsPlatform`
+  (F7.3), both in `test/services/`.
 - `test/home/` — widget callback core with a real repository (in-memory database) and
   the fake notifications plugin.
 - `test/ui/theme/` — Kor token contrast (WCAG), theme/extension and font asset tests.
@@ -1349,6 +1359,14 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - Calendar (F8.1): `PermissionFlows.calendar` is only ever reached from the Ayarlar
   toggle — nothing else asks for the calendar. `fixCalendar` is the Settings row's action.
   See **Device calendar (F8.1)** for the platform details.
+- Contacts (F7.3): `PermissionFlows.contacts` is only ever reached from the Doğum
+  günleri › "Rehberden aktar" action — nothing else asks for the address book, and an
+  **already denied** permission returns straight away instead of bouncing the user into
+  system settings; the sheet explains and offers `fixContacts` as a deliberate choice.
+  There is deliberately **no Settings › İzinler row** for contacts: the permission is
+  one-shot and backs no ongoing capability, so a permanent "Rehber — izin gerekiyor" line
+  would imply a feature that is not there (the calendar row exists only while the calendar
+  feature is on, for the same reason). See **Contacts import (F7.3)**.
 - Exact alarms (F6.2c): the manifest declares only `SCHEDULE_EXACT_ALARM` —
   **never add `USE_EXACT_ALARM`** (Play restricts it to alarm-clock/calendar apps; see
   `docs/store/permissions-review.md` §3). The permission is optional: without it
@@ -1435,6 +1453,78 @@ Device calendar events are shown **read-only** next to reminders, opt-in and off
   events in the week strip / month grid (F8.3 — they would need a neutral marker token
   beside the category `KorColorKey`s).
 
+## Contacts import (F7.3)
+
+Doğum günleri › "Rehberden aktar" imports birthdays from the address book in **one
+read-only pass**. There is no background sync and nothing is ever written to contacts.
+
+- **Plugin:** [`flutter_contacts`](https://pub.dev/packages/flutter_contacts) `^2.5.0`
+  (quis.co, 160/160 pub points, ~288k downloads/30 days, **no Dart dependencies of its
+  own**, so nothing can clash with our `timezone`/`intl` pins). `fast_contacts` was
+  rejected on capability, not on health: its `Contact` exposes only phones, e-mails, the
+  structured name and the organization — it **cannot read birthdays at all**.
+  `flutter_contacts` gives `Contact.events` with a nullable `Event.year`, which is exactly
+  what a year-less contact birthday needs. Its Android module declares **no permissions in
+  its own manifest** (so the merged manifest stays read-only), has `namespace`, built-in
+  Kotlin, `compileSdk 36` / `minSdk 24`, JVM 17; iOS 13 with a `PrivacyInfo.xcprivacy`.
+- **Seam:** `ContactsPlatform` (`lib/services/contacts_service.dart`) is the only place
+  that touches the plugin — the same role `DeviceCalendarPlatform` plays for
+  `device_calendar_plus`. It has **one method**, `birthdays()`, so no code path can create
+  or change a contact. Tests pass `FakeContactsPlatform`
+  (`test/services/fake_contacts_platform.dart`); the real plugin has no implementation on
+  the test host, so the fake is the only way to reach any path.
+  **Do not use the plugin's own `FlutterContacts.permissions`:** permission goes through
+  `PermissionService.requestContacts` like every other permission here, which is what keeps
+  the Android manifest `READ_CONTACTS`-only.
+- **What is deliberately not stored:** `getAll` is called with **`ContactProperty.event`
+  only**, so phones, e-mails, addresses, organizations, notes and photos are never even
+  fetched; id and display name come back unavoidably and the id is dropped at the seam.
+  `ContactBirthday` is name + month + day + optional year, nothing else. Never widen it —
+  a stored contact id would turn a one-shot import into a link that has to be kept in sync,
+  and it would change the Play data-safety and App Store answers.
+- **Permissions:** Android declares **only `READ_CONTACTS`** — never add `WRITE_CONTACTS`
+  (nothing writes, and permission_handler only asks for declared permissions, see
+  `PermissionUtils.getManifestNames`). iOS needs `NSContactsUsageDescription` — contacts has
+  a single access tier, so unlike EventKit there is no read-only/full choice to make — with
+  localized copies in `ios/Runner/{tr,en}.lproj/InfoPlist.strings`, and the Podfile sets
+  `PERMISSION_CONTACTS=1`. iOS 18 *limited* access counts as granted
+  (`resolveContactsState`): the OS then hands over the contacts the user picked, which is all
+  the import needs. **Play's Contacts Permissions policy (27 Jan 2027) applies to targetSdk
+  37+** and will need a Play Console declaration when the target moves off 36 — see
+  `docs/store/permissions-review.md` §10.
+- **Dedupe rule** (`lib/domain/contact_birthday_import.dart`, pure): the key is
+  `TextSearch.foldName(name)` + month + day. `foldName` is the shared name key (trim,
+  collapse whitespace, Turkish case/diacritic fold — `İLKAY`, `ilkay` and `Ilkay` match);
+  `CategoryNames.fold` now delegates to it. **The year is not part of the key**: the same
+  person typed without a year and stored in the address book with one is the same birthday.
+  A duplicate row is **shown as "zaten ekli", unselected and disabled** — never silently
+  dropped — and "Tümünü seç" cannot pick it up. Duplicates *inside* the address book are
+  collapsed too (first spelling wins).
+- **Import:** `ContactBirthdayImport.plan` is pure (`newId` is injected) and returns the
+  birthdays plus a `ContactImportResult`. Imported birthdays keep the **model defaults** for
+  notification time and offsets (09:00, `[0, 1440]`) — the same ones the manual editor starts
+  from, not a separate set — and a contact without a year imports as `year: null`, never the
+  pre-v6 sentinel. A date the provider cannot mean (month 0/13, 30 February, a future year) is
+  dropped at the seam (`PluginContactsPlatform.validBirthday`) rather than imported; an
+  implausible **year** only clears the year, the date still imports.
+- **The cubit is not touched:** the sheet calls `ReminderCubit.addBirthday` once per imported
+  birthday (there is no bulk add). That is N persists + N schedule syncs; the diff sync makes
+  each one cheap, and the parallel F9 routines work owns `lib/bloc/**`. A bulk
+  `addBirthdays` would be the obvious follow-up once that branch lands.
+- **Nothing is preselected.** A first run on a large address book would otherwise flood the
+  birthday list on one tap; "Tümünü seç (N)" makes the bulk case one tap anyway, and the
+  import button stays disabled at zero selected.
+- **Graceful degradation:** a refused permission (or one revoked between the check and the
+  read) shows the explanation plus [Ayarları aç], and coming back granted re-reads in place.
+  A non-permission failure says the address book cannot be read right now. Both keep the
+  action usable and birthdays can always be typed by hand.
+- **Result summary:** after the import the sheet switches to a summary step listing what was
+  added and what was already there, and a snackbar repeats the counts on close — so "what
+  happened" is answerable after the fact, which a silent drop would not be.
+- **Not done on purpose:** writing to contacts, any kind of ongoing contact↔birthday sync,
+  storing the contact id or photo, and Android 17's `Intent.ACTION_PICK_CONTACTS` picker
+  (it cannot show *which* contacts have a birthday, which is the whole feature).
+
 ## Platform notes
 
 - Development happens on Windows: **iOS is only verified through the CI macOS runner**
@@ -1452,7 +1542,10 @@ Device calendar events are shown **read-only** next to reminders, opt-in and off
   replace each other on a device (uninstall = data loss). Details and the owner's setup steps:
   [`docs/android-signing.md`](docs/android-signing.md). R8 + `shrinkResources` are on;
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
-  `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
+  `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage; it builds
+  `--split-per-abi` and uploads `app-release-arm64-apk` (the one to install) plus an
+  `…-other-abis-apk` for armeabi-v7a and x86_64. Splits carry Flutter's per-ABI
+  `versionCode` offsets, so a device must stay on one variant.
 - Widget and geofence behaviour differs per platform, but both platforms now have home screen
   widgets over one payload (see **Home screen widgets — shared contract**): Android
   RemoteViews (F5.1), iOS WidgetKit (F5.2, `docs/ios-widget-setup.md`).

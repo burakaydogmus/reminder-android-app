@@ -67,6 +67,18 @@ dependencies:
   # Only its read side is used (listCalendars / listEvents / showEventModal);
   # see CLAUDE.md › Device calendar (F8.1).
   device_calendar_plus: ^0.9.0
+  # F7.3: one-shot, read-only contacts import for birthdays. quis.co, 1.0+
+  # (2.5.0), 160/160 pub points, ~288k downloads/30 days, and **no Dart
+  # dependencies of its own**, so nothing can clash with our timezone/intl
+  # pins. `Event.year` is nullable, which is what lets a year-less contact
+  # birthday import as `Birthday.year == null` instead of a sentinel.
+  # `fast_contacts` was rejected: its `Contact` exposes only phones, e-mails,
+  # the structured name and the organization — it cannot read birthdays at all.
+  # flutter_contacts' Android module declares **no permissions** in its own
+  # manifest, so the merged manifest stays READ_CONTACTS-only; compileSdk 36 /
+  # minSdk 24, built-in Kotlin, iOS 13. Only `getAll` with
+  # `ContactProperty.event` is used; see CLAUDE.md › Contacts import (F7.3).
+  flutter_contacts: ^2.5.0
 
 dev_dependencies:
   flutter_test:

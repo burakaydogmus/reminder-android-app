@@ -125,6 +125,61 @@ abstract final class PermissionFlows {
     return (await controller.refresh()).calendar;
   }
 
+  /// When the user starts "Rehberden aktar" (F7.3): explains that the address
+  /// book is only **read**, once, and that nothing but the name and the date is
+  /// kept, then asks once. After a denial the system prompt is gone, so this
+  /// opens app settings instead — like every other permission here. Returns the
+  /// resulting state.
+  static Future<ContactsPermissionState> contacts(BuildContext context) async {
+    final controller = PermissionScope.read(context);
+    final service = controller.service;
+    final state = (await controller.refresh()).contacts;
+    // Granted needs nothing; an earlier denial must **not** bounce the user
+    // into system settings just for opening the sheet — the sheet explains and
+    // offers [fixContacts] as a deliberate choice.
+    if (state != ContactsPermissionState.notRequested) return state;
+
+    if (await service.shouldShowPrompt(PermissionPrompt.contacts)) {
+      await service.markPromptShown(PermissionPrompt.contacts);
+      if (!context.mounted) return state;
+      final l10n = context.l10n;
+      final ok = await showPermissionSheet(
+        context,
+        icon: Icons.contact_page_outlined,
+        title: l10n.permContactsTitle,
+        body: l10n.permContactsBody,
+        points: [
+          l10n.permContactsPoint1,
+          l10n.permContactsPoint2,
+          l10n.permContactsPoint3,
+        ],
+        confirmLabel: l10n.permContactsConfirm,
+        dismissLabel: l10n.permNotNow,
+      );
+      if (!ok) return (await controller.refresh()).contacts;
+    }
+
+    await service.requestContacts();
+    return (await controller.refresh()).contacts;
+  }
+
+  /// "Ayarları aç" for contacts read access (the import sheet's denied state).
+  static Future<ContactsPermissionState> fixContacts(
+    BuildContext context,
+  ) async {
+    final controller = PermissionScope.read(context);
+    final state = (await controller.refresh()).contacts;
+    switch (contactsFix(state)) {
+      case PermissionFix.none:
+        break;
+      case PermissionFix.request:
+        await controller.service.requestContacts();
+      case PermissionFix.openSettings:
+        await controller.service.openAppSettings();
+    }
+    return (await controller.refresh()).contacts;
+  }
+
   /// "Düzelt" / "Ayarları aç" for calendar read access (Settings › İzinler).
   static Future<void> fixCalendar(BuildContext context) async {
     final controller = PermissionScope.read(context);

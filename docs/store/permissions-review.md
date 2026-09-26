@@ -1,6 +1,6 @@
 # İzinler ve mağaza politikası incelemesi
 
-Durum: 26 Eylül 2026 (§9 F8.1 ile eklendi; diğer bölümler 13 Eylül 2026, `master` @ 4038806).
+Durum: 26 Eylül 2026 (§9 F8.1, §10 F7.3 ile eklendi; diğer bölümler 13 Eylül 2026, `master` @ 4038806).
 Politika sayfaları bu tarihlerde kontrol edildi; Google Play politikaları sık değişir, başvurudan
 hemen önce bağlantılar tekrar okunmalı.
 
@@ -24,6 +24,8 @@ burada **yok**; release derlemesinden sonra
 | `SCHEDULE_EXACT_ALARM` | Özel erişim (kullanıcı verir) | İzin varsa `AndroidScheduleMode.exactAllowWhileIdle`, yoksa `inexactAllowWhileIdle` (F6.2c) | Beyan yok; Android 14+'da yeni kurulumlarda **varsayılan kapalı** | Tut — inexact yedeği var (§3) |
 | `READ_CALENDAR` | Tehlikeli (çalışma anı) | Cihaz takvimi etkinliklerini Bugün ve Takvim'de göstermek (F8.1, `lib/services/device_calendar_service.dart`) | Beyan yok — Play'in kısıtlı izin listesinde takvim yok (§9) | Tut — kullanıcı açmadan hiç istenmiyor |
 | ~~`WRITE_CALENDAR`~~ | Tehlikeli | — | Yazma yok | **Tanımlanmadı** (§9) |
+| `READ_CONTACTS` | Tehlikeli (çalışma anı) | Doğum günlerini rehberden aktarmak (F7.3, `lib/services/contacts_service.dart`) | Beyan formu yok; ama **27 Ocak 2027**'de yürürlüğe girecek Contacts Permissions politikası targetSdk 37+ için Play Console beyanı istiyor (§10) | Tut — kullanıcı aktarmayı başlatmadan hiç istenmiyor; targetSdk 37 öncesi beyan hazırlanmalı |
+| ~~`WRITE_CONTACTS`~~ | Tehlikeli | — | Yazma yok | **Tanımlanmadı** (§10) |
 | ~~`USE_EXACT_ALARM`~~ | Normal ama **Play kısıtlı** | — | Yalnızca çalar saat/zamanlayıcı veya etkinlik bildirimi gösteren takvim uygulamaları | **Kaldırıldı** (F6.2c, §3) |
 
 Diğer gözlemler:
@@ -268,6 +270,75 @@ etkinlikleri de görelim… Yalnızca okuruz: takvimine hiçbir şey yazılmaz")
 kapalı kalıyor ve Ayarlar'da ne yapılacağı yazıyor; izin sonradan geri alınırsa anahtar
 kendiliğinden kapanıyor, boş bölüm kalmıyor.
 
+## 10. `READ_CONTACTS` (F7.3)
+
+Kaynaklar:
+- [Hassas bilgiye erişen izinler ve API'ler](https://support.google.com/googleplay/android-developer/answer/16558241)
+- [En az kapsam alternatifi olan kısıtlı izinler (Contacts Permissions)](https://support.google.com/googleplay/android-developer/answer/16935362)
+- [Contacts provider (developer.android.com)](https://developer.android.com/guide/topics/providers/contacts-provider)
+- [Contacts (Apple, CNContactStore)](https://developer.apple.com/documentation/contacts/requesting-authorization-to-access-contacts)
+
+**Ne yapıyor:** Doğum günleri sayfasındaki "Rehberden aktar" eylemi rehberi **bir kez** okuyor,
+doğum günü olan kişileri listeliyor ve kullanıcının seçtiklerini uygulamanın kendi doğum günü
+listesine ekliyor. Arka planda senkron yok, tekrar okuma yok; kişi kimliği, fotoğrafı, telefonu ve
+e-postası **hiç istenmiyor** (`getAll` yalnızca `ContactProperty.event` ile çağrılıyor; ad ve
+tarih dışında hiçbir şey saklanmıyor). Rehbere yazan bir kod yolu yok: `ContactsPlatform` seam'inde
+tek bir okuma metodu var.
+
+**Gerekçe (Play beyan metni taslağı, İngilizce):**
+
+> Hatırlatıcı lets the user import the birthdays that are already in their address book instead of
+> typing them again. The address book is read once, when the user taps "Import from contacts", and
+> only the display name and the birthday date are taken — no contact identifiers, photos, phone
+> numbers or e-mail addresses are requested or stored. The app never creates, edits or deletes a
+> contact, and `WRITE_CONTACTS` is not declared. Nothing leaves the device. The feature needs to
+> list *which* contacts have a birthday and let the user select them in bulk, which the system
+> Contact Picker cannot express: it shows contacts without revealing whether they have a birthday,
+> and it has no "select all with a birthday" affordance.
+
+**Play politikası durumu (26 Eylül 2026'da okundu):**
+
+- **Kısıtlı izin listesinde yok.** 26 Eylül 2026'da geçerli listede (SMS/arama kaydı, konum,
+  `MANAGE_EXTERNAL_STORAGE`, `QUERY_ALL_PACKAGES`, Erişilebilirlik, `REQUEST_INSTALL_PACKAGES`,
+  vücut sensörleri, Health Connect, VpnService, `USE_EXACT_ALARM`, `USE_FULL_SCREEN_INTENT`)
+  rehber **yok**; bugün itibarıyla beyan formu gerekmiyor.
+- **Ama yeni bir politika yolda:** Nisan 2026'da duyurulan **Contacts Permissions** politikası
+  **27 Ocak 2027**'de yürürlüğe giriyor. Kapsam: **targetSdk 37+ (Android 17)**. Kapsamdaki
+  uygulamalar `READ_CONTACTS` isteyebilmek için Play Console'da bir beyan doldurup **Android
+  Contact Picker'ın (`Intent.ACTION_PICK_CONTACTS`, yalnızca API 37+) neden yetmediğini** teknik
+  olarak açıklamak zorunda. Formdaki 11 hazır kullanım durumundan bu özelliğe en yakın olan
+  *User-initiated Selection*.
+- **Bu uygulama şu an kapsam dışı:** `targetSdk` = 36 (CLAUDE.md › Commands). Play'in hedef API
+  şartı targetSdk'yı 37'ye çıkardığında beyan **zorunlu** olacak; o yükseltmeyle aynı PR'da
+  yapılmalı (§8, madde 16). Contact Picker'a geçmek özelliği bozar: seçici hangi kişide doğum günü
+  olduğunu göstermiyor ve toplu "doğum günü olanların tümü" seçimi yok — asıl değer bu.
+- Başvuru öncesi her iki sayfa da *tekrar okunmalı*.
+
+**Neden `WRITE_CONTACTS` yok:** Uygulama rehbere hiç yazmıyor. `permission_handler` yalnızca
+manifestte tanımlı izinleri istiyor (`PermissionUtils.getManifestNames`), bu yüzden
+`Permission.contacts` isteği manifeste yalnızca `READ_CONTACTS` yazıldığında salt-okuma kalıyor.
+Kullanılan eklenti (`flutter_contacts`) **kendi manifestinde hiçbir izin bildirmiyor**, dolayısıyla
+birleştirilmiş manifeste de yazma izni sızmıyor — eklenti yükseltmelerinde *doğrulanmalı* (§8,
+madde 17).
+
+**iOS:** Rehberde EventKit'teki gibi katman yok, tek anahtar var:
+
+- `NSContactsUsageDescription` — `CNContactStore.requestAccess(for: .contacts)` için gereken tek
+  anahtar. Türkçe/İngilizce `InfoPlist.strings` dosyalarında da var (F6.1 kalıbı); Podfile
+  `PERMISSION_CONTACTS=1` tanımlıyor.
+- iOS 18'in **limited** (kısıtlı) erişimi "verildi" sayılıyor: sistem yalnızca kullanıcının
+  seçtiği kişileri veriyor, aktarmaya bu yetiyor. Kullanıcının listede beklediği kişiyi
+  görememesi bu durumda normaldir; cihaz testinde *doğrulanmalı* (§8, madde 18).
+- App Review notuna özelliğin Doğum günleri sayfasından elle başlatıldığı, rehbere yazmadığı ve
+  yalnızca ad + tarih sakladığı yazılmalı.
+
+**Kullanıcı deneyimi:** İzin istenmeden önce açıklama sayfası gösteriliyor ("Doğum günlerini
+rehberden alalım… Rehberine hiçbir şey yazılmaz; yalnızca ad ve tarih alınır"). İzin verilmezse
+sayfa ne olduğunu anlatıyor ve [Ayarları aç] sunuyor — eylem bozuk görünmüyor, doğum günleri elle
+de eklenebiliyor. İzin okuma sırasında geri alınırsa aynı açıklamaya düşülüyor. Hiçbir satır
+sessizce atlanmıyor: uygulamada zaten olan bir doğum günü "zaten ekli" olarak, seçilemez biçimde
+görünüyor ve aktarma sonrası özet neyin eklendiğini, neyin atlandığını gösteriyor.
+
 ## 8. Öncelikli yapılacaklar
 
 Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar olarak ele alınmalı.
@@ -289,3 +360,6 @@ Kod değişiklikleri bu PR'da **yapılmadı**; ayrı roadmap maddeleri/PR'lar ol
 | 13 | Orta | F8.1: birleştirilmiş manifestte `WRITE_CALENDAR`'ın **olmadığını** doğrula (eklenti kendi manifestinde izin bildirmiyor, ama yükseltmede değişebilir) | Doğrulama | §9 |
 | 14 | Orta | F8.1: cihazda izin akışını dene (Android 14+, iOS 17 tam erişim ve iOS 15/16 eski anahtar) | Cihaz testi | §9; Windows'ta doğrulanamaz |
 | 15 | Düşük | `device_calendar_plus` 0.x → 1.0 çıkınca sürümü yükselt ve tekrarlayan etkinlik hatalarının (upstream #173, #163) düzelip düzelmediğini kontrol et | Bağımlılık | pre-1.0 |
+| 16 | **Yüksek (tarihli)** | F7.3: `targetSdk` 37'ye çıkarken Play Console'da Contacts Permissions beyanını doldur (*User-initiated Selection*; Contact Picker'ın neden yetmediğini yaz). 27 Ocak 2027'den sonra targetSdk 37+ için zorunlu | Play Console + süreç | §10 |
+| 17 | Orta | F7.3: birleştirilmiş manifestte `WRITE_CONTACTS`'ın **olmadığını** doğrula (eklenti kendi manifestinde izin bildirmiyor, ama yükseltmede değişebilir) | Doğrulama | §10; madde 13 ile aynı koşuda |
+| 18 | Orta | F7.3: cihazda izin akışını dene (Android 14+, iOS 18 *limited* erişim dâhil) | Cihaz testi | §10; Windows'ta doğrulanamaz |
