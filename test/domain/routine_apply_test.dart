@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
 import 'package:reminder/domain/model/reminder_priority.dart';
+import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/routine.dart';
 import 'package:reminder/domain/reminder_completion.dart';
 import 'package:reminder/domain/routine_apply.dart';
@@ -494,6 +495,178 @@ void main() {
       final outcome = _apply(plan);
       expect(outcome.isEmpty, isTrue);
       expect(outcome.skipped, 1);
+    });
+  });
+
+  group(
+      'routineReminderRefresh (F3.7: push an edited routine onto its '
+      'reminders)', () {
+    // A reminder created by the routine's "sport" step, a week ago, with the
+    // user's own note / pin / progress and one subtask already ticked.
+    final sport = buildReminder(
+      id: 'sport-1',
+      title: 'Spor',
+      note: 'kendi notum',
+      pinned: true,
+      isDone: true,
+      remindAt: DateTime(2026, 9, 19, 7),
+      categoryId: ReminderCategoryIds.health,
+      priority: ReminderPriority.medium,
+      recurrence: RecurrenceRule.daily(),
+      subtasks: buildSubtasks(['Isınma', 'Koşu'], done: {0}),
+      routineId: 'morning',
+      routineItemId: 'sport',
+    );
+
+    RoutineReminderRefresh refresh(
+      Routine routine, {
+      List<Reminder>? existing,
+    }) =>
+        routineReminderRefresh(
+          routine: routine,
+          existing: existing ?? [sport],
+        );
+
+    Routine withSportStep(RoutineItem step) => _morning(
+          items: [step, buildRoutineStep(id: 'water', title: 'Su iç')],
+        );
+
+    test('an unchanged routine changes nothing but still counts the link', () {
+      final plan = refresh(_morning(repeat: RecurrenceRule.daily()));
+      expect(plan.linked, 1);
+      expect(plan.hasLinked, isTrue);
+      expect(plan.isEmpty, isTrue);
+      expect(plan.count, 0);
+    });
+
+    test('title, category and priority move onto the reminder', () {
+      final plan = refresh(withSportStep(buildRoutineStep(
+        id: 'sport',
+        title: 'Sabah sporu',
+        time: '07:00',
+        categoryId: ReminderCategoryIds.work,
+        priority: ReminderPriority.high,
+      )));
+      final updated = plan.changed.single;
+      expect(plan.count, 1);
+      expect(updated.id, 'sport-1');
+      expect(updated.title, 'Sabah sporu');
+      expect(updated.categoryId, ReminderCategoryIds.work);
+      expect(updated.priority, ReminderPriority.high);
+    });
+
+    test('the step time moves the hour but keeps the reminder day', () {
+      final plan = refresh(withSportStep(buildRoutineStep(
+        id: 'sport',
+        title: 'Spor',
+        time: '08:15',
+        categoryId: ReminderCategoryIds.health,
+        priority: ReminderPriority.medium,
+      )));
+      // 19 Sep, not today: the day is the reminder's, only the time is the
+      // routine's (that is what "Hatırlatıcıları güncelle" in the apply sheet
+      // is for).
+      expect(plan.changed.single.remindAt, DateTime(2026, 9, 19, 8, 15));
+    });
+
+    test('a step that lost its time makes the reminder untimed', () {
+      final plan = refresh(withSportStep(buildRoutineStep(
+        id: 'sport',
+        title: 'Spor',
+        categoryId: ReminderCategoryIds.health,
+        priority: ReminderPriority.medium,
+      )));
+      expect(plan.changed.single.remindAt, isNull);
+    });
+
+    test('a timeless reminder is timed on its creation day', () {
+      final water = buildReminder(
+        id: 'water-1',
+        title: 'Su iç',
+        createdAt: DateTime(2026, 9, 19, 21, 4),
+        routineId: 'morning',
+        routineItemId: 'water',
+      );
+      final plan = refresh(
+        _morning(items: [
+          buildRoutineStep(id: 'water', title: 'Su iç', time: '09:45'),
+        ]),
+        existing: [water],
+      );
+      expect(plan.changed.single.remindAt, DateTime(2026, 9, 19, 9, 45));
+    });
+
+    test('completion, note, pin, subtask progress and recurrence survive', () {
+      final plan = refresh(withSportStep(buildRoutineStep(
+        id: 'sport',
+        title: 'Sabah sporu',
+        time: '07:00',
+        categoryId: ReminderCategoryIds.health,
+        priority: ReminderPriority.medium,
+      )));
+      final updated = plan.changed.single;
+      expect(updated.isDone, isTrue, reason: 'completion is never touched');
+      expect(updated.note, 'kendi notum');
+      expect(updated.pinned, isTrue);
+      expect(updated.recurrence, RecurrenceRule.daily());
+      expect(updated.subtasks.map((s) => (s.id, s.isDone)),
+          [('s1', true), ('s2', false)]);
+      expect(updated.routineId, 'morning');
+      expect(updated.routineItemId, 'sport');
+    });
+
+    test('reminders of another routine, or hand-made ones, are untouched', () {
+      final plan = refresh(
+        withSportStep(buildRoutineStep(id: 'sport', title: 'Sabah sporu')),
+        existing: [
+          buildReminder(id: 'manual', title: 'Spor'),
+          buildReminder(
+            id: 'other',
+            title: 'Spor',
+            routineId: 'evening',
+            routineItemId: 'sport',
+          ),
+        ],
+      );
+      expect(plan.linked, 0);
+      expect(plan.changed, isEmpty);
+    });
+
+    test('a reminder whose step was deleted is counted but left alone', () {
+      final plan = refresh(
+        _morning(items: [buildRoutineStep(id: 'water', title: 'Su iç')]),
+      );
+      expect(plan.linked, 1, reason: 'the link is still there');
+      expect(plan.changed, isEmpty, reason: 'no step to copy from');
+    });
+
+    test('every linked reminder is updated, not just the first', () {
+      final plan = refresh(
+        withSportStep(buildRoutineStep(
+          id: 'sport',
+          title: 'Sabah sporu',
+          time: '07:00',
+        )),
+        existing: [
+          sport,
+          sport.copyWith(
+              id: 'sport-2', remindAt: () => DateTime(2026, 9, 20, 7)),
+        ],
+      );
+      expect(plan.linked, 2);
+      expect(plan.changed.map((r) => r.id), ['sport-1', 'sport-2']);
+      expect(
+        plan.changed.map((r) => r.remindAt),
+        [DateTime(2026, 9, 19, 7), DateTime(2026, 9, 20, 7)],
+        reason: 'each keeps its own day',
+      );
+    });
+
+    test('the changed list is unmodifiable', () {
+      final plan = refresh(withSportStep(
+        buildRoutineStep(id: 'sport', title: 'Sabah sporu'),
+      ));
+      expect(() => plan.changed.add(sport), throwsUnsupportedError);
     });
   });
 }

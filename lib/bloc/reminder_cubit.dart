@@ -436,6 +436,34 @@ class ReminderCubit extends Cubit<ReminderState> {
     return outcome;
   }
 
+  /// Rutinin var olan hatırlatıcılarını adımların güncel alanlarına göre yenileme
+  /// planı (saf; durumdaki hatırlatıcılara bakar). Arayüz "kaç hatırlatıcı
+  /// değişecek" sorusunu bununla yanıtlar.
+  RoutineReminderRefresh planRoutineReminderRefresh(Routine routine) =>
+      routineReminderRefresh(routine: routine, existing: state.reminders);
+
+  /// "Hatırlatıcıları güncelle": rutinden oluşmuş hatırlatıcıları adımların
+  /// güncel başlık / saat / kategori / önceliğine taşır, sonra olağan yoldan
+  /// kaydeder ve `ScheduleSync.syncAll` **bir kez** çalışır. Kaç hatırlatıcının
+  /// değiştiğini döndürür.
+  ///
+  /// Rutini düzenlemek hatırlatıcıları kendiliğinden **değiştirmez**
+  /// ([saveRoutine]); bu, kullanıcının bilerek istediği toplu eylemdir.
+  /// Tamamlanma durumu, not, sabitleme, konum ve maddelerin ilerlemesi
+  /// korunur (bkz. [routineReminderRefresh]). Plan uygulama anında yeniden
+  /// kurulur; değişen bir şey yoksa yazılmaz ve eşitleme çalışmaz.
+  Future<int> refreshRoutineReminders(Routine routine) async {
+    final plan = planRoutineReminderRefresh(routine);
+    if (plan.isEmpty) return 0;
+    final byId = {for (final r in plan.changed) r.id: r};
+    final next = _sorted([
+      for (final r in state.reminders) byId[r.id] ?? r,
+    ]);
+    emit(state.copyWith(reminders: next));
+    await _persistAndSync();
+    return plan.count;
+  }
+
   static bool _sameRoutines(List<Routine> a, List<Routine> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {

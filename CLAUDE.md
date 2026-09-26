@@ -698,7 +698,11 @@ level and `Subtask`s, and a routine's auto-apply setting is a `RecurrenceRule`.
   which rebuilds the plan at apply time and goes through the **normal**
   `_persistAndSync` (repository + `ScheduleSync.syncAll`), so notifications,
   widgets and the calendar follow by themselves. Editing a routine never rewrites
-  the reminders it already created; deleting one leaves them alone.
+  the reminders it already created; deleting one leaves them alone. The **one**
+  exception is the explicit bulk action `refreshRoutineReminders(routine)` (see
+  **UI** below), with `planRoutineReminderRefresh(routine)` for the preview count;
+  it also emits once and goes through `_persistAndSync`, so notifications are
+  rescheduled exactly once at the end and the routines themselves are not written.
   `ReminderCubit(newId:)` injects the id factory (tests).
 - **Storage (schema v7):** `routines` (`repeat_rule` = `RecurrenceRule.toJson()`
   text or NULL, `created_at` ISO wall clock, `position`, `updated_at`,
@@ -724,6 +728,20 @@ level and `Subtask`s, and a routine's auto-apply setting is a `RecurrenceRule`.
   Yok / Her gün / Seçili günler + weekday circles, ordered steps with a ⋮ menu,
   [Sil] · [Kaydet]; nothing is written before "Kaydet"). A step is edited in
   `routine_step_sheet.dart`, which reuses the shared `SubtasksCard`.
+  The editor also carries **Hatırlatıcıları güncelle** → [Hatırlatıcılara uygula]
+  (`RoutineEditorKeys.refreshReminders`), shown only for a stored routine that
+  actually has linked reminders: it saves the edit on screen, then pushes the
+  steps' **title, time, category and priority** onto the reminders this routine
+  created. It asks for confirmation naming how many will change (and says
+  "zaten rutinle aynı" instead of asking when none would), and it never touches
+  completion state, notes, pins, subtask progress, location or the recurrence
+  rule. The day stays the reminder's own — moving a repeating routine's series
+  to another day is the apply sheet's job (`RoutineApplyMode.replaceExisting`).
+  Both paths share `reminderWithRoutineItem` in `domain/routine_apply.dart`, the
+  single list of "fields a routine owns"; the matching/counting rule for this one
+  is the pure `routineReminderRefresh` (link = `routineId` + `routineItemId`,
+  day-independent, unchanged reminders excluded so the count is honest, a
+  reminder whose step was deleted counted but left alone).
   `RoutineVisuals` is the only routine colour/icon/row-text mapping. The weekday
   circle is `ui/common/weekday_toggle.dart` (`WeekdayToggle`), extracted from the
   recurrence sheet so both look and sound the same.

@@ -2032,5 +2032,33 @@
           }
       }
   },
-  "routineApplyNothing": "Eklenecek yeni adım yok"
+  "routineApplyNothing": "Eklenecek yeni adım yok",
+  "routineRefreshTitle": "Hatırlatıcıları güncelle",
+  "routineRefreshHint": "{count, plural, other{Bu rutinden oluşturulmuş {count} hatırlatıcı var. Rutini düzenlemek onları kendiliğinden değiştirmez.}}",
+  "@routineRefreshHint": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineRefreshAction": "Hatırlatıcılara uygula",
+  "routineRefreshConfirmTitle": "Hatırlatıcılar güncellensin mi?",
+  "routineRefreshConfirmBody": "{count, plural, other{{count} hatırlatıcının başlığı, saati, kategorisi ve önceliği rutindeki gibi olacak. Tamamlananlar, notlar, sabitlemeler ve madde ilerlemesi değişmez.}}",
+  "@routineRefreshConfirmBody": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  },
+  "routineRefreshNothing": "Hatırlatıcılar zaten rutinle aynı",
+  "routineRefreshed": "{count, plural, other{{count} hatırlatıcı güncellendi}}",
+  "@routineRefreshed": {
+      "placeholders": {
+          "count": {
+              "type": "int"
+          }
+      }
+  }
 }

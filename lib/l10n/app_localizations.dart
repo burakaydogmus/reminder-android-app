@@ -4153,6 +4153,48 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Eklenecek yeni adım yok'**
   String get routineApplyNothing;
+
+  /// No description provided for @routineRefreshTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcıları güncelle'**
+  String get routineRefreshTitle;
+
+  /// No description provided for @routineRefreshHint.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{Bu rutinden oluşturulmuş {count} hatırlatıcı var. Rutini düzenlemek onları kendiliğinden değiştirmez.}}'**
+  String routineRefreshHint(int count);
+
+  /// No description provided for @routineRefreshAction.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcılara uygula'**
+  String get routineRefreshAction;
+
+  /// No description provided for @routineRefreshConfirmTitle.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcılar güncellensin mi?'**
+  String get routineRefreshConfirmTitle;
+
+  /// No description provided for @routineRefreshConfirmBody.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} hatırlatıcının başlığı, saati, kategorisi ve önceliği rutindeki gibi olacak. Tamamlananlar, notlar, sabitlemeler ve madde ilerlemesi değişmez.}}'**
+  String routineRefreshConfirmBody(int count);
+
+  /// No description provided for @routineRefreshNothing.
+  ///
+  /// In tr, this message translates to:
+  /// **'Hatırlatıcılar zaten rutinle aynı'**
+  String get routineRefreshNothing;
+
+  /// No description provided for @routineRefreshed.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, other{{count} hatırlatıcı güncellendi}}'**
+  String routineRefreshed(int count);
 }
 
 class _AppLocalizationsDelegate

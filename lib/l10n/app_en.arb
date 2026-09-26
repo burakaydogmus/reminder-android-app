@@ -675,5 +675,12 @@
   "routineApplyEmpty": "This routine has no steps yet. Add one first.",
   "routineApplied": "{count, plural, =1{1 reminder added} other{{count} reminders added}}",
   "routineAppliedUpdated": "{count, plural, =1{1 reminder updated} other{{count} reminders updated}}",
-  "routineApplyNothing": "Nothing new to add"
+  "routineApplyNothing": "Nothing new to add",
+  "routineRefreshTitle": "Update the reminders",
+  "routineRefreshHint": "{count, plural, =1{1 reminder was created from this routine. Editing the routine does not change it by itself.} other{{count} reminders were created from this routine. Editing the routine does not change them by itself.}}",
+  "routineRefreshAction": "Apply to the reminders",
+  "routineRefreshConfirmTitle": "Update the reminders?",
+  "routineRefreshConfirmBody": "{count, plural, =1{1 reminder will take the routine's title, time, category and priority. Completions, notes, pins and subtask progress stay as they are.} other{{count} reminders will take the routine's title, time, category and priority. Completions, notes, pins and subtask progress stay as they are.}}",
+  "routineRefreshNothing": "The reminders already match the routine",
+  "routineRefreshed": "{count, plural, =1{1 reminder updated} other{{count} reminders updated}}"
 }

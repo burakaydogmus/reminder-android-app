@@ -18,6 +18,17 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Takvim günü noktaları cihaz takvimi etkinliklerini de gösteriyor (F8.3):** hafta şeridi ve ay
+  ızgarasında, cihaz takvimindeki etkinliği olan günlerde **nötr** bir nokta çıkıyor. Kategori
+  renklerinden ayrı yeni bir palet token'ı (`KorColors.deviceEvent`, açık + koyu) — cihaz
+  etkinliğinin kategorisi yok, bu yüzden bir kategori rengi taklit etmiyor. Yalnızca "Takvim
+  etkinlikleri" açıkken görünüyor ve takvim seçimine saygılı. 3 nokta sınırına ulaşmış bir
+  günde kullanıcının kendi hatırlatıcıları noktasını koruyor.
+- **Rutin düzenleyicisinde "Hatırlatıcıları güncelle":** bir rutini düzenledikten sonra
+  [Hatırlatıcılara uygula], adımların güncel başlık / saat / kategori / önceliğini o rutinden
+  oluşmuş hatırlatıcılara taşıyor. Onay istiyor ve kaç hatırlatıcının değişeceğini söylüyor;
+  tamamlananlar, notlar, sabitlemeler, madde ilerlemesi ve tekrar kuralı değişmiyor, gün
+  hatırlatıcının kendisinde kalıyor. Rutini düzenlemek hâlâ kendiliğinden geri dönük değil.
 - **İmzalı GitHub Release ve telefonda otomatik güncelleme:** Elle tetiklenen `Release APK` iş
   akışı, mimari başına sabit adlı APK'ları (`reminder-arm64-v8a.apk` …) imzalayıp doğruluyor ve
   `v<sürüm>+<numara>` etiketiyle release açıyor. `versionCode` artık tarihten üretiliyor
@@ -246,6 +257,16 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Değişti
 
+- **Rehberden doğum günü aktarma tek yazımda:** aktarma artık kişi başına bir kez değil, seçilen
+  tüm doğum günleri için **tek** transaction ve **tek** zamanlama eşitlemesi yapıyor
+  (`ReminderCubit.addBirthdays`). 200 kişilik bir aktarma 200 kalıcılaştırma + 200 eşitleme
+  demekti.
+- **Birleştirilmiş Android manifesti CI'da denetleniyor:** `Android build` iş akışı release
+  derlemesinden sonra birleştirilmiş manifestin bütün `uses-permission` ve
+  `service` / `receiver` / `provider` satırlarını yazdırıyor ve `WRITE_CALENDAR`,
+  `WRITE_CONTACTS` veya `REQUEST_INSTALL_PACKAGES` görürse koşuyu başarısız ediyor. Böylece
+  `docs/store/permissions-review.md` §8'deki üç elle doğrulama maddesi kalıcı bir korumaya
+  dönüştü.
 - **Yedek dosyası artık rutinleri de taşıyor** (JSON'daki `routines` anahtarı ve hatırlatıcıdaki
   `routineId` / `routineItemId` alanları). Biçim sürümü **2'de kaldı**: eklenen alanlar ek
   niteliğinde olduğu için **eski bir uygulama sürümü bu dosyayı yine açabiliyor** — yalnızca

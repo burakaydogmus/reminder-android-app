@@ -374,4 +374,138 @@ void main() {
       verify: (cubit) => expect(cubit.state.routines, isEmpty),
     );
   });
+
+  group('refreshRoutineReminders', () {
+    /// A reminder the routine created a week ago, with the user's own fields.
+    Reminder sportReminder() => buildReminder(
+          id: 'sport-1',
+          title: 'Spor',
+          note: 'kendi notum',
+          pinned: true,
+          isDone: true,
+          remindAt: DateTime(2026, 9, 19, 7),
+          categoryId: ReminderCategoryIds.health,
+          priority: ReminderPriority.medium,
+          subtasks: buildSubtasks(['Isınma', 'Koşu'], done: {0}),
+          routineId: 'morning',
+          routineItemId: 'sport',
+        );
+
+    Routine edited() => morning(items: [
+          buildRoutineStep(
+            id: 'sport',
+            title: 'Sabah sporu',
+            time: '08:15',
+            categoryId: ReminderCategoryIds.work,
+            priority: ReminderPriority.high,
+          ),
+          buildRoutineStep(id: 'water', title: 'Su iç'),
+        ]);
+
+    blocTest<ReminderCubit, ReminderState>(
+      'pushes the routine fields and syncs once through the normal path',
+      build: () => build(routines: [edited()], reminders: [sportReminder()]),
+      act: (cubit) async {
+        await cubit.load();
+        clearInteractions(repository);
+        clearInteractions(notifications);
+        clearInteractions(homeWidget);
+        clearInteractions(geofence);
+        expect(
+          await cubit.refreshRoutineReminders(cubit.state.routines.single),
+          1,
+        );
+      },
+      verify: (cubit) {
+        final sport = cubit.state.reminders.single;
+        expect(sport.id, 'sport-1');
+        expect(sport.title, 'Sabah sporu');
+        expect(sport.categoryId, ReminderCategoryIds.work);
+        expect(sport.priority, ReminderPriority.high);
+        // The reminder's own day, the routine's time.
+        expect(sport.remindAt, DateTime(2026, 9, 19, 8, 15));
+        // Nothing of the user's is touched.
+        expect(sport.isDone, isTrue);
+        expect(sport.note, 'kendi notum');
+        expect(sport.pinned, isTrue);
+        expect(sport.subtasks.map((t) => t.isDone), [true, false]);
+
+        // One save, and notifications/geofence/widget synced exactly once.
+        verify(() => repository.saveReminders(any())).called(1);
+        verify(() => notifications.syncSchedules(
+              reminders: any(named: 'reminders'),
+              birthdays: any(named: 'birthdays'),
+              notificationsEnabled: any(named: 'notificationsEnabled'),
+            )).called(1);
+        verify(() => homeWidget.sync(
+              any(),
+              birthdays: any(named: 'birthdays'),
+              notificationsEnabled: any(named: 'notificationsEnabled'),
+              categories: any(named: 'categories'),
+            )).called(1);
+        verify(() => geofence.syncWithReminders(
+              any(),
+              notificationsEnabled: any(named: 'notificationsEnabled'),
+            )).called(1);
+        // It changes reminders, never the routines.
+        verifyNever(() => repository.saveRoutines(any()));
+      },
+    );
+
+    blocTest<ReminderCubit, ReminderState>(
+      'nothing to change: no write and no sync',
+      build: () => build(routines: [morning()], reminders: [sportReminder()]),
+      act: (cubit) async {
+        await cubit.load();
+        clearInteractions(repository);
+        clearInteractions(notifications);
+        expect(
+          await cubit.refreshRoutineReminders(cubit.state.routines.single),
+          0,
+        );
+      },
+      verify: (_) {
+        verifyNever(() => repository.saveReminders(any()));
+        verifyNever(() => notifications.syncSchedules(
+              reminders: any(named: 'reminders'),
+              birthdays: any(named: 'birthdays'),
+              notificationsEnabled: any(named: 'notificationsEnabled'),
+            ));
+      },
+    );
+
+    blocTest<ReminderCubit, ReminderState>(
+      'planRoutineReminderRefresh reports the link and the change count',
+      build: () => build(routines: [edited()], reminders: [sportReminder()]),
+      act: (cubit) async {
+        await cubit.load();
+        final plan =
+            cubit.planRoutineReminderRefresh(cubit.state.routines.single);
+        expect(plan.linked, 1);
+        expect(plan.hasLinked, isTrue);
+        expect(plan.count, 1);
+
+        await cubit.refreshRoutineReminders(cubit.state.routines.single);
+        final after =
+            cubit.planRoutineReminderRefresh(cubit.state.routines.single);
+        expect(after.linked, 1);
+        expect(after.count, 0, reason: 'already applied');
+      },
+    );
+
+    blocTest<ReminderCubit, ReminderState>(
+      'saveRoutine still leaves the reminders alone',
+      build: () => build(routines: [morning()], reminders: [sportReminder()]),
+      act: (cubit) async {
+        await cubit.load();
+        await cubit.saveRoutine(edited().copyWith(id: 'morning'));
+      },
+      verify: (cubit) {
+        // Editing a routine is still not retroactive; only the explicit bulk
+        // action changes what it already created.
+        expect(cubit.state.reminders.single.title, 'Spor');
+        expect(cubit.state.reminders.single.remindAt, DateTime(2026, 9, 19, 7));
+      },
+    );
+  });
 }

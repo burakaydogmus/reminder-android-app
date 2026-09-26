@@ -145,10 +145,17 @@ Diğer tüm fazların temeli.
   bildirim tekrarıyla getirir (F3.1 motoru). WorkManager/BGTaskScheduler bilinçli olarak
   kullanılmadı: iOS arka plan görevinin çalışacağını garanti etmez, yani bazı sabahlar rutin
   sessizce oluşmazdı. Saatsiz adım tekrar etmez (zamansız hatırlatıcı bildirim kurmaz).
+  **Rutin düzenleyicisinde "Hatırlatıcıları güncelle" (yapıldı, `chore/small-debt`):** rutini
+  düzenlemek oluşmuş hatırlatıcıları hâlâ kendiliğinden değiştirmiyor, ama düzenleyicideki
+  [Hatırlatıcılara uygula] adımların güncel başlık / saat / kategori / önceliğini var olan
+  hatırlatıcılara taşıyor: onay istiyor ve kaç hatırlatıcının değişeceğini söylüyor,
+  tamamlanma durumu / not / sabitleme / madde ilerlemesi / tekrar kuralına dokunmuyor, bildirimler
+  sonda **bir kez** yeniden kuruluyor. Gün hatırlatıcının kendisinde kalıyor — tekrarlayan bir
+  rutinin serisini başka güne taşımak uygulama sayfasının işi. Alan listesi tek yerde:
+  `reminderWithRoutineItem` (`domain/routine_apply.dart`), eşleştirme `routineReminderRefresh`.
   *Sonraki adımlar:* tek bir rutini paylaşma/dışa aktarma, var olan hatırlatıcılardan rutin
-  oluşturma ("bunları rutin olarak kaydet"), hızlı yakalama ayrıştırıcısında rutin adı, rutini
-  düzenledikten sonra "bu rutinin hatırlatıcılarını güncelle" toplu eylemi ve uygulamayı geri alma
-  (`UndoSnackBar`) yapılmadı.
+  oluşturma ("bunları rutin olarak kaydet"), hızlı yakalama ayrıştırıcısında rutin adı ve
+  uygulamayı geri alma (`UndoSnackBar`) yapılmadı.
 
 ## Faz 4 — Arayüz ve deneyim ("Kor")
 

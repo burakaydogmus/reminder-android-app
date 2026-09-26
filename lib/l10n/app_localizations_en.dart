@@ -2665,4 +2665,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineApplyNothing => 'Nothing new to add';
+
+  @override
+  String get routineRefreshTitle => 'Update the reminders';
+
+  @override
+  String routineRefreshHint(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count reminders were created from this routine. Editing the routine does not change them by itself.',
+      one:
+          '1 reminder was created from this routine. Editing the routine does not change it by itself.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineRefreshAction => 'Apply to the reminders';
+
+  @override
+  String get routineRefreshConfirmTitle => 'Update the reminders?';
+
+  @override
+  String routineRefreshConfirmBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count reminders will take the routine\'s title, time, category and priority. Completions, notes, pins and subtask progress stay as they are.',
+      one:
+          '1 reminder will take the routine\'s title, time, category and priority. Completions, notes, pins and subtask progress stay as they are.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get routineRefreshNothing => 'The reminders already match the routine';
+
+  @override
+  String routineRefreshed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reminders updated',
+      one: '1 reminder updated',
+    );
+    return '$_temp0';
+  }
 }
