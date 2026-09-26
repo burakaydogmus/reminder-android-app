@@ -181,7 +181,7 @@ struct NextWidgetView: View {
             .font(.title.weight(.semibold).monospacedDigit())
             .foregroundStyle(at < entry.date ? WidgetTheme.primary : WidgetTheme.onSurface)
         }
-        if let label = dayLabel(next, snapshot: snapshot, strings: strings) {
+        if let label = dayLabel(next, strings: strings) {
           Text(label)
             .font(.caption2)
             .foregroundStyle(WidgetTheme.primary)
@@ -213,9 +213,7 @@ struct NextWidgetView: View {
 
   /// Saatin altındaki bağlam: gecikmişse "Gecikti", başka bir günse "Yarın" /
   /// "12 Eki"; bugünse (saat yeterli) `nil`.
-  private func dayLabel(
-    _ item: WidgetItem, snapshot: WidgetSnapshot, strings: WidgetStrings
-  ) -> String? {
+  private func dayLabel(_ item: WidgetItem, strings: WidgetStrings) -> String? {
     guard let at = item.dueAt else { return nil }
     if at < entry.date { return strings("widget_overdue") }
     if at < WidgetPayload.startOfDay(entry.date, plusDays: 1) { return nil }

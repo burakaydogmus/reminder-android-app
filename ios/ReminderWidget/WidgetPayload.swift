@@ -13,15 +13,9 @@ import Foundation
 /// metinlerini `tr.lproj` / `en.lproj` içinden çözer ([WidgetStrings]); cihaz
 /// dili farklı olsa da widget uygulamayla aynı dildedir.
 
-/// Bölüm kimlikleri; Dart ve Kotlin tarafıyla ortak (burada yalnız
-/// belgelendirme için: bölümler `dueAt`'tan yeniden hesaplanır).
-enum WidgetSection: String {
-  case overdue
-  case today
-  case untimed
-  case later
-}
-
+/// Veri içindeki `section` alanı (`overdue` / `today` / `untimed` / `later`)
+/// **okunmaz**: bölümler çizim anında [WidgetPayload.snapshot] tarafından
+/// `dueAt`'tan yeniden hesaplanır (Kotlin tarafı da öyle yapar).
 struct WidgetItem: Identifiable, Equatable {
   let id: String
   let title: String

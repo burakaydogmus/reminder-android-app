@@ -155,10 +155,15 @@ Formatting is enforced in CI: run `dart format lib test` before committing
     notifications, exact alarms, location) with pure decision helpers;
     `PlatformPermissionService` over flutter_local_notifications + permission_handler.
   - `places_nearby_service.dart` — Google Places Nearby over HTTP.
-  - `reminder_home_widget_sync.dart` — writes the widget payload and refreshes the four
-    Android widgets (`syncRemindersToHomeWidget`, `ReminderHomeWidget`);
-    `PlatformHomeWidgetSync` implements `HomeWidgetSync`. See **Android home screen
-    widgets (F5.1)**.
+  - `reminder_home_widget_sync.dart` — writes the widget payload and refreshes the
+    platform's widgets (`syncRemindersToHomeWidget`; Android `ReminderHomeWidget`, iOS
+    `kIosWidgetKinds`, App Group `kHomeWidgetAppGroupId`); `HomeWidgetPlatform` is the
+    testable seam over `home_widget`, `PlatformHomeWidgetSync` implements `HomeWidgetSync`.
+    See **Home screen widgets — shared contract**.
+  - `ios_widget_completions.dart` — the iOS widget's "complete" queue
+    (`widget_completions_v1`): `parseWidgetCompletions` (pure, tolerant) and
+    `applyPendingWidgetCompletions`; `applyPendingIosWidgetCompletions` builds the real
+    services for `main()` and `AppStateReloader`. See **iOS widgets (F5.2)**.
   - `widget_launch_router.dart` — `WidgetLaunchTarget` / `WidgetLaunchRouter`: widget taps
     that open the app (F5.1) and app icon shortcuts (F5.3, `openTarget`).
   - `app_shortcuts.dart` — `AppShortcut`, `ShortcutRouter`, `QuickActionsPlatform`: app
@@ -543,6 +548,25 @@ does not recognise; keep that cleanup if the sync changes again.
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
 
+## Home screen widgets — shared contract
+
+One payload, three implementations. `WidgetPayload.build`
+(`lib/home/widget_payload.dart`, pure, tested) is written by
+`syncRemindersToHomeWidget` (`lib/services/reminder_home_widget_sync.dart`) as **one JSON
+string** under `widget_payload_v2` (`kHomeWidgetPayloadKey`) and read by
+`WidgetPayload.kt` (Android, F5.1) and `WidgetPayload.swift` (iOS, F5.2). Both native
+sides **recompute every time-dependent field at draw time** from `dueAt` / `date`
+(sections, "Gecikti", "Yarın", counts, next, birthday label) because widgets outlive the
+last sync. Adding a field is compatible; changing a meaning bumps the version **and** the
+key, and all three sides move together. Unreadable data falls back to the empty state.
+`lang` (`tr`/`en`, F6.1) makes the native chrome follow the in-app language:
+Kotlin through `values/` + `values-en/`, Swift through `tr.lproj`/`en.lproj`
+(`WidgetStrings`) — keep the `widget_*` keys in sync across all three.
+
+`HomeWidgetPlatform` is the only seam over `home_widget` + `Platform`; pass a fake
+(`test/services/fake_home_widget_platform.dart`) to test platform branches, since
+`Platform.isIOS` is always false on the test host.
+
 ## Android home screen widgets (F5.1)
 
 Four `AppWidgetProvider`s in `android/app/src/main/kotlin/com/burakaydogmus/reminder/`,
@@ -595,6 +619,57 @@ same labels as the widget picker) and refreshes all four after every sync.
   of the four and pins it (`HomeWidgetPinner`, fake in tests); onboarding still pins Liste.
 - R8: providers, the list service and the widget receivers are kept by name in
   `proguard-rules.pro`. Kotlin is only compiled by CI (`build-android-release`).
+
+## iOS widgets (F5.2)
+
+`ios/ReminderWidget/` is the `ReminderWidgetExtension` target (WidgetKit + SwiftUI + App
+Intents). Owner-side Xcode steps, device test plan and the known limits:
+[`docs/ios-widget-setup.md`](docs/ios-widget-setup.md).
+
+| Widget | `kind` | Families | Content |
+|---|---|---|---|
+| Sıradaki | `ReminderNextWidget` | systemSmall | "SIRADAKİ", monospaced clock, 2-line title, complete circle, "+N daha", "+" |
+| Bugün | `ReminderTodayWidget` | systemMedium | "Bugün · N" + wide pill "+", three rows |
+| Liste | `ReminderListWidget` | systemLarge | header + weekday/date, Kaçanlar / Bugün (/ Sonra) sections, ≤6 rows, birthday footer |
+| Kilit ekranı | `ReminderLockWidget` | accessoryCircular, accessoryRectangular, accessoryInline | open count / next task |
+
+- **App Group `group.com.burakaydogmus.reminder`** is the transport: `kHomeWidgetAppGroupId`
+  (Dart) = `ReminderWidgetStore.appGroupId` (Swift) = both `.entitlements` files. `main()`
+  calls `HomeWidget.setAppGroupId` on both platforms and `syncRemindersToHomeWidget` sets it
+  again on iOS before saving (background isolates never run `main`). The `kind` list is
+  `kIosWidgetKinds`; every sync reloads all four
+  (`WidgetCenter.reloadTimelines(ofKind:)`). `test/services/reminder_home_widget_sync_test.dart`
+  asserts these identifiers against the native files — **no Swift test runs in CI**, so that
+  contract test is the guard.
+- **Complete from the widget** is `CompleteReminderIntent` (`Button(intent:)`). The widget
+  extension has no Flutter engine, so the intent only appends `{id, at}` to
+  `widget_completions_v1` in the App Group (an **additive**, iOS-only key; Android never reads
+  it) and reloads the timelines; the widget hides queued ids, so the row disappears at once.
+  `applyPendingWidgetCompletions` (`lib/services/ios_widget_completions.dart`) applies the
+  queue through the shared `completeReminder`, clears it **before** `ScheduleSync.syncAll`
+  and is called from `main()` (launch) and `AppStateReloader` (before `cubit.load()`, F1.3
+  reasoning). Consequence to keep in mind: until the app runs, notifications of a
+  widget-completed reminder are not cancelled. `home_widget`'s iOS interactivity
+  (`HomeWidgetBackgroundWorker`) was deliberately not used — it links Flutter into the
+  extension.
+- **Deep links** use the `reminderwidget://` scheme (`CFBundleURLTypes` in
+  `ios/Runner/Info.plist`) and the existing `WidgetLaunchRouter` (`attach` now runs on iOS
+  too). `ReminderWidgetStore.launchURL` appends `homeWidget=true`, which `home_widget`'s
+  `isWidgetUrl` requires; `WidgetLaunchTarget.parse` ignores the extra parameter. Accessory
+  families only support `widgetURL`, system families also use `Link` per row.
+- **Look:** `WidgetTheme` holds the same Kor hex values as `res/values{,-night}/colors.xml`
+  (no dynamic colour on iOS, per design §3.1). Only the complete circles are
+  `widgetAccentable()`, so accented/tinted and vibrant modes stay readable; state is never
+  colour-only ("Gecikti" is text). `containerBackground(for: .widget)` everywhere; accessory
+  families get a clear background.
+- **Deployment target:** the extension is **iOS 17.0** (interactive buttons,
+  `AppIntentConfiguration`, `containerBackground`); Runner stays **15.0**. A higher extension
+  minimum is allowed; the reverse is not.
+- **project.pbxproj is hand-edited** (no Mac here). Object ids of the F5.2 additions start
+  with `F52A`. The `ios.yml` step "Verify the widget extension is embedded" asserts
+  `Runner.app/PlugIns/ReminderWidgetExtension.appex`, its binary, the tr/en strings and the
+  WidgetKit extension point — a green `flutter build ios` alone would not prove the target
+  was built. Keep that step when touching the project file.
 
 ## App icon shortcuts (F5.3)
 
@@ -1180,13 +1255,16 @@ dialog, FAB, progress, menus, bottom sheet), so widgets only choose roles.
 - Development happens on Windows: **iOS is only verified through the CI macOS runner**
   (`build-ios` job). Device testing is planned separately.
 - Package / bundle id `com.burakaydogmus.reminder` (Android `namespace`/`applicationId`,
-  Kotlin package, iOS `PRODUCT_BUNDLE_IDENTIFIER`); home_widget App Group
-  `group.com.burakaydogmus.reminder` (iOS entitlements come with F5.2).
+  Kotlin package, iOS `PRODUCT_BUNDLE_IDENTIFIER`); the iOS widget extension is
+  `com.burakaydogmus.reminder.ReminderWidget`. home_widget App Group
+  `group.com.burakaydogmus.reminder` (`ios/Runner/Runner.entitlements` +
+  `ios/ReminderWidget/ReminderWidgetExtension.entitlements`, F5.2).
 - Release (Android): signed from `android/key.properties` when present, otherwise with the
   debug key plus a Gradle warning (never publish those). R8 + `shrinkResources` are on;
   keep rules live in `android/app/proguard-rules.pro`, runtime-looked-up resources in
   `res/raw/keep.xml`. The `build-android-release` CI job catches R8 breakage.
-- Widget and geofence behaviour differs per platform; the home widgets are Android-only today
-  (iOS WidgetKit is F5.2).
+- Widget and geofence behaviour differs per platform, but both platforms now have home screen
+  widgets over one payload (see **Home screen widgets — shared contract**): Android
+  RemoteViews (F5.1), iOS WidgetKit (F5.2, `docs/ios-widget-setup.md`).
 - Store readiness (privacy policy, data safety answers, permissions/policy review, listing drafts,
   licensing): [`docs/store/`](docs/store/) — update it when data flows or permissions change.
