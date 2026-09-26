@@ -116,6 +116,9 @@ Diğer tüm fazların temeli.
 - [x] **F4.6b Hızlı yakalama arayüzü** · `feat/quick-capture` · *bağımlı: F3.1, F3.4, F4.6a*
   iOS yakalama çubuğu / Android FAB, token vurgulu alan, chip satırı, F4.6a sonuçlarının modele eşlenmesi (`RecurrenceSpec` → `RecurrenceRule`, öncelik), "maddelere böl" önerisi.
   *Not:* bilinmeyen `#etiket` "Diğer"e gider; "Yeni kategori: #etiket" chip'i kategoriyi o adla oluşturur (F4.3); `@yer` nota yazılır, geofence kurmaz.
+- [x] **F4.6c İngilizce ayrıştırıcı** · `feat/capture-english` · *bağımlı: F4.6a, F6.1*
+  Aynı kural altyapısında İngilizce grameri (`lib/domain/parsing/rules/en/`): tarih, saat, tekrar, `#kategori`, `!` öncelik, `@yer`, liste bölme. Gramer `CaptureParser.parse(locale:)` ile seçilir; hızlı yakalama **uygulama dilini** (Ayarlar › Görünüm › Dil) kullanır, cihaz dilini değil. Türkçe kurallar `rules/tr/` altına taşındı, davranışı değişmedi.
+  *Not:* sayısal tarihler en_US için ay/gün (`5/3` = 3 Mayıs; ilk sayı ay olamazsa gün/ay, `25/12`), ISO her zaman y-a-g, İngilizcede noktalı biçim tarih değil saattir (`9.30`). `every year` / `yearly` bilinçli olarak ayrıştırılmıyor: `RecurrenceRule`'da yıllık tekrar yok (Türkçede `her yıl` de metin olarak kalıyor). Alan adı olarak kullanılan gün bölümleri metin kalır (`morning run`, `night cream`). Yakalama alanının altındaki not artık her iki dilde örnek cümleler gösteriyor (`captureParserExamples`).
 - [x] **F4.7 Hareket ve haptik** · `feat/motion-haptics` · *bağımlı: F4.1, F3.5*
   Spring token'ları, tamamlama "cookie" morph'u, şimdi çizgisi, container transform'lar, haptik ayarı, Reduce Motion yolları.
 
@@ -135,7 +138,7 @@ Diğer tüm fazların temeli.
 
 - [x] **F6.1 Yerelleştirme** · `feat/i18n`
   ARB tabanlı `tr` / `en`; sabit metinlerin taşınması; sistem diline göre seçim.
-  *Not:* Ayarlar › Görünüm › Dil (Sistem / Türkçe / English, SharedPreferences `app_language_v1`, şema değişmedi); bildirim, aksiyon, konum, widget ve kısayol metinleri arka planda da kayıtlı dili kullanır. Hızlı yakalama ayrıştırıcısı şimdilik yalnızca Türkçe (İngilizce ayrıştırma sonraki iş).
+  *Not:* Ayarlar › Görünüm › Dil (Sistem / Türkçe / English, SharedPreferences `app_language_v1`, şema değişmedi); bildirim, aksiyon, konum, widget ve kısayol metinleri arka planda da kayıtlı dili kullanır. Hızlı yakalama ayrıştırıcısı bu maddede yalnızca Türkçeydi; İngilizce gramer **F4.6c** ile geldi.
 - [x] **F6.2a Mağaza dokümanları** · `docs/store-readiness`
   [`docs/store/`](docs/store/): gizlilik politikası (tr/en), Play Data safety ve App Store gizlilik etiketi cevapları, izin/politika incelemesi, mağaza metni taslakları, lisans notu; kökte `CHANGELOG.md`. Kod değişikliği yok; takip maddeleri `docs/store/permissions-review.md` §8'de.
 - [x] **F6.2b Mağaza uyumluluğu (atıf, gizlilik bağlantısı, lisanslar)** · `fix/store-compliance`
@@ -173,7 +176,7 @@ F0.1 → F0.2 → F0.3 ─┬─ F1.1 (bağımsız hat) → F4.0a (araç zinciri
                                    ↓
           F3.5 · F3.6 → F4.4   ‖   F4.2 · F4.3 · F4.7 · F5.4
                                    ↓
-          F5.1 · F5.2 → F5.3   ‖   F6.1 → F6.2 → F6.3
+          F5.1 · F5.2 → F5.3   ‖   F6.1 → F4.6c · F6.2 → F6.3
                                    ↓
                                   F7.x
 ```

@@ -28,8 +28,8 @@ void main() {
   }
 
   // Same bar as the Turkish table (design §5.5 risk 6).
-  test('example table has at least 150 distinct sentences', () {
+  test('example table has at least 200 distinct sentences', () {
     final inputs = [for (final t in tables.values) ...t.map((c) => c.input)];
-    expect(inputs.toSet().length, greaterThanOrEqualTo(150));
+    expect(inputs.toSet().length, greaterThanOrEqualTo(200));
   });
 }
