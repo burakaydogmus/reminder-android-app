@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:reminder/domain/model/recurrence.dart';
 import 'package:reminder/domain/model/reminder.dart';
 import 'package:reminder/domain/model/reminder_category.dart';
+import 'package:reminder/l10n/app_language.dart';
 import 'package:reminder/ui/capture/capture_text.dart';
 import 'package:reminder/ui/categories/category_editor_sheet.dart';
 import 'package:reminder/ui/capture/quick_capture_sheet.dart';
@@ -27,11 +28,13 @@ Future<UiHarness> _open(
   ThemeData Function() theme = KorTheme.light,
   List<ReminderCategory> categories = const [],
   String initialText = '',
+  AppLanguage language = AppLanguage.turkish,
 }) async {
   final h = await UiHarness.create(now: _clock, categories: categories);
   await tester.pumpWidget(
     h.app(
       theme: theme,
+      language: language,
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(
@@ -438,5 +441,65 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     final route = ModalRoute.of(tester.element(_field))!;
     expect(route.animation!.status, AnimationStatus.completed);
+  });
+
+  // F4.6c: the grammar comes from the *app* language (F6.1), not the device
+  // locale. The pure side of the choice is
+  // `CaptureLocale.forLanguageCode` (`english_text_test.dart`).
+  group('the grammar follows the app language', () {
+    const englishSentence = 'friday at 18:00 buy bread and milk #groceries !!';
+
+    testWidgets('English app language parses English', (tester) async {
+      await _open(tester, language: AppLanguage.english);
+      await _type(tester, englishSentence);
+
+      expect(
+        _chipText(QuickCaptureKeys.dateChip, 'Sep 18, 18:00'),
+        findsOneWidget,
+      );
+      expect(
+        _chipText(QuickCaptureKeys.categoryChip, 'Groceries'),
+        findsOneWidget,
+      );
+      expect(
+        _chipText(QuickCaptureKeys.priorityChip, '!! Medium'),
+        findsOneWidget,
+      );
+      expect(_chip(QuickCaptureKeys.splitChip), findsOneWidget);
+      final spans = {for (final (text, style) in _spans(tester)) text: style};
+      expect(spans['friday']?.backgroundColor, isNotNull);
+      expect(spans['at 18:00']?.backgroundColor, isNotNull);
+    });
+
+    testWidgets('English app language leaves Turkish as text', (tester) async {
+      await _open(tester, language: AppLanguage.english);
+      await _type(tester, 'yarın ekmek al');
+
+      expect(_chipText(QuickCaptureKeys.dateChip, 'Date'), findsOneWidget);
+      expect(_controller(tester).tokens, isEmpty);
+      expect(_spans(tester), isEmpty);
+    });
+
+    testWidgets('Turkish app language parses Turkish', (tester) async {
+      await _open(tester);
+      await _type(tester, sentence);
+
+      expect(
+        _chipText(QuickCaptureKeys.dateChip, '18 Eyl, 18:00'),
+        findsOneWidget,
+      );
+      expect(
+        _chipText(QuickCaptureKeys.categoryChip, 'Market'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Turkish app language leaves English as text', (tester) async {
+      await _open(tester);
+      await _type(tester, 'tomorrow buy bread');
+
+      expect(_chipText(QuickCaptureKeys.dateChip, 'Tarih'), findsOneWidget);
+      expect(_controller(tester).tokens, isEmpty);
+    });
   });
 }
