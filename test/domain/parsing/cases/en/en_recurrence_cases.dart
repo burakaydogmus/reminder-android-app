@@ -293,12 +293,76 @@ final enRecurrenceCases = <CaptureCase>[
     tokens: ['recurrence:every other monday'],
   ),
 
+  // --- yearly -------------------------------------------------------------
+  CaptureCase(
+    'every year renew the passport',
+    title: 'Renew the passport',
+    at: DateTime(2026, 9, 13),
+    rec: _yearly,
+    tokens: ['recurrence:every year'],
+  ),
+  CaptureCase(
+    'yearly checkup',
+    title: 'Checkup',
+    at: DateTime(2026, 9, 13),
+    rec: _yearly,
+    tokens: ['recurrence:yearly'],
+  ),
+  CaptureCase(
+    'annually review the will',
+    title: 'Review the will',
+    at: DateTime(2026, 9, 13),
+    rec: _yearly,
+    tokens: ['recurrence:annually'],
+  ),
+  CaptureCase(
+    'EVERY YEAR car inspection',
+    title: 'Car inspection',
+    at: DateTime(2026, 9, 13),
+    rec: _yearly,
+    tokens: ['recurrence:EVERY YEAR'],
+  ),
+  CaptureCase(
+    'every year at 18:00 roll call',
+    title: 'Roll call',
+    at: DateTime(2026, 9, 13, 18),
+    rec: _yearly,
+    tokens: ['recurrence:every year', 'time:at 18:00'],
+  ),
+  CaptureCase(
+    'every 2 years renew the id card',
+    title: 'Renew the id card',
+    at: DateTime(2026, 9, 13),
+    rec: _every2Years,
+    tokens: ['recurrence:every 2 years'],
+  ),
+  CaptureCase(
+    'every other year deep clean the carpets',
+    title: 'Deep clean the carpets',
+    at: DateTime(2026, 9, 13),
+    rec: _every2Years,
+    tokens: ['recurrence:every other year'],
+  ),
+  CaptureCase(
+    'every 5 years renew the passport photo',
+    title: 'Renew the passport photo',
+    at: DateTime(2026, 9, 13),
+    rec: yearly(interval: 5),
+    tokens: ['recurrence:every 5 years'],
+  ),
+  CaptureCase(
+    'every 1 year dentist',
+    title: 'Dentist',
+    at: DateTime(2026, 9, 13),
+    rec: _yearly,
+    tokens: ['recurrence:every 1 year'],
+  ),
+
   // --- not repeats --------------------------------------------------------
-  const CaptureCase('every year renew the passport',
-      title: 'Every year renew the passport'),
-  const CaptureCase('yearly checkup', title: 'Yearly checkup'),
-  const CaptureCase('annually review the will',
-      title: 'Annually review the will'),
+  // `yearly` in front of a noun is an adjective, like `weekly report`;
+  // `annually` is only ever an adverb, so it always repeats.
+  const CaptureCase('yearly budget review', title: 'Yearly budget review'),
+  const CaptureCase('the yearly invoice', title: 'The yearly invoice'),
   const CaptureCase('send the weekly report', title: 'Send the weekly report'),
   const CaptureCase('daily standup notes', title: 'Daily standup notes'),
   const CaptureCase('monthly invoice template',
@@ -320,5 +384,7 @@ final _monthlyOn13 = monthly(13);
 final _monthlyOn17 = monthly(17);
 final _monthlyOn31 = monthly(31);
 final _quarterlyOn13 = monthly(13, interval: 3);
+final _yearly = yearly();
+final _every2Years = yearly(interval: 2);
 final _every2Days = everyDays(2);
 final _every3Days = everyDays(3);

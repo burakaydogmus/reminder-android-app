@@ -86,6 +86,34 @@ void main() {
     );
   });
 
+  test('yearly expands once per year, 29 Feb → 28 Feb in non-leap years', () {
+    final r = buildReminder(
+      remindAt: DateTime(2028, 2, 29, 10),
+      recurrence: RecurrenceRule.yearly(),
+    );
+    expect(
+      reminderOccurrences(r, from: DateTime(2028), to: DateTime(2033)),
+      [
+        DateTime(2028, 2, 29, 10),
+        DateTime(2029, 2, 28, 10),
+        DateTime(2030, 2, 28, 10),
+        DateTime(2031, 2, 28, 10),
+        DateTime(2032, 2, 29, 10),
+      ],
+    );
+  });
+
+  test('a yearly series is picked up inside a later range', () {
+    final r = buildReminder(
+      remindAt: DateTime(2026, 6, 1, 8),
+      recurrence: RecurrenceRule.yearly(interval: 2),
+    );
+    expect(
+      reminderOccurrences(r, from: DateTime(2029), to: DateTime(2034)),
+      [DateTime(2030, 6, 1, 8), DateTime(2032, 6, 1, 8)],
+    );
+  });
+
   test('until is inclusive and ends the series', () {
     final r = buildReminder(
       remindAt: DateTime(2026, 9, 13, 9),

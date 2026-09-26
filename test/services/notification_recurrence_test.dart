@@ -48,12 +48,47 @@ void main() {
       (RecurrenceRule.monthly(dayOfMonth: 31), null),
       (RecurrenceRule.monthly(dayOfMonth: 17, interval: 2), null),
       (RecurrenceRule.daily(until: DateTime(2030)), null),
+      (
+        RecurrenceRule.yearly(month: 3, dayOfMonth: 17),
+        DateTimeComponents.dateAndTime
+      ),
+      // 29 February: the native repeat would only fire in leap years.
+      (RecurrenceRule.yearly(month: 2, dayOfMonth: 29), null),
+      (
+        RecurrenceRule.yearly(month: 2, dayOfMonth: 28),
+        DateTimeComponents.dateAndTime
+      ),
+      (RecurrenceRule.yearly(interval: 2, month: 3, dayOfMonth: 17), null),
+      (
+        RecurrenceRule.yearly(month: 3, dayOfMonth: 17, until: DateTime(2030)),
+        null
+      ),
+      // No anchor and no explicit month/day: the target is unknown, so the
+      // safe answer is "next occurrence only".
+      (RecurrenceRule.yearly(), null),
     ];
     for (final (rule, expected) in cases) {
       test('${rule.toJson()} → ${expected?.name ?? 'next only'}', () {
         expect(NotificationService.reminderRepeatComponents(rule), expected);
       });
     }
+
+    test('a yearly rule takes its month and day from the anchor', () {
+      expect(
+        NotificationService.reminderRepeatComponents(
+          RecurrenceRule.yearly(),
+          anchor: DateTime(2026, 3, 17, 9),
+        ),
+        DateTimeComponents.dateAndTime,
+      );
+      expect(
+        NotificationService.reminderRepeatComponents(
+          RecurrenceRule.yearly(),
+          anchor: DateTime(2028, 2, 29, 9),
+        ),
+        isNull,
+      );
+    });
   });
 
   group('reminderFireTime', () {
@@ -135,6 +170,39 @@ void main() {
       final c = plugin.pending[custom.notificationId]!;
       expect(c.matchDateTimeComponents, isNull);
       expect(c.scheduledDate.isAtSameMomentAs(saturday), isTrue);
+    });
+
+    test('a yearly reminder repeats natively unless it is on 29 February',
+        () async {
+      final yearly = buildReminder(
+        id: 'yearly',
+        remindAt: saturday,
+        recurrence: RecurrenceRule.yearly(),
+      );
+      // A 29 February anchor in a future leap year.
+      final leapYear = base.year + (4 - base.year % 4) % 4 + 4;
+      final leapDay = buildReminder(
+        id: 'leap',
+        remindAt: DateTime(leapYear, 2, 29, 10),
+        recurrence: RecurrenceRule.yearly(),
+      );
+
+      await service.syncSchedules(
+        reminders: [yearly, leapDay],
+        birthdays: const [],
+        notificationsEnabled: true,
+      );
+
+      expect(
+        plugin.pending[yearly.notificationId]!.matchDateTimeComponents,
+        DateTimeComponents.dateAndTime,
+      );
+      final leap = plugin.pending[leapDay.notificationId]!;
+      expect(leap.matchDateTimeComponents, isNull);
+      expect(
+        leap.scheduledDate.isAtSameMomentAs(DateTime(leapYear, 2, 29, 10)),
+        isTrue,
+      );
     });
 
     test('an overdue recurring reminder stays scheduled', () async {

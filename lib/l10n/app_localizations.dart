@@ -686,6 +686,18 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Her ayın {day}} other{{count} ayda bir, ayın {day}}}'**
   String recurrenceMonthly(int count, String day);
 
+  /// Yıllık tekrar özeti; aralık 1 ise 'Her yıl'.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Her yıl} other{{count} yılda bir}}'**
+  String recurrenceYearly(int count);
+
+  /// Ay/günü açıkça belirtilmiş yıllık tekrar: 'Her yıl 14 Şubat'.
+  ///
+  /// In tr, this message translates to:
+  /// **'{count, plural, =1{Her yıl {date}} other{{count} yılda bir {date}}}'**
+  String recurrenceYearlyOn(int count, String date);
+
   /// No description provided for @birthdayTurnsAge.
   ///
   /// In tr, this message translates to:
@@ -842,6 +854,12 @@ abstract class AppLocalizations {
   /// **'Aylık'**
   String get recurrenceModeMonthly;
 
+  /// No description provided for @recurrenceModeYearly.
+  ///
+  /// In tr, this message translates to:
+  /// **'Yıllık'**
+  String get recurrenceModeYearly;
+
   /// No description provided for @recurrenceModeCustom.
   ///
   /// In tr, this message translates to:
@@ -889,6 +907,18 @@ abstract class AppLocalizations {
   /// In tr, this message translates to:
   /// **'Ayın {day}; kısa aylarda ayın son günü.'**
   String recurrenceMonthDayClamped(String day);
+
+  /// Yıllık tekrar seçildiğinde sheet'teki not: 'Her yıl 17 Mart.'
+  ///
+  /// In tr, this message translates to:
+  /// **'Her yıl {date}.'**
+  String recurrenceYearDay(String date);
+
+  /// 29 Şubat'a kurulu yıllık tekrarın sheet'teki notu.
+  ///
+  /// In tr, this message translates to:
+  /// **'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.'**
+  String get recurrenceYearLeapDay;
 
   /// No description provided for @recurrenceUntilLabel.
   ///

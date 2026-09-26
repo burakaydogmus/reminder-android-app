@@ -174,6 +174,161 @@ void main() {
       });
     });
 
+    group('yearly', () {
+      test('every year repeats on the anchor month and day', () {
+        final anchor = DateTime(2026, 3, 17, 8, 30);
+        final rule = RecurrenceRule.yearly();
+        expect(
+          rule.nextOccurrence(after: anchor, anchor: anchor),
+          DateTime(2027, 3, 17, 8, 30),
+        );
+        expect(
+          rule.upcoming(from: anchor, anchor: anchor, count: 3),
+          [
+            DateTime(2026, 3, 17, 8, 30),
+            DateTime(2027, 3, 17, 8, 30),
+            DateTime(2028, 3, 17, 8, 30),
+          ],
+        );
+      });
+
+      test('the anchor itself counts when it is after the given time', () {
+        final anchor = DateTime(2026, 3, 17, 8, 30);
+        expect(
+          RecurrenceRule.yearly()
+              .nextOccurrence(after: DateTime(2020, 1, 1), anchor: anchor),
+          anchor,
+        );
+      });
+
+      test('an explicit month and day win over the anchor', () {
+        final anchor = DateTime(2026, 3, 17, 8, 30);
+        final rule = RecurrenceRule.yearly(month: 12, dayOfMonth: 31);
+        expect(
+          rule.nextOccurrence(after: anchor, anchor: anchor),
+          DateTime(2026, 12, 31, 8, 30),
+        );
+      });
+
+      test('every N years keeps its phase from the anchor year', () {
+        final anchor = DateTime(2026, 6, 1, 7);
+        final rule = RecurrenceRule.yearly(interval: 3);
+        // 2026, 2029, 2032 …
+        expect(
+          rule.upcoming(from: anchor, anchor: anchor, count: 3),
+          [
+            DateTime(2026, 6, 1, 7),
+            DateTime(2029, 6, 1, 7),
+            DateTime(2032, 6, 1, 7),
+          ],
+        );
+        expect(
+          rule.nextOccurrence(after: DateTime(2030, 1, 1), anchor: anchor),
+          DateTime(2032, 6, 1, 7),
+        );
+      });
+
+      test('far in the future is computed directly', () {
+        final anchor = DateTime(2000, 5, 4, 6, 45);
+        expect(
+          RecurrenceRule.yearly(interval: 2)
+              .nextOccurrence(after: DateTime(2099, 1, 1), anchor: anchor),
+          DateTime(2100, 5, 4, 6, 45),
+        );
+      });
+
+      // The same rule as birthdays (`Birthday.occurrenceInYear`), so a
+      // 29 February reminder and a 29 February birthday behave alike.
+      test('29 February falls on 28 February in non-leap years', () {
+        final anchor = DateTime(2028, 2, 29, 10);
+        expect(
+          RecurrenceRule.yearly().upcoming(
+            from: anchor,
+            anchor: anchor,
+            count: 5,
+          ),
+          [
+            DateTime(2028, 2, 29, 10),
+            DateTime(2029, 2, 28, 10),
+            DateTime(2030, 2, 28, 10),
+            DateTime(2031, 2, 28, 10),
+            DateTime(2032, 2, 29, 10),
+          ],
+        );
+      });
+
+      test('29 February anchored earlier: 2027 is 28 Feb, 2028 is 29 Feb', () {
+        final anchor = DateTime(2024, 2, 29, 9);
+        final rule = RecurrenceRule.yearly();
+        expect(
+          rule.nextOccurrence(after: DateTime(2027, 1, 1), anchor: anchor),
+          DateTime(2027, 2, 28, 9),
+        );
+        expect(
+          rule.nextOccurrence(after: DateTime(2028, 1, 1), anchor: anchor),
+          DateTime(2028, 2, 29, 9),
+        );
+      });
+
+      test('an explicit 29 February is clamped the same way', () {
+        final anchor = DateTime(2026, 9, 13, 20);
+        expect(
+          RecurrenceRule.yearly(month: 2, dayOfMonth: 29).upcoming(
+            from: anchor,
+            anchor: anchor,
+            count: 3,
+          ),
+          [
+            DateTime(2027, 2, 28, 20),
+            DateTime(2028, 2, 29, 20),
+            DateTime(2029, 2, 28, 20),
+          ],
+        );
+      });
+
+      test('until ends a yearly series', () {
+        final anchor = DateTime(2026, 4, 2, 18);
+        final rule = RecurrenceRule.yearly(until: DateTime(2028, 1, 1));
+        expect(
+          rule.upcoming(from: anchor, anchor: anchor, count: 10),
+          [DateTime(2026, 4, 2, 18), DateTime(2027, 4, 2, 18)],
+        );
+      });
+
+      test('the interval, month and day are clamped', () {
+        expect(RecurrenceRule.yearly(interval: 0).interval, 1);
+        expect(
+          RecurrenceRule.yearly(interval: 500).interval,
+          RecurrenceRule.maxInterval,
+        );
+        expect(RecurrenceRule.yearly(month: 0).month, 1);
+        expect(RecurrenceRule.yearly(month: 13).month, 12);
+        expect(RecurrenceRule.yearly(dayOfMonth: 40).dayOfMonth, 31);
+        expect(RecurrenceRule.yearly().month, isNull);
+      });
+
+      test('yearlyTarget completes the month and day from the anchor', () {
+        final anchor = DateTime(2026, 7, 8, 9);
+        expect(
+          RecurrenceRule.yearly().yearlyTarget(anchor),
+          (month: 7, day: 8),
+        );
+        expect(
+          RecurrenceRule.yearly(month: 2, dayOfMonth: 29).yearlyTarget(anchor),
+          (month: 2, day: 29),
+        );
+        expect(RecurrenceRule.daily().yearlyTarget(anchor), isNull);
+      });
+
+      test('a UTC anchor stays UTC', () {
+        final anchor = DateTime.utc(2026, 2, 28, 9);
+        final next = RecurrenceRule.yearly()
+            .nextOccurrence(after: anchor, anchor: anchor)!;
+        expect(next.isUtc, isTrue);
+        expect(next, DateTime.utc(2027, 2, 28, 9));
+      });
+    });
+
     test('until ends the series (inclusive, date only)', () {
       final anchor = DateTime(2026, 9, 13, 21);
       final rule = RecurrenceRule.daily(until: DateTime(2026, 9, 15, 3));
@@ -272,6 +427,39 @@ void main() {
       );
     });
 
+    test('an anchor-derived yearly rule already follows the new date', () {
+      final rule = RecurrenceRule.yearly(interval: 2);
+      expect(identical(rule.alignedTo(sunday), rule), isTrue);
+    });
+
+    test('an explicit yearly rule takes the new month and day', () {
+      final until = DateTime(2030, 12, 31);
+      expect(
+        RecurrenceRule.yearly(
+          interval: 2,
+          month: 2,
+          dayOfMonth: 14,
+          until: until,
+        ).alignedTo(sunday),
+        RecurrenceRule.yearly(
+          interval: 2,
+          month: 9,
+          dayOfMonth: 20,
+          until: until,
+        ),
+      );
+    });
+
+    test('a 29 February rule survives a move to 28 February', () {
+      final leapDay = RecurrenceRule.yearly(month: 2, dayOfMonth: 29);
+      // 2027 is not a leap year: 28 February *is* this rule's occurrence.
+      expect(leapDay.alignedTo(DateTime(2027, 2, 28)), leapDay);
+      expect(
+        leapDay.alignedTo(DateTime(2027, 3, 1)),
+        RecurrenceRule.yearly(month: 3, dayOfMonth: 1),
+      );
+    });
+
     test('daily and none are unchanged', () {
       expect(RecurrenceRule.daily(interval: 3).alignedTo(sunday),
           RecurrenceRule.daily(interval: 3));
@@ -286,6 +474,10 @@ void main() {
       RecurrenceRule.weekly([DateTime.saturday]),
       RecurrenceRule.weekly([1, 3], interval: 2),
       RecurrenceRule.monthly(dayOfMonth: 31, interval: 6),
+      RecurrenceRule.yearly(),
+      RecurrenceRule.yearly(interval: 2, until: DateTime(2031, 1, 1)),
+      RecurrenceRule.yearly(month: 2, dayOfMonth: 29),
+      RecurrenceRule.yearly(interval: 5, month: 11, dayOfMonth: 3),
     ];
 
     for (final rule in rules) {
@@ -302,7 +494,7 @@ void main() {
     test('corrupt values load as none or are clamped', () {
       expect(RecurrenceRule.fromJson('daily'), RecurrenceRule.none);
       expect(
-        RecurrenceRule.fromJson({'frequency': 'yearly'}),
+        RecurrenceRule.fromJson({'frequency': 'hourly'}),
         RecurrenceRule.none,
       );
       expect(
@@ -322,6 +514,49 @@ void main() {
           },
         ),
         RecurrenceRule.weekly([DateTime.tuesday]),
+      );
+    });
+
+    test('a yearly rule writes only the fields it has', () {
+      expect(RecurrenceRule.yearly().toJson(), {
+        'frequency': 'yearly',
+        'interval': 1,
+      });
+      expect(
+          RecurrenceRule.yearly(interval: 2, month: 2, dayOfMonth: 29).toJson(),
+          {
+            'frequency': 'yearly',
+            'interval': 2,
+            'month': 2,
+            'dayOfMonth': 29,
+          });
+    });
+
+    // The tolerance is deliberate: a build that predates `yearly` reads the
+    // rule as `none`, so the reminder survives and only loses its repeat.
+    test('an older reader falls back to none on an unknown frequency', () {
+      final json = RecurrenceRule.yearly(month: 2, dayOfMonth: 29).toJson()!;
+      // What an older `fromJson` sees: no `yearly` case, so it falls through.
+      expect(json['frequency'], 'yearly');
+      expect(
+        RecurrenceRule.fromJson({...json, 'frequency': 'unknown-to-us'}),
+        RecurrenceRule.none,
+      );
+    });
+
+    test('corrupt yearly fields are clamped, never fatal', () {
+      expect(
+        RecurrenceRule.fromJson({
+          'frequency': 'yearly',
+          'interval': 0,
+          'month': 99,
+          'dayOfMonth': 99,
+        }),
+        RecurrenceRule.yearly(month: 12, dayOfMonth: 31),
+      );
+      expect(
+        RecurrenceRule.fromJson({'frequency': 'yearly', 'month': 'x'}),
+        RecurrenceRule.none,
       );
     });
 

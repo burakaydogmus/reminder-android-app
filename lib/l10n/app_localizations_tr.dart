@@ -369,6 +369,28 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String recurrenceYearly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yılda bir',
+      one: 'Her yıl',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceYearlyOn(int count, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count yılda bir $date',
+      one: 'Her yıl $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String birthdayTurnsAge(String age) {
     return '$age yaşına giriyor';
   }
@@ -469,6 +491,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get recurrenceModeMonthly => 'Aylık';
 
   @override
+  String get recurrenceModeYearly => 'Yıllık';
+
+  @override
   String get recurrenceModeCustom => 'Özel';
 
   @override
@@ -499,6 +524,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String recurrenceMonthDayClamped(String day) {
     return 'Ayın $day; kısa aylarda ayın son günü.';
   }
+
+  @override
+  String recurrenceYearDay(String date) {
+    return 'Her yıl $date.';
+  }
+
+  @override
+  String get recurrenceYearLeapDay =>
+      'Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.';
 
   @override
   String get recurrenceUntilLabel => 'Bitiş';

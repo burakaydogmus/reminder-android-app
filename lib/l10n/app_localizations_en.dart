@@ -370,6 +370,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String recurrenceYearly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Every $count years',
+      one: 'Every year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String recurrenceYearlyOn(int count, String date) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Every $count years on $date',
+      one: 'Every year on $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String birthdayTurnsAge(String age) {
     return 'turns $age';
   }
@@ -470,6 +492,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recurrenceModeMonthly => 'Monthly';
 
   @override
+  String get recurrenceModeYearly => 'Yearly';
+
+  @override
   String get recurrenceModeCustom => 'Custom';
 
   @override
@@ -501,6 +526,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String recurrenceMonthDayClamped(String day) {
     return 'On the $day; the last day in shorter months.';
   }
+
+  @override
+  String recurrenceYearDay(String date) {
+    return 'Every year on $date.';
+  }
+
+  @override
+  String get recurrenceYearLeapDay =>
+      'Every year on February 29; February 28 in non-leap years.';
 
   @override
   String get recurrenceUntilLabel => 'Ends';

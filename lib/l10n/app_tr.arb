@@ -307,6 +307,27 @@
       }
     }
   },
+  "recurrenceYearly": "{count, plural, =1{Her yıl} other{{count} yılda bir}}",
+  "@recurrenceYearly": {
+    "description": "Yıllık tekrar özeti; aralık 1 ise 'Her yıl'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceYearlyOn": "{count, plural, =1{Her yıl {date}} other{{count} yılda bir {date}}}",
+  "@recurrenceYearlyOn": {
+    "description": "Ay/günü açıkça belirtilmiş yıllık tekrar: 'Her yıl 14 Şubat'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "birthdayTurnsAge": "{age} yaşına giriyor",
   "@birthdayTurnsAge": {
     "placeholders": {
@@ -438,6 +459,7 @@
   "recurrenceModeDaily": "Günlük",
   "recurrenceModeWeekly": "Haftalık",
   "recurrenceModeMonthly": "Aylık",
+  "recurrenceModeYearly": "Yıllık",
   "recurrenceModeCustom": "Özel",
   "recurrenceNextDay": "{day} {time}",
   "@recurrenceNextDay": {
@@ -477,6 +499,19 @@
         "type": "String"
       }
     }
+  },
+  "recurrenceYearDay": "Her yıl {date}.",
+  "@recurrenceYearDay": {
+    "description": "Yıllık tekrar seçildiğinde sheet'teki not: 'Her yıl 17 Mart.'",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceYearLeapDay": "Her yıl 29 Şubat; artık yıl olmayan yıllarda 28 Şubat.",
+  "@recurrenceYearLeapDay": {
+    "description": "29 Şubat'a kurulu yıllık tekrarın sheet'teki notu."
   },
   "recurrenceUntilLabel": "Bitiş",
   "recurrenceUntilNever": "Hiçbir zaman",

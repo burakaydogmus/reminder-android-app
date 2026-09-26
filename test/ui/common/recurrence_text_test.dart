@@ -52,6 +52,31 @@ void main() {
             RecurrenceRule.monthly(dayOfMonth: 31, interval: 2), tr),
         "2 ayda bir, ayın 31'i",
       );
+      expect(RecurrenceText.summary(RecurrenceRule.yearly(), tr), 'Her yıl');
+      expect(
+        RecurrenceText.summary(RecurrenceRule.yearly(interval: 2), tr),
+        '2 yılda bir',
+      );
+      expect(
+        RecurrenceText.summary(
+            RecurrenceRule.yearly(month: 2, dayOfMonth: 14), tr),
+        'Her yıl 14 Şubat',
+      );
+      expect(
+        RecurrenceText.summary(
+            RecurrenceRule.yearly(month: 2, dayOfMonth: 29), tr),
+        'Her yıl 29 Şubat',
+      );
+      expect(
+        RecurrenceText.summary(
+            RecurrenceRule.yearly(interval: 4, month: 11, dayOfMonth: 3), tr),
+        '4 yılda bir 3 Kasım',
+      );
+      expect(
+        RecurrenceText.summary(
+            RecurrenceRule.yearly(until: DateTime(2030, 1, 1)), tr),
+        'Her yıl · bitiş 1 Oca 2030',
+      );
       expect(
         RecurrenceText.summary(
             RecurrenceRule.daily(until: DateTime(2026, 12, 31)), tr),
@@ -121,6 +146,39 @@ void main() {
           en,
         ),
         'Every 2 months on the 31st',
+      );
+      expect(RecurrenceText.summary(RecurrenceRule.yearly(), en), 'Every year');
+      expect(
+        RecurrenceText.summary(RecurrenceRule.yearly(interval: 2), en),
+        'Every 2 years',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.yearly(month: 2, dayOfMonth: 14),
+          en,
+        ),
+        'Every year on February 14',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.yearly(month: 2, dayOfMonth: 29),
+          en,
+        ),
+        'Every year on February 29',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.yearly(interval: 4, month: 11, dayOfMonth: 3),
+          en,
+        ),
+        'Every 4 years on November 3',
+      );
+      expect(
+        RecurrenceText.summary(
+          RecurrenceRule.yearly(until: DateTime(2030, 1, 1)),
+          en,
+        ),
+        'Every year · until Jan 1, 2030',
       );
       expect(
         RecurrenceText.summary(

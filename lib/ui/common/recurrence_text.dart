@@ -6,7 +6,9 @@ import 'package:reminder/ui/common/kor_format.dart';
 /// summary on cards, in the editor and the capture chips.
 abstract final class RecurrenceText {
   /// "Her gün", "3 günde bir", "Her Cumartesi", "2 haftada bir Pzt, Çar",
-  /// "Hafta içi her gün", "Her ayın 17'si", "2 ayda bir, ayın 31'i"; an end
+  /// "Hafta içi her gün", "Her ayın 17'si", "2 ayda bir, ayın 31'i",
+  /// "Her yıl", "2 yılda bir", "Her yıl 14 Şubat" (English: "Every year",
+  /// "Every 2 years", "Every year on February 14"); an end
   /// date adds " · bitiş 31 Ara 2026". English: "Every day", "Every 3
   /// days", "Every Saturday", "Every 2 weeks on Mon, Wed", "Every weekday",
   /// "Monthly on the 17th", "… · until Dec 31, 2026".
@@ -20,12 +22,34 @@ abstract final class RecurrenceText {
           interval,
           dayOfMonthLabel(rule.dayOfMonth ?? 1, l10n),
         ),
+      RecurrenceFrequency.yearly => _yearly(rule, l10n),
     };
     final end = rule.until;
     if (rule.isNone || end == null) return base;
     return l10n.recurrenceUntil(
       base,
       KorFormat.pattern(l10n.dateFormatShortYear, end, l10n),
+    );
+  }
+
+  /// "Her yıl" / "2 yılda bir"; a rule with an explicit month **and** day
+  /// names it ("Her yıl 14 Şubat" / "Every year on February 14"). A rule that
+  /// takes both from the anchor follows the reminder's own date, so the date
+  /// is already on the card.
+  static String _yearly(RecurrenceRule rule, AppLocalizations l10n) {
+    final month = rule.month;
+    final day = rule.dayOfMonth;
+    if (month == null || day == null) {
+      return l10n.recurrenceYearly(rule.interval);
+    }
+    return l10n.recurrenceYearlyOn(
+      rule.interval,
+      KorFormat.pattern(
+        l10n.dateFormatDayMonth,
+        // A leap year, so a 29 February rule keeps its day.
+        DateTime(2024, month, day),
+        l10n,
+      ),
     );
   }
 

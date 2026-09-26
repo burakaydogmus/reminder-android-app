@@ -149,6 +149,25 @@ void main() {
         ),
         RecurrenceRule.none,
       );
+      expect(
+        CaptureToReminder.ruleOf(
+          const RecurrenceSpec(kind: RecurrenceKind.yearly, interval: 2),
+        ),
+        RecurrenceRule.yearly(interval: 2),
+      );
+    });
+
+    test('yearly without a time starts at the next morning slot', () {
+      final d = _map('her yıl vergi öde');
+      expect(d.reminder.recurrence, RecurrenceRule.yearly());
+      // Today 09:00 has passed → the next occurrence, a year later.
+      expect(d.reminder.remindAt, DateTime(2027, 9, 13, 9));
+    });
+
+    test('yearly with an explicit date keeps the parser date', () {
+      final d = _map('her yıl 14 Şubat 09:00 yıl dönümü');
+      expect(d.reminder.recurrence, RecurrenceRule.yearly());
+      expect(d.reminder.remindAt, DateTime(2027, 2, 14, 9));
     });
   });
 

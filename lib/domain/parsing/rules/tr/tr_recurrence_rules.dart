@@ -13,9 +13,12 @@ part of '../../capture_parser.dart';
 ///   one-off date (this weekend), see `_DateRules`.
 /// - `her ay` (monthly on the first occurrence's day), `her ayın 17'si`,
 ///   `her ay 15'inde`.
+/// - `her yıl`/`her sene`, `yıllık`/`senelik` (yearly on the first
+///   occurrence's month and day), `2 yılda bir`/`iki senede bir`.
 /// - `3 günde bir`/`üç günde bir` (every N days), `gün aşırı`/`günaşırı`
-///   (every 2 days), `2 haftada bir`, `3 ayda bir` (`1 günde bir` = daily).
-/// - Not supported (left as text): `her yıl`/`her sene`, `her şey`.
+///   (every 2 days), `2 haftada bir`, `3 ayda bir`, `2 yılda bir`
+///   (`1 günde bir` = daily, `1 yılda bir` = yearly).
+/// - Not supported (left as text): `her şey`.
 extension _TrRecurrenceRules on _TrScanner {
   static final RegExp _pluralWeekday = RegExp(
     r'^(pazartesi|sali|carsamba|persembe|cumartesi|cuma)(leri|lari)$',
@@ -35,6 +38,32 @@ extension _TrRecurrenceRules on _TrScanner {
     kind: RecurrenceKind.weekly,
     weekdays: [6, 7],
   );
+  static const RecurrenceSpec _yearly = RecurrenceSpec(
+    kind: RecurrenceKind.yearly,
+  );
+
+  /// Nouns that make `yıllık` / `senelik` an adjective ("yıllık rapor"),
+  /// not a repeat — the Turkish twin of the English `_repeatNouns` guard.
+  static const Set<String> _yearlyNouns = {
+    'izin',
+    'izni',
+    'izinler',
+    'rapor',
+    'raporu',
+    'bilanco',
+    'faiz',
+    'gelir',
+    'gider',
+    'ortalama',
+    'toplam',
+    'butce',
+    'plan',
+    'abonelik',
+    'uyelik',
+    'sozlesme',
+    'ucret',
+    'kira',
+  };
 
   _Unit? recurrenceRule(int i) {
     final w = words[i].fold;
@@ -53,6 +82,9 @@ extension _TrRecurrenceRules on _TrScanner {
         if (n == 'ici' || n == 'icleri') return _rec(i, i + 2, _weekdays, 0.9);
         if (n == 'sonlari') return _rec(i, i + 2, _weekends, 0.9);
         return null;
+      case 'yillik':
+      case 'senelik':
+        return _yearlyAdjective(i) ? null : _rec(i, i + 1, _yearly, 0.9);
       case 'gunasiri':
         return _rec(i, i + 1, _everyDays(2), 0.95);
       case 'gun':
@@ -69,6 +101,9 @@ extension _TrRecurrenceRules on _TrScanner {
         'gunde' => n == 1 ? _daily : _everyDays(n),
         'haftada' => RecurrenceSpec(kind: RecurrenceKind.weekly, interval: n),
         'ayda' => RecurrenceSpec(kind: RecurrenceKind.monthly, interval: n),
+        'yilda' ||
+        'senede' =>
+          RecurrenceSpec(kind: RecurrenceKind.yearly, interval: n),
         _ => null,
       };
       return spec == null ? null : _rec(i, i + 3, spec, 0.95);
@@ -127,6 +162,9 @@ extension _TrRecurrenceRules on _TrScanner {
       case 'ayin':
         final day = _dayOfMonth(next(i + 2));
         return day == null ? null : _rec(i, i + 3, _monthly(day), 1);
+      case 'yil':
+      case 'sene':
+        return _rec(i, i + 2, _yearly, 1);
     }
     if (_TrTimeRules.daypartNames.contains(n1)) {
       return _daypartRepeat(i, i + 2, n1 == 'oglen' ? 'ogle' : n1, 1);
@@ -139,6 +177,12 @@ extension _TrRecurrenceRules on _TrScanner {
       RecurrenceSpec(kind: RecurrenceKind.weekly, weekdays: list.days),
       1,
     );
+  }
+
+  /// `yıllık rapor`, `senelik izin`: an adjective, not a repeat.
+  bool _yearlyAdjective(int i) {
+    final following = next(i + 1);
+    return following != null && _yearlyNouns.contains(following);
   }
 
   static RecurrenceSpec _everyDays(int n) =>
