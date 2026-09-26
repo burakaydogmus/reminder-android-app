@@ -39,3 +39,26 @@ jobs:
 
       - name: Build iOS
         run: flutter build ios --no-codesign --debug
+
+      # F5.2: the WidgetKit extension is only ever compiled here (no Mac in the
+      # dev environment). A green `flutter build` alone would not prove the
+      # extension was built and embedded, so assert the .appex and its
+      # localizations are inside the app bundle.
+      - name: Verify the widget extension is embedded
+        run: |
+          appex="build/ios/iphoneos/Runner.app/PlugIns/ReminderWidgetExtension.appex"
+          if [ ! -d "$appex" ]; then
+            echo "::error::$appex is missing — the F5.2 widget extension was not built or not embedded"
+            exit 1
+          fi
+          test -f "$appex/ReminderWidgetExtension" \
+            || { echo "::error::the extension binary is missing"; exit 1; }
+          for lproj in tr en; do
+            test -f "$appex/$lproj.lproj/Localizable.strings" \
+              || { echo "::error::$lproj.lproj/Localizable.strings is missing"; exit 1; }
+          done
+          point=$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$appex/Info.plist")
+          test "$point" = "com.apple.widgetkit-extension" \
+            || { echo "::error::unexpected extension point: $point"; exit 1; }
+          echo "Embedded $(du -sh "$appex" | cut -f1) widget extension:"
+          find "$appex" -maxdepth 2 | sort

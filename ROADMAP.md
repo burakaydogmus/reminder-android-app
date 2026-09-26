@@ -126,8 +126,11 @@ Diğer tüm fazların temeli.
 
 - [x] **F5.1 Android widget v2** · `feat/android-widget-v2` · *bağımlı: F4.6b*
   4 widget (Sıradaki 2×2, Bugün 4×2, kaydırılabilir Liste, Hızlı ekle 1×1); 8 satır sınırı kalkar, hap "+" düğmesi, doğum günleri, sistem dinamik renkleri.
-- [ ] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
+- [x] **F5.2 iOS widget** · `feat/ios-widget` · *bağımlı: F1.9*
   WidgetKit extension + App Group + App Intents (widget'tan tamamla); small/medium/large ve kilit ekranı aileleri, tinted/clear uyumu.
+  *Not:* `ios/ReminderWidget/` (`ReminderWidgetExtension` hedefi, App Group `group.com.burakaydogmus.reminder`): Sıradaki (systemSmall), Bugün (systemMedium), Liste (systemLarge, `AppIntentConfiguration` ile "Yalnızca bugün") ve kilit ekranı (accessoryCircular / accessoryRectangular / accessoryInline). Veri sözleşmesi Android ile **aynı** (`widget_payload_v2`); Swift zamana bağlı alanları çizim anında yeniden hesaplar, metinleri `tr.lproj`/`en.lproj` içinden verinin `lang` alanına göre çözer. Widget'tan "tamamla" App Group'a `widget_completions_v1` kuyruğu bırakır (sözleşmeye **ek**, Android okumaz); satır anında kaybolur, depo değişikliği uygulama açılışında / ön plana dönüşünde aynı `completeReminder` kuralıyla yapılır — iOS widget extension'ında Flutter motoru olmadığı için (bkz. [`docs/ios-widget-setup.md`](docs/ios-widget-setup.md)).
+  **Mac olmadan doğrulanan:** derleme ve gömme — iOS CI `Runner.app/PlugIns/ReminderWidgetExtension.appex`'i, ikilisini, tr/en dizelerini ve WidgetKit uzantı noktasını açıkça kontrol eder; Dart tarafı (App Group, `kind` listesi, kuyruk, platform dalları) testlidir ve sözleşme testleri Swift/entitlement/Info.plist kimliklerini Dart sabitleriyle karşılaştırır.
+  **Doğrulanamayan (cihaz gerekir):** görünüm/yerleşim (hiç ekran görüntüsü yok), App Group'un gerçekten paylaşması (`--no-codesign` entitlement uygulamaz), App Intent düğmesinin çalışması, derin bağlantıların açılması, tinted/clear ve kilit ekranı modları, VoiceOver. Extension'ın minimum iOS'u **17.0** (uygulama 15.0'da kaldı); `systemExtraLarge` ve tasarımdaki "2/8 tamamlandı" kilit ekranı göstergesi yapılmadı.
 - [x] **F5.3 Kısayollar** · `feat/app-shortcuts` · *bağımlı: F4.6b*
   Android app shortcuts / iOS quick actions ("Yeni hatırlatıcı", "Market listesi", "Bugün", "Yeni doğum günü").
 - [x] **F5.4 iOS cam kromu** · `feat/ios-glass-chrome` · *bağımlı: F4.1*

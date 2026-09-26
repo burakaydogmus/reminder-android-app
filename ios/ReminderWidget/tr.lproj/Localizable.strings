@@ -1,0 +1,50 @@
+/* iOS widget metinleri (F5.2 / F6.1).
+   Android'deki res/values/strings.xml `widget_*` anahtarlarının aynısı; iki
+   dosya birlikte güncellenir. Biçim belirteçleri iOS kuralına göre: metin
+   `%1$@`, sayı `%1$d`. */
+
+/* Widget galerisi (cihaz dili) */
+"widget_next_label_name" = "Sıradaki";
+"widget_next_description" = "Sıradaki iş ve saati; + ile yeni ekle.";
+"widget_today_label" = "Bugün";
+"widget_today_description" = "Bugünün ilk üç işi. Daireye dokunarak tamamla, + ile yeni ekle.";
+"widget_list_label" = "Liste";
+"widget_list_description" = "Kaçanlar, bugün ve doğum günleri. Uzun basıp yalnızca bugünü seçebilirsin.";
+"widget_lock_label" = "Kilit ekranı";
+"widget_lock_description" = "Sıradaki iş ve bugünün açık iş sayısı.";
+
+/* İçerik (uygulamanın dili) */
+"widget_next_label" = "SIRADAKİ";
+"widget_today_header" = "Bugün · %1$d";
+"widget_more" = "+%1$d daha";
+"widget_empty_today" = "Bugün boş. Eklemek için +";
+"widget_notifications_off" = "Bildirimler kapalı — açmak için dokun";
+"widget_overdue" = "Gecikti";
+"widget_today" = "Bugün";
+"widget_tomorrow" = "Yarın";
+
+/* Tarih desenleri (DateFormatter) */
+"widget_date_short" = "d MMM";
+"widget_date_short_year" = "d MMM y";
+"widget_date_header" = "EEEE d MMMM";
+
+/* Bölüm başlıkları */
+"widget_section_overdue" = "Kaçanlar";
+"widget_section_today" = "Bugün";
+"widget_section_birthdays" = "Doğum günü";
+"widget_section_later" = "Sonra";
+"widget_birthday_age" = "%1$@ · %2$d yaşına giriyor";
+
+/* VoiceOver */
+"widget_cd_add" = "Yeni hatırlatıcı";
+"widget_cd_complete" = "Tamamla: %1$@";
+"widget_cd_subtasks" = "%1$@ madde";
+"widget_cd_recurring" = "tekrarlanan";
+"widget_cd_today" = "Bugün, %1$d açık iş. Uygulamayı aç.";
+"widget_cd_birthday" = "Doğum günü: %1$@, %2$@";
+
+/* AppIntents (Kısayollar / widget düzenleme) */
+"Tamamla" = "Tamamla";
+"Liste" = "Liste";
+"Widget'ta hangi işlerin görüneceğini seç." = "Widget'ta hangi işlerin görüneceğini seç.";
+"Yalnızca bugün" = "Yalnızca bugün";

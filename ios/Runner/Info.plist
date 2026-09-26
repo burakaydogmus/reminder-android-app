@@ -29,6 +29,23 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- F5.2: WidgetKit widget'ının dokunuşları (reminderwidget://new,
+	     open?id=, birthday?id=, permissions) uygulamayı bu şemayla açar;
+	     Dart tarafı WidgetLaunchRouter ile karşılar. Dışa dönük bir arayüz
+	     değil: uygulama bu şemayı kendisi sorgulamaz. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.burakaydogmus.reminder.widget</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>reminderwidget</string>
+			</array>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
