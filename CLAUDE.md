@@ -678,9 +678,12 @@ flutter test integration_test/notifications_test.dart -d emulator-5554
   once, i.e. the write phase only.
 - **Why twice and not `restartAndRestore()`:** that only rebuilds the widget tree in
   one process and the app declares no restoration scopes, so the database is never
-  reopened. Two *files* do not work either — `flutter test` uninstalls before
-  installing a different APK, and `adb uninstall` takes the app data with it. Running
-  the **same** file twice leaves the installed build unchanged, so the data survives.
+  reopened.
+- **`flutter test --no-uninstall` is mandatory for anything that must outlive a run.**
+  `DebuggingOptions.uninstallApp` defaults to **true**, so `flutter test` uninstalls
+  the app when an integration test finishes and `adb uninstall` deletes the database
+  with it. The script passes `--no-uninstall` everywhere and gets isolation from
+  `adb shell pm clear` instead, where it controls when it happens.
 
 **What each file covers.**
 

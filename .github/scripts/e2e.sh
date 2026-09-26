@@ -102,10 +102,15 @@ run_test() {
   adb logcat -c >/dev/null 2>&1 || true
   # --timeout=none: a device test is minutes long, the 30 s per-test default
   # would kill it. `pipefail` is on, so tee does not hide the exit status.
+  # --no-uninstall: `flutter test` uninstalls the app when an integration test
+  # finishes (`DebuggingOptions.uninstallApp` defaults to true), and
+  # `adb uninstall` takes the app data with it — which silently defeated the
+  # persistence check. Isolation between files comes from `pm clear` here, where
+  # we control it, not from a teardown we do not.
   # -r expanded: the default GitHub reporter only prints a group for a *failing*
   # test, so a passing test's `print` (the E2E_PHASE marker) would be swallowed.
-  if flutter test "$file" -d "$DEVICE" --timeout=none -r expanded "$@" 2>&1 \
-      | tee "$ARTIFACTS/out-$label.txt"; then
+  if flutter test "$file" -d "$DEVICE" --timeout=none --no-uninstall \
+      -r expanded "$@" 2>&1 | tee "$ARTIFACTS/out-$label.txt"; then
     record PASS "$label"
   else
     record FAIL "$label"
@@ -235,13 +240,12 @@ run_test deep_link integration_test/deep_link_test.dart
 reset_app
 run_test routine integration_test/routine_test.dart
 
-# Persistence across a real restart: the **same file** twice, so `flutter test`
-# has no different APK to install — it uninstalls before installing a different
-# one, and `adb uninstall` takes the app data with it (that is how the first
-# version of this check failed). No `pm clear` between the runs; `am force-stop`
-# kills the process, so the second run is a genuine cold start against the
-# database the first one left behind. Last in the list, so nothing else can
-# clear the data in between.
+# Persistence across a real restart: the **same file** twice, with no `pm clear`
+# between the runs (and `--no-uninstall` above, without which `flutter test`
+# would remove the app and its data when the first run finished — that is how
+# the first version of this check failed). `am force-stop` kills the process, so
+# the second run is a genuine cold start against the database the first one left
+# behind. Last in the list, so nothing else can clear the data in between.
 reset_app
 run_test persistence-write integration_test/persistence_restart_test.dart
 adb shell am force-stop "$PKG" >/dev/null 2>&1 || true

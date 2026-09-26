@@ -16,11 +16,13 @@
 // - Dropping the `AppDatabaseHost` reference count by hand would close a
 //   connection the live cubit still holds; that tests the harness, not the app.
 //
-// So `.github/workflows/e2e.yml` runs **this same file twice** with
-// `adb shell am force-stop` in between and **no** `pm clear`. Running the same
-// file (rather than two files) matters: `flutter test` uninstalls before
-// installing a *different* APK, and `adb uninstall` takes the app data with it
-// — which is exactly how the first version of this test failed.
+// So `.github/scripts/e2e.sh` runs **this same file twice** with
+// `adb shell am force-stop` in between and **no** `pm clear`. Two things make
+// the data survive: `flutter test --no-uninstall` (its
+// `DebuggingOptions.uninstallApp` defaults to **true**, so it removes the app —
+// and with it the database — as soon as an integration test finishes; that is
+// exactly how the first version of this test failed), and running the *same*
+// file, so the installed build never changes either.
 //
 // The phase is picked from a marker the first run leaves in SharedPreferences.
 // To make a false green impossible, the test prints `E2E_PHASE=write|read` and
