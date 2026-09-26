@@ -1,0 +1,144 @@
+name: E2E (Android emulator)
+
+# End-to-end tests on a real Android emulator (`integration_test/`).
+#
+# The ~2750 tests in `test/` all run on the Dart test host, where
+# `Platform.isAndroid` is false, the notification plugin is a fake, SQLite is
+# in memory and `home_widget` is a stub — so the platform integrations had
+# never actually run anywhere. This workflow is where they do.
+#
+# It is deliberately kept off the critical path: emulator jobs are slow and
+# bill accordingly, so it only runs when Dart code, Android config or the suite
+# itself changes (docs-only PRs never start it), plus nightly and on demand.
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'integration_test/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/e2e.yml'
+      - '.github/scripts/e2e.sh'
+  schedule:
+    # 03:20 UTC nightly: catches platform regressions that no PR touched (an
+    # emulator image update, a plugin's own Android side, an OS behaviour
+    # change) without adding latency to anyone's PR.
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+  # Android 14. Chosen over the app's own targetSdk 36 on purpose:
+  # - it is the best-supported image in reactivecircus/android-emulator-runner
+  #   (the newest levels regularly lag behind in the runner's sdkmanager and
+  #   boot slower), and an app with targetSdk 36 installs and runs on it;
+  # - API 34 is where `SCHEDULE_EXACT_ALARM` stopped being granted by default
+  #   to newly installed apps targeting Android 13+, which is exactly the
+  #   F6.2c inexact fallback this suite wants to exercise;
+  # - it is far above minSdk 26, so `minSdk` behaviour (RemoteViews collection
+  #   on API 26–30, for example) is **not** covered — see the PR notes.
+  API_LEVEL: '34'
+  # `google_apis`, not `default`: native_geofence sits on
+  # play-services-location, and the geofence service is initialized in
+  # `main()`, so an image without Google APIs would fail every launch.
+  # `google_apis` (not `google_apis_playstore`) needs no sign-in.
+  EMULATOR_TARGET: google_apis
+  EMULATOR_ARCH: x86_64
+
+jobs:
+  emulator-e2e:
+    name: integration_test on an Android emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      # Hardware acceleration. Without KVM the emulator runs on a software CPU
+      # and the suite times out instead of failing on an expectation.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Booting a fresh AVD costs minutes every run; a cached snapshot brings
+      # it down to seconds. The key carries the image identity, so changing
+      # API_LEVEL/target/arch invalidates it by itself.
+      - name: Cache the AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: >-
+            avd-${{ env.API_LEVEL }}-${{ env.EMULATOR_TARGET }}-${{ env.EMULATOR_ARCH }}-v1
+
+      - name: Create the AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 8192M
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -no-snapshot-save -noaudio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none
+          disable-animations: false
+          script: echo "Generated the AVD snapshot for caching."
+
+      - name: Run the e2e suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.EMULATOR_TARGET }}
+          arch: ${{ env.EMULATOR_ARCH }}
+          profile: pixel_6
+          ram-size: 4096M
+          disk-size: 8192M
+          force-avd-creation: false
+          emulator-options: >-
+            -no-snapshot-save -no-window -noaudio -no-boot-anim
+            -gpu swiftshader_indirect -camera-back none
+          # Window/transition animations off: the suite still waits with
+          # `pumpAndSettle`/polling, but a device that does not animate is both
+          # faster and less prone to a tap landing mid-transition.
+          disable-animations: true
+          script: bash .github/scripts/e2e.sh
+
+      # Always: a green run's logcat is useful too (a silently caught platform
+      # exception shows up there and nowhere else).
+      - name: Upload the run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-api${{ env.API_LEVEL }}
+          path: e2e-artifacts/
+          retention-days: 7
+          if-no-files-found: warn

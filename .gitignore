@@ -71,3 +71,6 @@ coverage/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# On-device e2e run output (logcat, screenshots, dumpsys); see e2e.yml.
+/e2e-artifacts/

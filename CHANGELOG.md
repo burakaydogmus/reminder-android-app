@@ -18,6 +18,24 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Gerçek emülatörde uçtan uca testler (F0.4):** `integration_test/` + `E2E (Android emulator)`
+  iş akışı, uygulamayı gerçek bir Android emülatöründe (API 34, KVM, önbelleklenmiş AVD
+  snapshot'ı) başlatıp sürüyor. Buraya kadarki ~2750 test Dart test ana bilgisayarında
+  çalışıyordu: orada `Platform.isAndroid` `false`, bildirim eklentisi sahte, SQLite bellekte ve
+  `home_widget` bir kabuk — yani **platform bütünleşmelerinin hiçbiri gerçekte hiç
+  çalışmamıştı**. Artık çalışıyor: soğuk açılışta veritabanının cihazda oluşması ve onboarding'in
+  tamamlanması, arayüzden eklenen hatırlatıcıların `sqlite3` dosyasına yazılması ve **uygulama
+  gerçekten yeniden başlatıldıktan sonra** geri okunması, bildirimlerin işletim sistemine
+  kurulduğunun `pendingNotificationRequests()` ile doğrulanması (tek seferlik, tekrarlayan,
+  doğum günü; tam zamanlı alarm izni hem verilmiş hem verilmemişken), ana ekran widget'ı
+  verisinin gerçek depoya yazılması, yedek al → sıfırla → geri yükle turunun gerçek dosya
+  sistemi üzerinde dönmesi, `reminderwidget://` bağlantılarının doğru ekranı açması ve bir
+  rutinin uygulanınca gerçek hatırlatıcı + gerçek alarm üretmesi. Native tarafta ayrıca
+  kısayolların ve widget sağlayıcılarının gerçekten yayımlandığı, derin bağlantı intent'lerinin
+  uygulamaya ulaştığı adb ile doğruluyor. Kullanıcıya görünen bir değişiklik yok; mevcut test
+  paketine dokunulmadı. Emülatör işi dokümana özel PR'ları yavaşlatmıyor (yol filtreleri),
+  gecelik de çalışıyor. Kapsam ve kapsam dışı kalanlar: `CLAUDE.md` → **End-to-end tests**.
+
 - **İmzalı GitHub Release ve telefonda otomatik güncelleme:** Elle tetiklenen `Release APK` iş
   akışı, mimari başına sabit adlı APK'ları (`reminder-arm64-v8a.apk` …) imzalayıp doğruluyor ve
   `v<sürüm>+<numara>` etiketiyle release açıyor. `versionCode` artık tarihten üretiliyor

@@ -17,7 +17,8 @@ The development plan lives in [`ROADMAP.md`](ROADMAP.md) — read it before star
 ```bash
 flutter pub get                 # install dependencies
 flutter analyze --fatal-infos   # static analysis (must be clean, CI enforces)
-flutter test                    # unit/widget tests (CI enforces)
+flutter test                    # unit/widget tests on the host (CI enforces)
+flutter test integration_test   # end-to-end tests on a device/emulator (see below)
 flutter run                     # run on a device/emulator
 flutter run --dart-define=GOOGLE_MAPS_KEY=YOUR_KEY   # enables Google Places nearby search
 flutter build apk --debug       # Android debug build
@@ -643,6 +644,89 @@ does not recognise; keep that cleanup if the sync changes again.
   after its first frame): a reminder payload opens `showReminderEditorSheet` once the
   reminder is in the cubit state (waits up to 5 s for the first load; deleted → nothing),
   a birthday payload selects Listeler and pushes `BirthdaysPage`. `app.dart` is unchanged.
+
+## End-to-end tests (`integration_test/`)
+
+**What they are for.** Everything under `test/` runs on the Dart test host, where
+`Platform.isAndroid` is `false`, `flutter_local_notifications` is
+`FakeNotificationsPlugin`, SQLite is `NativeDatabase.memory()` and `home_widget` is a
+stub behind `HomeWidgetPlatform`. That is the right trade for ~2750 fast tests, but it
+means **no platform integration is proven by them**. `integration_test/` closes that
+gap: it drives the real app (`main()` → `runApp`) on a real Android emulator and
+asserts against the platform itself. It is strictly **additive** — nothing in `test/`
+was weakened or duplicated, and `flutter test` (no path) still only runs `test/`.
+
+**Running it locally.**
+
+```bash
+flutter test integration_test                    # every file, one app launch each
+flutter test integration_test/notifications_test.dart -d emulator-5554
+```
+
+- A device or emulator must be connected (`flutter devices`); there is no host mode.
+- **ASCII path caveat:** on Windows the Flutter tool cannot build from a path with
+  non-ASCII characters (this repo lives under "Yazılım"), exactly like
+  `flutter build apk`. Work from an ASCII-path worktree
+  (`git worktree add C:/tmp/e2e-wt <branch>`) or let CI run it.
+- Grant `POST_NOTIFICATIONS` first, otherwise Android silently drops every scheduled
+  notification: `adb shell pm grant com.burakaydogmus.reminder
+  android.permission.POST_NOTIFICATIONS`.
+- `persistence_restart_test.dart` is **two phases in one file**: it picks the phase
+  from a marker it leaves in SharedPreferences, so run it twice (with no `pm clear`
+  in between) to exercise the restart. It prints `E2E_PHASE=write|read`; CI asserts
+  both lines appeared. `flutter test integration_test` (the whole directory) runs it
+  once, i.e. the write phase only.
+- **Why twice and not `restartAndRestore()`:** that only rebuilds the widget tree in
+  one process and the app declares no restoration scopes, so the database is never
+  reopened.
+- **`flutter test --no-uninstall` is mandatory for anything that must outlive a run.**
+  `DebuggingOptions.uninstallApp` defaults to **true**, so `flutter test` uninstalls
+  the app when an integration test finishes and `adb uninstall` deletes the database
+  with it. The script passes `--no-uninstall` everywhere and gets isolation from
+  `adb shell pm clear` instead, where it controls when it happens.
+
+**What each file covers.**
+
+| File | Verifies (only a device can) |
+|---|---|
+| `cold_start_test.dart` | `path_provider` + `drift_flutter` + `sqlite3` create `reminder.sqlite` on a cleared device (`onCreate`, not a migration); the 4-step onboarding runs and persists `onboarding_completed_v1`; the repository does **not** silently fall back to `LegacyPrefsStore` |
+| `persistence_restart_test.dart` | reminders created **through the UI** (FAB → quick capture) reach the file on disk — read back with an **independent** `sqlite3` connection, not drift's own — and are still there after a real **process** restart, with the wall-clock `remindAt` intact. **Runs twice** (see below) |
+| `notifications_test.dart` | `pendingNotificationRequests()` **from Android**: the diff sync's exact desired set (F1.7), the stable ids (F1.5), cancel on complete/delete, reschedule on re-open, a recurring rule accepted as a repeating alarm, both birthday offsets, and the F6.2c schedule mode against the real `SCHEDULE_EXACT_ALARM` app op (`--dart-define=E2E_EXACT_ALARMS=deny\|allow`) |
+| `home_widget_test.dart` | the real `widget_payload_v2` bytes in `home_widget`'s Android `SharedPreferences` — `v`, `lang`, `dueAt`, the deleted pre-F5.1 key |
+| `backup_test.dart` | export → a real file in `getTemporaryDirectory()` → `clearAllData` (rows gone, alarms cancelled) → `BackupFormat.decode` → `apply(replace)` → data and alarms back |
+| `deep_link_test.dart` | the real `reminderwidget://` URIs (`homeWidget=true` included) through the live `WidgetLaunchRouter` `main()` attached, plus the F5.3 shortcut targets |
+| `routine_test.dart` | F3.7: applying a routine from Listeler › Rutinlerim creates real rows and a real OS alarm, with the routine's repeat rule on the timed step |
+
+`.github/scripts/e2e.sh` adds the checks that live outside the app process: that
+`quick_actions` really published the four launcher shortcuts (`dumpsys shortcut`),
+that the four `AppWidgetProvider`s are registered (`dumpsys appwidget`) and that the
+`es.antonborri.home_widget.action.LAUNCH` intents with `reminderwidget://` data reach
+`MainActivity` (`am start -W`). A Dart test inside the app cannot observe another
+process' intent.
+
+**Conventions.**
+
+- **No `sleep` / `Future.delayed`.** Wait with `settle` (an animation-aware
+  `pumpAndSettle` that survives a never-settling tree) or `pumpUntil` /
+  `pumpUntilTrue` from `integration_test/helpers/e2e.dart` — a polling expectation
+  with a deadline and a message that says what it was waiting for.
+- Assert on `Key`s and widget types, not on localized literals. `launchApp` pins the
+  app language to Turkish (`AppLanguageStore`) so the quick-capture grammar is
+  deterministic whatever locale the emulator boots with.
+- The l10n guard test scans `lib/`, not `integration_test/`, so Turkish strings in a
+  test are fine — but prefer looking a label up through `AppLocalizations` over
+  pasting it.
+- Adding a file: put it in the ordered list in `.github/scripts/e2e.sh` (otherwise CI
+  never runs it) and say whether it needs a cleared app.
+
+**Not covered, and why.** iOS (no Mac; the iOS side stays contract-tested, see
+**iOS widgets (F5.2)**); API 26–30 behaviour such as the `RemoteViewsService`
+collection path (one image per run, API 34 chosen — see `e2e.yml`); a notification
+actually *firing* and its Tamamla/Ertele actions (they need the alarm to elapse and a
+notification-shade tap); geofence entry (needs simulated location plus a background
+relaunch); the share sheet and the document picker (system UI); and how anything
+*looks* (no golden/screenshot comparison — `e2e-artifacts/` keeps one screencap per
+file for diagnosis only).
 
 ## Routines (F3.7)
 
