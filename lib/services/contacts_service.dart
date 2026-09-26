@@ -148,11 +148,25 @@ class PluginContactsPlatform implements ContactsPlatform {
     // A year the app cannot compute an age from (year 0/negative, the pre-v6
     // sentinel 4, or the future) is dropped to `null` rather than stored: the
     // birthday still imports, just without an age.
-    final keep = (year != null && year > 1000 && year <= _thisYear()) ? year : null;
+    final keep =
+        (year != null && year > 1000 && year <= _thisYear()) ? year : null;
     return ContactBirthday(name: name, month: month, day: day, year: keep);
   }
 
-  static const _daysInLeapMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  static const _daysInLeapMonth = [
+    31,
+    29,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31
+  ];
 
   static int _thisYear() => DateTime.now().year;
 

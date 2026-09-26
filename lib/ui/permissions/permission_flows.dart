@@ -134,10 +134,12 @@ abstract final class PermissionFlows {
     final controller = PermissionScope.read(context);
     final service = controller.service;
     final state = (await controller.refresh()).contacts;
-    if (state == ContactsPermissionState.granted) return state;
+    // Granted needs nothing; an earlier denial must **not** bounce the user
+    // into system settings just for opening the sheet — the sheet explains and
+    // offers [fixContacts] as a deliberate choice.
+    if (state != ContactsPermissionState.notRequested) return state;
 
-    if (state == ContactsPermissionState.notRequested &&
-        await service.shouldShowPrompt(PermissionPrompt.contacts)) {
+    if (await service.shouldShowPrompt(PermissionPrompt.contacts)) {
       await service.markPromptShown(PermissionPrompt.contacts);
       if (!context.mounted) return state;
       final l10n = context.l10n;
