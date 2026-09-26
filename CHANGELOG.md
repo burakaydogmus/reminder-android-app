@@ -18,6 +18,24 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 
 ### Eklendi
 
+- **Rutinler (hatırlatıcı şablonları):** Listeler sekmesindeki "Rutinlerim" bölümünde hazır
+  paketler kurabiliyorsun: "Sabah rutini" = spor 07:00 + vitamin 07:30 + su (saatsiz). Rutine
+  dokunmak onu seçtiğin güne uygular, yani adımlarından **gerçek hatırlatıcılar** oluşturur;
+  varsayılan gün bugün, istersen başka bir gün seçiyorsun. Her adımın başlığı, isteğe bağlı saati,
+  kategorisi, önceliği ve kendi maddeleri var; saat vermediğin adım, editörde "Zamanla ve bildir"
+  kapalı bir hatırlatıcı gibi zamansız oluyor (Bugün bir ara).
+  **Otomatik uygulama:** rutine "Her gün" ya da "Seçili günler" verdiğinde saatli adımları
+  tekrarlayan hatırlatıcı olarak oluşuyor; sonraki günleri işletim sistemi kendi bildirim
+  tekrarıyla getiriyor — uygulamanın arka planda çalışmasına gerek yok, bu yüzden "bazı sabahlar
+  gelmedi" durumu yaşanmıyor. Saatsiz adımlar tekrar etmiyor (zamansız hatırlatıcı bildirim
+  kurmaz).
+  **Kopya koruması:** aynı rutini aynı gün için ikinci kez uygulamaya çalışırsan sessizce
+  kopyalanmıyor: "Bugün bu rutini zaten uyguladın" uyarısıyla ya yalnızca yeni adımlar ekleniyor,
+  ya (tekrarlayan rutinlerde) var olan hatırlatıcılar seçtiğin güne taşınıyor, ya da "Yine de
+  hepsini ekle" ile bilerek ikinci set oluşturuluyor. Rutini silmek daha önce oluşturduğu
+  hatırlatıcılara dokunmuyor; rutini düzenlemek de eski hatırlatıcıları geri dönük değiştirmiyor.
+  Rutinler yedeklere de giriyor (aşağıdaki "Değişti" notuna bakın).
+
 - **Rehberden doğum günü aktarma:** Doğum günleri sayfasındaki yeni **"Rehberden aktar"**
   düğmesi rehberindeki doğum günlerini elle yazmaktan kurtarıyor. Rehber **bir kez** okunuyor;
   doğum günü olan kişiler ad, tarih ve yıl bilinmiyorsa "yıl bilinmiyor" notuyla listeleniyor,
@@ -217,6 +235,13 @@ numaraları [Semantik Sürümleme](https://semver.org/lang/tr/) izler. Mevcut `p
 - Geliştirme yol haritası ve "Kor" tasarım yönü dokümanı. (#1, #4)
 
 ### Değişti
+
+- **Yedek dosyası artık rutinleri de taşıyor** (JSON'daki `routines` anahtarı ve hatırlatıcıdaki
+  `routineId` / `routineItemId` alanları). Biçim sürümü **2'de kaldı**: eklenen alanlar ek
+  niteliğinde olduğu için **eski bir uygulama sürümü bu dosyayı yine açabiliyor** — yalnızca
+  rutinleri yok sayıyor, hatırlatıcı/doğum günü/kategori/ayar verisinin tamamını olduğu gibi
+  alıyor. Eski (sürüm 1 ve 2) yedekler de değişmeden içe aktarılıyor. Veritabanı şeması v7'ye
+  çıktı (rutin tabloları); yükseltme mevcut verilere dokunmuyor.
 
 - **Doğum yılı gerçekten isteğe bağlı saklanıyor:** "Yıl bilinmiyor" işaretli doğum günleri
   artık sahte bir yılla değil, boş yıl alanıyla kaydediliyor (veritabanı şeması v6). Güncelleme

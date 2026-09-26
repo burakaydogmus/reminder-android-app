@@ -130,6 +130,26 @@ Diğer tüm fazların temeli.
 - [x] **F3.6 Arama ve görünümler** · `feat/search-and-views` · *bağımlı: F4.1*
   Bugün zaman şeridi (Kaçanlar / şerit / Bugün bir ara), Takvim gündemi (Yaklaşan), Listeler › akıllı listeler (Zamansız dahil), Türkçe karakter duyarsız arama.
 
+- [x] **F3.7 Rutinler (hatırlatıcı şablonları)** · `feat/routines` · *bağımlı: F3.1, F3.3, F3.4, F4.3*
+  "Sabah rutini" = spor + vitamin + su: adları, isteğe bağlı saatleri, kategorileri, öncelikleri
+  ve maddeleri olan **adımlar**; tek dokunuşla seçilen güne gerçek hatırlatıcı olurlar. Yeni bir
+  sözlük icat edilmedi: adım `ReminderCategory` kimliği, `ReminderPriority`, `Subtask` ve
+  (otomatik uygulama için) `RecurrenceRule` kullanır. Şema **v7** (`routines` + `routine_items`,
+  hatırlatıcıda gevşek `routine_id` / `routine_item_id` bağı); yedek biçimi **2'de kaldı** (ek
+  anahtarlar, eski sürüm dosyayı hâlâ okur). Kopya koruması: aynı adım aynı gün için ikinci kez
+  sessizce oluşmaz — "Yalnızca yenileri ekle" / "Hatırlatıcıları güncelle" / "Yine de hepsini
+  ekle". Rutini silmek oluşturduğu hatırlatıcılara dokunmaz; rutini düzenlemek geçmiş uygulamaları
+  geri dönük değiştirmez.
+  *Otomatik uygulama arka plan görevi **değildir**:* rutinin tekrarı (Yok / Her gün / Seçili
+  günler) oluşan hatırlatıcılara `RecurrenceRule` olarak geçer, sonraki günleri işletim sistemi
+  bildirim tekrarıyla getirir (F3.1 motoru). WorkManager/BGTaskScheduler bilinçli olarak
+  kullanılmadı: iOS arka plan görevinin çalışacağını garanti etmez, yani bazı sabahlar rutin
+  sessizce oluşmazdı. Saatsiz adım tekrar etmez (zamansız hatırlatıcı bildirim kurmaz).
+  *Sonraki adımlar:* tek bir rutini paylaşma/dışa aktarma, var olan hatırlatıcılardan rutin
+  oluşturma ("bunları rutin olarak kaydet"), hızlı yakalama ayrıştırıcısında rutin adı, rutini
+  düzenledikten sonra "bu rutinin hatırlatıcılarını güncelle" toplu eylemi ve uygulamayı geri alma
+  (`UndoSnackBar`) yapılmadı.
+
 ## Faz 4 — Arayüz ve deneyim ("Kor")
 
 *Referans: [`docs/design/kor-design-proposal.md`](docs/design/kor-design-proposal.md) (§3 token'lar ve ekranlar, §5 Flutter notları) ve [`docs/design/kor-screens.json`](docs/design/kor-screens.json).*
