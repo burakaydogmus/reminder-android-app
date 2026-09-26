@@ -40,6 +40,7 @@ void main() {
   late UiHarness h;
   late DateTime now;
   late int refreshes;
+  late List<String> steps;
   late List<Reminder> stored;
 
   final open = buildReminder(id: 'a', title: 'Kitabı iade et');
@@ -47,19 +48,26 @@ void main() {
   setUp(() async {
     now = _start;
     refreshes = 0;
+    steps = [];
     stored = [open];
     h = await UiHarness.create(reminders: [open]);
     // Storage as the widget isolate leaves it; `load()` reads it.
-    when(() => h.repository.loadReminders()).thenAnswer((_) async => [
-          ...stored,
-        ]);
+    when(() => h.repository.loadReminders()).thenAnswer((_) async {
+      steps.add('load');
+      return [...stored];
+    });
     clearInteractions(h.repository);
   });
 
   Widget reloader({required Widget child, bool listen = false}) {
     return AppStateReloader(
       clock: () => now,
-      refreshStorage: () async => refreshes++,
+      refreshStorage: () async {
+        refreshes++;
+        steps.add('refreshStorage');
+      },
+      // F5.2: the iOS widget's completion queue is applied before `load`.
+      applyWidgetCompletions: () async => steps.add('applyWidgetCompletions'),
       listenToWidgetChanges: listen,
       child: child,
     );
@@ -104,6 +112,21 @@ void main() {
     expect(refreshes, 1);
     verify(() => h.repository.loadReminders()).called(1);
     expect(h.cubit.state.reminders.single.isDone, isTrue);
+  });
+
+  testWidgets(
+      'pending iOS widget completions are applied before the cubit loads', (
+    tester,
+  ) async {
+    await pumpShell(tester);
+
+    await _background(tester);
+    now = now.add(const Duration(minutes: 5));
+    await _foreground(tester);
+
+    // F5.2: applying after `load` would let the stale in-memory state
+    // overwrite the completion on the next in-app save (same reason as F1.3).
+    expect(steps, ['refreshStorage', 'applyWidgetCompletions', 'load']);
   });
 
   testWidgets('resume within the throttle window is ignored', (tester) async {
